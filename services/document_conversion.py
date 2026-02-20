@@ -200,7 +200,16 @@ def combine_csvs_to_excel(csv_files, output_path, sheet_names=None):
 
 
 def get_soffice_path():
-    """Get the full path to soffice executable, trying multiple common locations"""
+    """Get the full path to soffice executable.
+
+    Checks ``LIBREOFFICE_SOFFICE_PATH`` environment variable first, then
+    tries well-known locations.
+    """
+    # Allow explicit override via environment variable
+    env_path = os.environ.get('LIBREOFFICE_SOFFICE_PATH')
+    if env_path:
+        return env_path
+
     possible_paths = [
         'soffice',  # Try in PATH first
         'soffice.exe',
