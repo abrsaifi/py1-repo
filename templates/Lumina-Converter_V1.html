@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lumina · professional conversion hub</title>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #faf7f2;
+      font-family: 'Inter', sans-serif;
+      color: #2b3f4a;
+      line-height: 1.5;
+      padding-top: 90px; /* for fixed navbar */
+    }
+
+    .wrapper {
+      max-width: 1400px;
+      width: 92%;
+      margin: 0 auto 2rem;
+    }
+
+    /* --- FIXED TOP NAVBAR --- */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(250, 247, 242, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid #f0e2d8;
+      z-index: 1000;
+      padding: 0.8rem 0;
+      box-shadow: 0 8px 20px -10px #bba99d;
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      width: 92%;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: -0.02em;
+      color: #2d4f5a;
+      cursor: pointer;
+    }
+    .logo i {
+      color: #b68b7c;
+      font-size: 2rem;
+    }
+
+    /* --- DROPDOWN MENU SYSTEM --- */
+    .nav-menu {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropbtn {
+      background: transparent;
+      color: #56747d;
+      font-weight: 500;
+      font-size: 1.05rem;
+      padding: 0.5rem 0;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 2px solid transparent;
+    }
+    .dropbtn:hover {
+      color: #a67c6f;
+      border-bottom-color: #e2c0b4;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #ffffffef;
+      backdrop-filter: blur(16px);
+      min-width: 240px;
+      border-radius: 24px;
+      padding: 1rem 0.5rem;
+      box-shadow: 0 20px 30px -10px #a28d81;
+      border: 1px solid #ffefe6;
+      z-index: 10;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .dropdown-content a {
+      color: #38616b;
+      padding: 0.7rem 1.5rem;
+      text-decoration: none;
+      display: block;
+      font-size: 0.95rem;
+      border-radius: 40px;
+      transition: background 0.1s;
+    }
+    .dropdown-content a:hover {
+      background: #f5e7df;
+      color: #1f4b55;
+    }
+
+    /* right side icons */
+    .right-icons {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.3rem;
+      color: #56747d;
+      cursor: pointer;
+      padding: 0.3rem;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .icon-btn:hover {
+      color: #a67c6f;
+      background: #f0e0d6;
+    }
+    .btn-outline-light {
+      border: 1px solid #dacbc3;
+      border-radius: 100px;
+      padding: 0.5rem 1.4rem;
+      font-weight: 500;
+      color: #51717a;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    .btn-outline-light:hover {
+      background: #ffffffcc;
+    }
+
+    /* --- page system --- */
+    .page {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .page.active-page {
+      display: block;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0.2; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- service cards (clickable & linked) --- */
+    .service-category {
+      margin: 3rem 0 2rem;
+    }
+    .category-title {
+      font-size: 2rem;
+      font-weight: 400;
+      color: #48717c;
+      border-bottom: 2px solid #efdbd1;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .service-card {
+      background: #fcf7f2;
+      border-radius: 24px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #ffded1;
+      transition: all 0.15s;
+      font-weight: 500;
+      color: #38616b;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .service-card:hover {
+      background: white;
+      transform: translateY(-3px);
+      border-color: #d7bcae;
+      box-shadow: 0 8px 14px -12px #7e5e52;
+    }
+    .service-icon {
+      font-size: 1.4rem;
+      min-width: 32px;
+      color: #a67c6f;
+    }
+
+    /* --- two-column conversion page (linked from cards) --- */
+    .conversion-studio {
+      display: flex;
+      gap: 28px;
+      margin: 30px 0 50px;
+      min-height: 600px;
+    }
+    .left-preview {
+      flex: 7;
+      background: rgba(255, 250, 245, 0.6);
+      backdrop-filter: blur(10px);
+      border-radius: 48px;
+      padding: 2rem;
+      border: 1px solid #ffefe6;
+    }
+    .drag-area-enhanced {
+      background: #ffffffdc;
+      border: 2px dashed #edd8cf;
+      border-radius: 36px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+    }
+    .right-settings {
+      flex: 3;
+      background: #ffffffef;
+      backdrop-filter: blur(16px);
+      border-radius: 48px;
+      padding: 2rem;
+      border: 1px solid #ffe3d6;
+    }
+    .btn-convert {
+      background: #fff1e9;
+      border: 2px solid #ddc7bc;
+      width: 100%;
+      padding: 1.2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .footer {
+      margin-top: 70px;
+      padding: 35px 0;
+      border-top: 2px solid #efe2d9;
+      display: flex;
+      justify-content: space-between;
+      color: #66838c;
+    }
+
+    .bg-dots {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: radial-gradient(#dccfc7 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-dots"></div>
+
+  <!-- ========== FIXED TOP NAVBAR ========== -->
+  <nav class="navbar-fixed">
+    <div class="nav-container">
+      <div class="logo" onclick="switchPage('home')">
+        <i class="fa-regular fa-star"></i>
+        <span>lumina</span>
+      </div>
+
+      <!-- dropdown menus (services) -->
+      <div class="nav-menu">
+        <!-- PDF Core Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">PDF Core <i class="fa-solid fa-chevron-down" style="font-size:0.8rem;"></i></button>
+          <div class="dropdown-content">
+            <a href="#" onclick="openConversion('PDF to B&W'); return false;">⚫ PDF to B&W</a>
+            <a href="#" onclick="openConversion('To PDF'); return false;">📄 To PDF</a>
+            <a href="#" onclick="openConversion('Extract'); return false;">📋 Extract</a>
+            <a href="#" onclick="openConversion('Split PDF'); return false;">✂️ Split PDF</a>
+            <a href="#" onclick="openConversion('Merge PDF'); return false;">🔗 Merge PDF</a>
+            <a href="#" onclick="openConversion('Remove Pages'); return false;">🗑️ Remove Pages</a>
+            <a href="#" onclick="openConversion('OCR'); return false;">🔍 OCR</a>
+            <a href="#" onclick="openConversion('Watermark'); return false;">💧 Watermark</a>
+            <a href="#" onclick="openConversion('Clean'); return false;">✨ Clean</a>
+            <a href="#" onclick="openConversion('PDF Compress'); return false;">📦 PDF Compress</a>
+            <a href="#" onclick="openConversion('Encrypt'); return false;">🔒 Encrypt</a>
+            <a href="#" onclick="openConversion('Decrypt'); return false;">🔓 Decrypt</a>
+            <a href="#" onclick="openConversion('Redact'); return false;">🔐 Redact</a>
+            <a href="#" onclick="openConversion('Metadata'); return false;">🧹 Metadata</a>
+          </div>
+        </div>
+
+        <!-- PDF Conversion Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">PDF Conversion <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <a href="#" onclick="openConversion('PDF→PPT'); return false;">📽️ PDF→PPT</a>
+            <a href="#" onclick="openConversion('PPT→PDF'); return false;">📄 PPT→PDF</a>
+            <a href="#" onclick="openConversion('HTML→PDF'); return false;">🌐 HTML→PDF</a>
+            <a href="#" onclick="openConversion('PDF→HTML'); return false;">📑 PDF→HTML</a>
+            <a href="#" onclick="openConversion('Excel→CSV'); return false;">📊 Excel→CSV</a>
+            <a href="#" onclick="openConversion('Text→PDF'); return false;">📝 Text→PDF</a>
+            <a href="#" onclick="openConversion('Excel→PDF'); return false;">📄 Excel→PDF</a>
+            <a href="#" onclick="openConversion('No Colors'); return false;">⚫ No Colors</a>
+            <a href="#" onclick="openConversion('Formulas→Values'); return false;">🧮 Formulas→Values</a>
+            <a href="#" onclick="openConversion('Clean Charts'); return false;">📊 Clean Charts</a>
+            <a href="#" onclick="openConversion('Normalize'); return false;">📐 Normalize</a>
+            <a href="#" onclick="openConversion('Split Sheets'); return false;">📑 Split Sheets</a>
+          </div>
+        </div>
+
+        <!-- Image Tools Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">Image Tools <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <a href="#" onclick="openConversion('Image Convert'); return false;">🖼️ Image Convert</a>
+            <a href="#" onclick="openConversion('Image Compress'); return false;">🗜️ Image Compress</a>
+            <a href="#" onclick="openConversion('Image Resize'); return false;">📐 Image Resize</a>
+            <a href="#" onclick="openConversion('BG → White'); return false;">⚪ BG → White</a>
+            <a href="#" onclick="openConversion('Duplicate Remover'); return false;">🔄 Duplicate Remover</a>
+          </div>
+        </div>
+
+        <!-- Data & Spreadsheet Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">Data & Spreadsheet <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <a href="#" onclick="openConversion('Data Validator'); return false;">✅ Data Validator</a>
+            <a href="#" onclick="openConversion('PDF Export'); return false;">📤 PDF Export</a>
+            <a href="#" onclick="openConversion('Reporting'); return false;">📊 Reporting</a>
+            <a href="#" onclick="openConversion('Database'); return false;">🗄️ Database</a>
+          </div>
+        </div>
+
+        <!-- More Tools Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">More tools <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <a href="#" onclick="openConversion('PDF to B&W (pro)'); return false;">⚫ PDF to B&W (pro)</a>
+            <a href="#" onclick="openConversion('To PDF (advanced)'); return false;">📄 To PDF (advanced)</a>
+            <a href="#" onclick="openConversion('Extract (extended)'); return false;">📋 Extract (extended)</a>
+            <a href="#" onclick="openConversion('Split PDF (batch)'); return false;">✂️ Split PDF (batch)</a>
+            <a href="#" onclick="openConversion('Merge PDF (smart)'); return false;">🔗 Merge PDF (smart)</a>
+            <a href="#" onclick="openConversion('Remove Pages (range)'); return false;">🗑️ Remove Pages (range)</a>
+            <a href="#" onclick="openConversion('OCR (searchable)'); return false;">🔍 OCR (searchable)</a>
+            <a href="#" onclick="openConversion('Watermark (image/text)'); return false;">💧 Watermark (image/text)</a>
+            <a href="#" onclick="openConversion('Clean (deskew)'); return false;">✨ Clean (deskew)</a>
+            <a href="#" onclick="openConversion('PDF Compress (lossless)'); return false;">📦 PDF Compress (lossless)</a>
+            <a href="#" onclick="openConversion('Encrypt (AES-256)'); return false;">🔒 Encrypt (AES-256)</a>
+            <a href="#" onclick="openConversion('Decrypt (remove)'); return false;">🔓 Decrypt (remove)</a>
+            <a href="#" onclick="openConversion('Redact (permanent)'); return false;">🔐 Redact (permanent)</a>
+            <a href="#" onclick="openConversion('Metadata (clean)'); return false;">🧹 Metadata (clean)</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- right side icons (login, register, settings, theme toggle) -->
+      <div class="right-icons">
+        <i class="fa-regular fa-moon icon-btn" id="themeToggle" title="toggle theme"></i>
+        <i class="fa-regular fa-gear icon-btn" title="settings"></i>
+        <a href="#" class="btn-outline-light">log in</a>
+        <a href="#" class="btn-outline-light" style="background:#fff2eb;">register</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+    <!-- ========== HOME PAGE (with all service cards) ========== -->
+    <div id="page-home" class="page active-page">
+      <div class="hero" style="text-align:center; margin:1rem 0 2rem;">
+        <h1 style="font-size:3.5rem;">complete <span>service studio</span></h1>
+        <p style="font-size:1.3rem;">over 50 professional tools — PDF, images, data, and documents</p>
+      </div>
+
+      <!-- top feature cards (quick) -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-bottom:3rem;">
+        <div class="feature-card" style="background:rgba(255,250,245,0.8); border-radius:36px; padding:2rem;">
+          <h3>✨ pristine quality</h3>
+          <p>Lossless conversion for all formats.</p>
+        </div>
+        <div class="feature-card" style="background:rgba(255,250,245,0.8); border-radius:36px; padding:2rem;">
+          <h3>⚡ lightning fast</h3>
+          <p>Process files in seconds.</p>
+        </div>
+        <div class="feature-card" style="background:rgba(255,250,245,0.8); border-radius:36px; padding:2rem;">
+          <h3>🔒 privacy first</h3>
+          <p>End‑to‑end encrypted.</p>
+        </div>
+      </div>
+
+      <!-- ===== ALL SERVICE CARDS (linked to conversion page) ===== -->
+      <!-- PDF Core -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-file-pdf"></i> PDF Core</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('PDF to B&W')"><span class="service-icon">⚫</span> PDF to B&W</div>
+          <div class="service-card" onclick="openConversion('To PDF')"><span class="service-icon">📄</span> To PDF</div>
+          <div class="service-card" onclick="openConversion('Extract')"><span class="service-icon">📋</span> Extract</div>
+          <div class="service-card" onclick="openConversion('Split PDF')"><span class="service-icon">✂️</span> Split PDF</div>
+          <div class="service-card" onclick="openConversion('Merge PDF')"><span class="service-icon">🔗</span> Merge PDF</div>
+          <div class="service-card" onclick="openConversion('Remove Pages')"><span class="service-icon">🗑️</span> Remove Pages</div>
+          <div class="service-card" onclick="openConversion('OCR')"><span class="service-icon">🔍</span> OCR</div>
+          <div class="service-card" onclick="openConversion('Watermark')"><span class="service-icon">💧</span> Watermark</div>
+          <div class="service-card" onclick="openConversion('Clean')"><span class="service-icon">✨</span> Clean</div>
+          <div class="service-card" onclick="openConversion('PDF Compress')"><span class="service-icon">📦</span> PDF Compress</div>
+          <div class="service-card" onclick="openConversion('Encrypt')"><span class="service-icon">🔒</span> Encrypt</div>
+          <div class="service-card" onclick="openConversion('Decrypt')"><span class="service-icon">🔓</span> Decrypt</div>
+          <div class="service-card" onclick="openConversion('Redact')"><span class="service-icon">🔐</span> Redact</div>
+          <div class="service-card" onclick="openConversion('Metadata')"><span class="service-icon">🧹</span> Metadata</div>
+        </div>
+      </div>
+
+      <!-- PDF Conversion -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-arrow-right-arrow-left"></i> PDF Conversion</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('PDF→PPT')"><span class="service-icon">📽️</span> PDF→PPT</div>
+          <div class="service-card" onclick="openConversion('PPT→PDF')"><span class="service-icon">📄</span> PPT→PDF</div>
+          <div class="service-card" onclick="openConversion('HTML→PDF')"><span class="service-icon">🌐</span> HTML→PDF</div>
+          <div class="service-card" onclick="openConversion('PDF→HTML')"><span class="service-icon">📑</span> PDF→HTML</div>
+          <div class="service-card" onclick="openConversion('Excel→CSV')"><span class="service-icon">📊</span> Excel→CSV</div>
+          <div class="service-card" onclick="openConversion('Text→PDF')"><span class="service-icon">📝</span> Text→PDF</div>
+          <div class="service-card" onclick="openConversion('Excel→PDF')"><span class="service-icon">📄</span> Excel→PDF</div>
+          <div class="service-card" onclick="openConversion('No Colors')"><span class="service-icon">⚫</span> No Colors</div>
+          <div class="service-card" onclick="openConversion('Formulas→Values')"><span class="service-icon">🧮</span> Formulas→Values</div>
+          <div class="service-card" onclick="openConversion('Clean Charts')"><span class="service-icon">📊</span> Clean Charts</div>
+          <div class="service-card" onclick="openConversion('Normalize')"><span class="service-icon">📐</span> Normalize</div>
+          <div class="service-card" onclick="openConversion('Split Sheets')"><span class="service-icon">📑</span> Split Sheets</div>
+        </div>
+      </div>
+
+      <!-- Image Tools -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-image"></i> Image Tools</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('Image Convert')"><span class="service-icon">🖼️</span> Image Convert</div>
+          <div class="service-card" onclick="openConversion('Image Compress')"><span class="service-icon">🗜️</span> Image Compress</div>
+          <div class="service-card" onclick="openConversion('Image Resize')"><span class="service-icon">📐</span> Image Resize</div>
+          <div class="service-card" onclick="openConversion('BG → White')"><span class="service-icon">⚪</span> BG → White</div>
+          <div class="service-card" onclick="openConversion('Duplicate Remover')"><span class="service-icon">🔄</span> Duplicate Remover</div>
+        </div>
+      </div>
+
+      <!-- Data & Spreadsheet -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-table"></i> Data & Spreadsheet</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('Data Validator')"><span class="service-icon">✅</span> Data Validator</div>
+          <div class="service-card" onclick="openConversion('PDF Export')"><span class="service-icon">📤</span> PDF Export</div>
+          <div class="service-card" onclick="openConversion('Reporting')"><span class="service-icon">📊</span> Reporting</div>
+          <div class="service-card" onclick="openConversion('Database')"><span class="service-icon">🗄️</span> Database</div>
+        </div>
+      </div>
+
+      <!-- More tools (extra) -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-ellipsis"></i> More tools</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('PDF to B&W (pro)')"><span class="service-icon">⚫</span> PDF to B&W (pro)</div>
+          <div class="service-card" onclick="openConversion('To PDF (advanced)')"><span class="service-icon">📄</span> To PDF (advanced)</div>
+          <div class="service-card" onclick="openConversion('Extract (extended)')"><span class="service-icon">📋</span> Extract (extended)</div>
+          <div class="service-card" onclick="openConversion('Split PDF (batch)')"><span class="service-icon">✂️</span> Split PDF (batch)</div>
+          <div class="service-card" onclick="openConversion('Merge PDF (smart)')"><span class="service-icon">🔗</span> Merge PDF (smart)</div>
+          <div class="service-card" onclick="openConversion('Remove Pages (range)')"><span class="service-icon">🗑️</span> Remove Pages (range)</div>
+          <div class="service-card" onclick="openConversion('OCR (searchable)')"><span class="service-icon">🔍</span> OCR (searchable)</div>
+          <div class="service-card" onclick="openConversion('Watermark (image/text)')"><span class="service-icon">💧</span> Watermark (image/text)</div>
+          <div class="service-card" onclick="openConversion('Clean (deskew)')"><span class="service-icon">✨</span> Clean (deskew)</div>
+          <div class="service-card" onclick="openConversion('PDF Compress (lossless)')"><span class="service-icon">📦</span> PDF Compress (lossless)</div>
+          <div class="service-card" onclick="openConversion('Encrypt (AES-256)')"><span class="service-icon">🔒</span> Encrypt (AES-256)</div>
+          <div class="service-card" onclick="openConversion('Decrypt (remove)')"><span class="service-icon">🔓</span> Decrypt (remove)</div>
+          <div class="service-card" onclick="openConversion('Redact (permanent)')"><span class="service-icon">🔐</span> Redact (permanent)</div>
+          <div class="service-card" onclick="openConversion('Metadata (clean)')"><span class="service-icon">🧹</span> Metadata (clean)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CONVERSION PAGE (linked from cards) ========== -->
+    <div id="page-conversion" class="page">
+      <div class="hero" style="margin-bottom:0.5rem;">
+        <h1>conversion <span>studio</span></h1>
+        <p id="conversionTitle">selected tool: <span id="selectedTool">none</span></p>
+      </div>
+      <div class="conversion-studio">
+        <div class="left-preview">
+          <div class="drag-area-enhanced" id="studioDropZone">
+            <i class="fa-regular fa-hand-pointer"></i>
+            <h3>drag file or click</h3>
+            <button class="btn-elegant" id="studioBrowseBtn" style="padding:0.8rem 2.2rem;">browse</button>
+            <input type="file" id="studioFileInput" class="hidden-input">
+          </div>
+          <div style="background:#ffffffd9; border-radius:32px; padding:1.8rem; margin-top:1rem;">
+            <div id="previewPlaceholder">preview area</div>
+          </div>
+        </div>
+        <div class="right-settings">
+          <h3>settings for <span id="settingToolName">tool</span></h3>
+          <button class="btn-convert" id="convertBtn">start conversion</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div>© 2025 lumina — complete studio</div>
+    </footer>
+  </div>
+
+  <script>
+    function switchPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+      document.getElementById('page-' + pageId).classList.add('active-page');
+    }
+
+    function openConversion(toolName) {
+      switchPage('conversion');
+      document.getElementById('selectedTool').innerText = toolName;
+      document.getElementById('settingToolName').innerText = toolName;
+    }
+
+    // simple interaction for demo
+    document.getElementById('studioBrowseBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('studioFileInput')?.click();
+    });
+
+    document.getElementById('convertBtn')?.addEventListener('click', () => alert('conversion simulation'));
+
+    // theme toggle dummy
+    document.getElementById('themeToggle')?.addEventListener('click', () => alert('theme toggle (demo)'));
+  </script>
+</body>
+</html>

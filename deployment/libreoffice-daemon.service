@@ -1,0 +1,14 @@
+[Unit]
+Description=LibreOffice Headless Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=libreoffice
+Group=libreoffice
+ExecStart=/usr/bin/soffice --headless --accept="socket,host=0.0.0.0,port=2002;urp;" --norestore --nofirststartwizard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

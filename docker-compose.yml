@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - UPLOAD_CLEANUP_RETENTION=86400  # 24 hours
+      - UPLOAD_CLEANUP_INTERVAL=3600     # 1 hour
+      - UPLOAD_MAX_FILE_SIZE=52428800    # 50 MB
+      - RATE_LIMIT_WINDOW=60
+      - RATE_LIMIT_MAX=60
+    volumes:
+      # Mount app code for live reload during development
+      - ./app:/app/app
+      - ./server.py:/app/server.py
+      - ./requirements.txt:/app/requirements.txt
+      # Persistent upload directory
+      - docpro_uploads:/tmp/docpro_uploads
+    command: >
+      sh -c "pip install -e . &&
+             python -m flask run --host 0.0.0.0"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=docpro
+      - POSTGRES_PASSWORD=docpro_dev
+      - POSTGRES_DB=docpro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  docpro_uploads:
+  postgres_data:

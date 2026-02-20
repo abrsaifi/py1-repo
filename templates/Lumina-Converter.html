@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lumina · graceful file conversion</title>
+  <!-- Fonts & Icons (Inter + subtle icons) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #faf7f2;  /* soft warm white */
+      font-family: 'Inter', sans-serif;
+      color: #2b3f4a;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .wrapper {
+      max-width: 1280px;
+      width: 90%;
+      margin: 2rem auto;
+    }
+
+    /* --- elegant, minimal navigation --- */
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0 2rem;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: -0.02em;
+      color: #2d4f5a;
+      cursor: pointer;
+    }
+    .logo i {
+      color: #b68b7c;  /* soft terracotta */
+      font-size: 2rem;
+      font-weight: 300;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: #56747d;
+      font-weight: 500;
+      font-size: 1.05rem;
+      transition: color 0.2s;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 4px;
+      cursor: pointer;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: #a67c6f;
+      border-bottom-color: #e2c0b4;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #dacbc3;
+      border-radius: 100px;
+      padding: 0.55rem 1.6rem;
+      font-weight: 500;
+      color: #51717a;
+      transition: 0.15s;
+      text-decoration: none;
+    }
+    .btn-ghost:hover {
+      background: #ffffffcc;
+      border-color: #b7a096;
+    }
+
+    /* --- page container & transitions --- */
+    .page {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .page.active-page {
+      display: block;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0.2; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- beautiful hero (shared) --- */
+    .hero {
+      text-align: center;
+      margin: 1rem 0 2.5rem;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #203f49;
+      line-height: 1.2;
+    }
+    .hero h1 span {
+      font-weight: 300;
+      color: #b38f81;
+      font-style: italic;
+    }
+    .hero p {
+      font-size: 1.3rem;
+      color: #5b7983;
+      margin-top: 1.2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      font-weight: 350;
+    }
+
+    /* --- main converter — soft & dreamy --- */
+    .converter-panel {
+      background: rgba(255, 250, 245, 0.7);
+      backdrop-filter: blur(14px);
+      border-radius: 48px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 30px 50px -30px #ac9b9040, 0 0 0 1px rgba(255, 240, 230, 0.6) inset;
+      margin-bottom: 2rem;
+      border: 1px solid #fffbf5;
+    }
+
+    .drop-grace {
+      background: #ffffffdc;
+      border: 2px dashed #edd8cf;
+      border-radius: 36px;
+      padding: 3.2rem 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .drop-grace:hover {
+      border-color: #cba99b;
+      background: #fffdfb;
+      transform: scale(1.002);
+    }
+
+    .drop-grace i {
+      font-size: 4.5rem;
+      color: #dabbae;
+      margin-bottom: 1.2rem;
+      font-weight: 300;
+    }
+
+    .drop-grace h2 {
+      font-size: 2.2rem;
+      font-weight: 450;
+      color: #38616b;
+      margin-bottom: 0.5rem;
+    }
+
+    .drop-grace p {
+      color: #60848e;
+      margin-bottom: 2rem;
+    }
+
+    .btn-elegant {
+      background: #fffcf9;
+      border: 1px solid #decbc2;
+      padding: 1rem 2.8rem;
+      border-radius: 60px;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #3a616b;
+      box-shadow: 0 10px 20px -15px #88746733;
+      transition: 0.2s;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-elegant i {
+      font-size: 1.1rem;
+      color: #b48d7f;
+    }
+    .btn-elegant:hover {
+      background: white;
+      border-color: #c6afa4;
+      box-shadow: 0 15px 25px -18px #795f53;
+    }
+
+    .file-hint {
+      margin-top: 2rem;
+      font-size: 0.95rem;
+      color: #658c96;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    /* --- format cloud (soft pill grid) --- */
+    .format-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      margin: 2rem 0;
+    }
+    .format-pill {
+      background: #eff4f0;
+      padding: 0.8rem 2rem;
+      border-radius: 80px;
+      font-weight: 500;
+      color: #36626b;
+      border: 1px solid #dce5e0;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
+    }
+    .format-pill i {
+      margin-right: 8px;
+      color: #bc9a8c;
+    }
+    .format-pill:hover {
+      background: #f6ede8;
+      border-color: #c9b2a7;
+      transform: translateY(-3px);
+    }
+
+    /* --- features / cards --- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin: 2rem 0;
+    }
+    .feature-card {
+      background: rgba(255, 248, 242, 0.5);
+      backdrop-filter: blur(8px);
+      border-radius: 32px;
+      padding: 2.2rem 1.5rem;
+      text-align: center;
+      border: 1px solid #ffece3;
+    }
+    .feature-icon {
+      background: #f1e2da;
+      width: 70px;
+      height: 70px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 2rem;
+      color: #a48072;
+    }
+
+    /* --- page specific: formats library --- */
+    .format-category {
+      margin: 2.5rem 0;
+    }
+    .category-title {
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: #48717c;
+      border-bottom: 2px solid #efdbd1;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .format-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .format-item {
+      background: #f4f1ea;
+      padding: 1rem 1.4rem;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+      color: #38616b;
+    }
+
+    /* --- pricing cards --- */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin: 40px 0;
+    }
+    .pricing-card {
+      background: rgba(255, 250, 240, 0.6);
+      backdrop-filter: blur(12px);
+      border-radius: 40px;
+      padding: 2.5rem 1.8rem;
+      border: 1px solid #ffefe6;
+      text-align: center;
+    }
+    .price {
+      font-size: 3rem;
+      font-weight: 600;
+      color: #38616b;
+      margin: 20px 0;
+    }
+    .price small {
+      font-size: 1rem;
+      font-weight: 300;
+    }
+    .pricing-card.premium {
+      background: #fff8f0;
+      border: 2px solid #e6cbbf;
+      transform: scale(1.02);
+    }
+
+    /* --- about page team / story --- */
+    .about-story {
+      display: flex;
+      gap: 40px;
+      margin: 40px 0;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .story-text {
+      flex: 2;
+      font-size: 1.2rem;
+      color: #547781;
+    }
+    .values-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    /* --- footer --- */
+    .footer {
+      margin-top: 70px;
+      padding: 35px 0;
+      border-top: 2px solid #efe2d9;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      color: #66838c;
+    }
+    .footer a {
+      color: #66838c;
+      text-decoration: none;
+      margin-left: 30px;
+      font-weight: 400;
+    }
+
+    /* hidden file input */
+    .hidden-input { display: none; }
+
+    /* subtle background */
+    .bg-dots {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: radial-gradient(#dccfc7 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    @media (max-width: 750px) {
+      .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-dots"></div>
+  <div class="wrapper">
+
+    <!-- ==========  GRACEFUL NAVIGATION ========== -->
+    <nav class="nav-bar">
+      <div class="logo" onclick="switchPage('home')">
+        <i class="fa-regular fa-star"></i>
+        <span>lumina</span>
+      </div>
+      <div class="nav-links">
+        <a class="active" data-page="home" onclick="switchPage('home')">home</a>
+        <a data-page="formats" onclick="switchPage('formats')">formats</a>
+        <a data-page="pricing" onclick="switchPage('pricing')">pricing</a>
+        <a data-page="about" onclick="switchPage('about')">about</a>
+        <a href="#" class="btn-ghost">sign in</a>
+      </div>
+    </nav>
+
+    <!-- ==========  HOME PAGE ========== -->
+    <div id="page-home" class="page active-page">
+      <div class="hero">
+        <h1>graceful <span>file conversion</span></h1>
+        <p>Transform your documents, images, and audio — beautifully simple, perfectly private.</p>
+      </div>
+
+      <!-- main converter -->
+      <div class="converter-panel">
+        <div class="drop-grace" id="dropZone">
+          <i class="fa-regular fa-circle-check"></i>
+          <h2>drag & drop with elegance</h2>
+          <p>or browse to choose files — we support 300+ formats</p>
+          <button class="btn-elegant" id="browseBtn">
+            <i class="fa-regular fa-hand-pointer"></i> select files
+          </button>
+          <input type="file" id="fileInput" class="hidden-input" multiple>
+          <div class="file-hint" id="fileInfo">
+            <i class="fa-regular fa-clock"></i> files disappear after 1 hour · zero knowledge
+          </div>
+        </div>
+
+        <!-- format cloud -->
+        <div style="margin-top: 2rem; text-align: center;">
+          <div class="format-cloud">
+            <span class="format-pill"><i class="fa-regular fa-file-pdf"></i> PDF → DOCX</span>
+            <span class="format-pill"><i class="fa-regular fa-image"></i> PNG → JPG</span>
+            <span class="format-pill"><i class="fa-regular fa-file-lines"></i> EPUB → PDF</span>
+            <span class="format-pill"><i class="fa-regular fa-file-audio"></i> MP3 → WAV</span>
+            <span class="format-pill"><i class="fa-regular fa-file-video"></i> MOV → MP4</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- features -->
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-regular fa-gem"></i></div>
+          <h3>pristine quality</h3>
+          <p>Lossless conversion for images, audio & documents.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-regular fa-heart"></i></div>
+          <h3>gentle on privacy</h3>
+          <p>End‑to‑end encrypted. Files auto‑purged after processing.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-regular fa-compass"></i></div>
+          <h3>limitless formats</h3>
+          <p>350+ formats including PDF, Office, CAD, and more.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========  FORMATS PAGE (library) ========== -->
+    <div id="page-formats" class="page">
+      <div class="hero" style="margin-bottom: 0.5rem;">
+        <h1>supported <span>formats</span></h1>
+        <p>over 350 file types · beautifully organized</p>
+      </div>
+
+      <div class="format-category">
+        <div class="category-title"><i class="fa-regular fa-file-pdf" style="margin-right: 12px;"></i> Documents</div>
+        <div class="format-list">
+          <div class="format-item"><i class="fa-regular fa-file-pdf"></i> PDF</div>
+          <div class="format-item"><i class="fa-regular fa-file-word"></i> DOCX</div>
+          <div class="format-item"><i class="fa-regular fa-file-word"></i> DOC</div>
+          <div class="format-item"><i class="fa-regular fa-file-lines"></i> TXT</div>
+          <div class="format-item"><i class="fa-regular fa-file-powerpoint"></i> PPTX</div>
+          <div class="format-item"><i class="fa-regular fa-file-excel"></i> XLSX</div>
+          <div class="format-item"><i class="fa-regular fa-file"></i> RTF</div>
+          <div class="format-item"><i class="fa-regular fa-file-lines"></i> EPUB</div>
+        </div>
+      </div>
+
+      <div class="format-category">
+        <div class="category-title"><i class="fa-regular fa-image" style="margin-right: 12px;"></i> Images</div>
+        <div class="format-list">
+          <div class="format-item"><i class="fa-regular fa-image"></i> JPG</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> PNG</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> GIF</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> WEBP</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> BMP</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> TIFF</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> SVG</div>
+          <div class="format-item"><i class="fa-regular fa-image"></i> HEIC</div>
+        </div>
+      </div>
+
+      <div class="format-category">
+        <div class="category-title"><i class="fa-regular fa-file-audio" style="margin-right: 12px;"></i> Audio & Video</div>
+        <div class="format-list">
+          <div class="format-item"><i class="fa-regular fa-file-audio"></i> MP3</div>
+          <div class="format-item"><i class="fa-regular fa-file-audio"></i> WAV</div>
+          <div class="format-item"><i class="fa-regular fa-file-audio"></i> FLAC</div>
+          <div class="format-item"><i class="fa-regular fa-file-video"></i> MP4</div>
+          <div class="format-item"><i class="fa-regular fa-file-video"></i> MOV</div>
+          <div class="format-item"><i class="fa-regular fa-file-video"></i> AVI</div>
+          <div class="format-item"><i class="fa-regular fa-file-video"></i> MKV</div>
+          <div class="format-item"><i class="fa-regular fa-file-video"></i> WEBM</div>
+        </div>
+      </div>
+      <p style="text-align: center; color:#6f929c; margin: 40px;">and many more — including CAD, fonts, and archives</p>
+    </div>
+
+    <!-- ==========  PRICING PAGE ========== -->
+    <div id="page-pricing" class="page">
+      <div class="hero">
+        <h1>simple <span>pricing</span></h1>
+        <p>designed for individuals, teams, and dreamers</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>essential</h3>
+          <div class="price">$9 <small>/mo</small></div>
+          <p style="margin: 20px 0;">100 conversions/day<br>500 MB max file size<br>Email support</p>
+          <button class="btn-elegant">start free trial</button>
+        </div>
+        <div class="pricing-card premium">
+          <h3>creator</h3>
+          <div class="price">$19 <small>/mo</small></div>
+          <p style="margin: 20px 0;">500 conversions/day<br>2 GB max file size<br>Priority support + OCR</p>
+          <button class="btn-elegant">most popular</button>
+        </div>
+        <div class="pricing-card">
+          <h3>teams</h3>
+          <div class="price">$39 <small>/mo</small></div>
+          <p style="margin: 20px 0;">unlimited conversions<br>5 GB per file<br>Team workspace & SSO</p>
+          <button class="btn-elegant">contact sales</button>
+        </div>
+      </div>
+      <p style="text-align: center; color:#6f929c;">all plans include 256-bit encryption · no hidden fees</p>
+    </div>
+
+    <!-- ==========  ABOUT PAGE ========== -->
+    <div id="page-about" class="page">
+      <div class="hero">
+        <h1>behind <span>lumina</span></h1>
+        <p>we believe conversion should feel gentle, like a conversation</p>
+      </div>
+
+      <div class="about-story">
+        <div class="story-text">
+          <p style="font-size: 1.4rem; font-weight: 300; margin-bottom: 1.5rem;">Founded in 2020, lumina started from a simple idea: file tools don't have to feel sterile.</p>
+          <p>We're a small, fully remote team of designers and engineers who care about privacy, elegance, and the little details. Every pixel is crafted to make your experience calm and trustworthy.</p>
+        </div>
+        <div style="flex: 1; background: #f3e8e0; border-radius: 40px; padding: 2rem; text-align: center;">
+          <i class="fa-regular fa-star" style="font-size: 3rem; color: #a67c6f;"></i>
+          <p style="margin-top: 1rem;">ISO 27001 certified</p>
+          <p>GDPR compliant</p>
+        </div>
+      </div>
+
+      <div class="values-list">
+        <div class="feature-card" style="padding: 1.8rem;">
+          <h3>🌱 ethical</h3>
+          <p>We never sell your data. Period.</p>
+        </div>
+        <div class="feature-card" style="padding: 1.8rem;">
+          <h3>🕊️ transparent</h3>
+          <p>Open source core, public roadmap.</p>
+        </div>
+        <div class="feature-card" style="padding: 1.8rem;">
+          <h3>🤲 accessible</h3>
+          <p>Free tier for essential needs.</p>
+        </div>
+        <div class="feature-card" style="padding: 1.8rem;">
+          <h3>🌍 sustainable</h3>
+          <p>Carbon‑aware servers.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========  FOOTER ========== -->
+    <footer class="footer">
+      <div>© 2025 lumina — designed with patience</div>
+      <div>
+        <a href="#" onclick="switchPage('about'); return false;">about</a>
+        <a href="#" onclick="switchPage('pricing'); return false;">pricing</a>
+        <a href="#">status</a>
+      </div>
+    </footer>
+
+  </div> <!-- end wrapper -->
+
+  <!-- ==========  scripts ========== -->
+  <script>
+    // ----- MULTI-PAGE SWITCHING -----
+    window.switchPage = function(pageId) {
+      // deactivate all pages and nav links
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      // activate selected page
+      const targetPage = document.getElementById('page-' + pageId);
+      if (targetPage) targetPage.classList.add('active-page');
+      
+      // activate corresponding nav link (data-page attribute)
+      const activeNav = Array.from(document.querySelectorAll('.nav-links a')).find(
+        a => a.dataset.page === pageId
+      );
+      if (activeNav) activeNav.classList.add('active');
+      
+      // special case for logo (home)
+      if (pageId === 'home') {
+        const homeLink = Array.from(document.querySelectorAll('.nav-links a')).find(
+          a => a.dataset.page === 'home'
+        );
+        if (homeLink) homeLink.classList.add('active');
+      }
+    };
+
+    // ----- DROP ZONE INTERACTION (only on home page, but safe to attach globally) -----
+    (function() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      const browseBtn = document.getElementById('browseBtn');
+      const fileInfo = document.getElementById('fileInfo');
+
+      if (browseBtn) {
+        browseBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          fileInput.click();
+        });
+      }
+
+      if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+          if (fileInput.files.length > 0) {
+            const count = fileInput.files.length;
+            fileInfo.innerHTML = `<i class="fa-regular fa-circle-check" style="color:#b48f80;"></i> ${count} selected · ready to convert gracefully`;
+          } else {
+            fileInfo.innerHTML = `<i class="fa-regular fa-clock"></i> files disappear after 1 hour · zero knowledge`;
+          }
+        });
+      }
+
+      if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+          dropZone.addEventListener(ev, (e) => e.preventDefault());
+        });
+
+        ['dragenter', 'dragover'].forEach(ev => {
+          dropZone.addEventListener(ev, () => dropZone.classList.add('dragover'));
+        });
+        ['dragleave', 'drop'].forEach(ev => {
+          dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'));
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+          const files = e.dataTransfer.files;
+          if (files.length) {
+            fileInfo.innerHTML = `<i class="fa-regular fa-star" style="color:#b48f80;"></i> ${files.length} file(s) dropped — beautiful choice`;
+          }
+        });
+
+        dropZone.addEventListener('click', (e) => {
+          if (!e.target.closest('button') && fileInput) {
+            fileInput.click();
+          }
+        });
+      }
+    })();
+
+    // ensure home is active on load (already set in html, but double-check)
+    window.onload = function() {
+      // if no page active, set home
+      if (!document.querySelector('.page.active-page')) {
+        switchPage('home');
+      }
+    };
+  </script>
+
+  <!-- floating charm -->
+  <div style="position: fixed; bottom: 20px; left: 20px; opacity: 0.2; pointer-events: none; font-size: 2rem; transform: rotate(15deg);">🍂</div>
+</body>
+</html>

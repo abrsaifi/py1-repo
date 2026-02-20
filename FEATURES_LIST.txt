@@ -1,0 +1,31 @@
+Toast Notifications & Success Feedback
+Search & Filter Services
+Persistent Settings Panel (Settings & Presets)
+Live File Validation
+Keyboard Shortcuts
+Before/After Preview with Scrubber Slider
+Batch Operation Hub & Progress Tracking
+Smart Defaults & Tool Recommendations
+Dark Mode Toggle
+Tooltips & Onboarding Tour
+Drag-Drop Zones Everywhere
+Undo/Redo with History
+Output / Download Management
+Mobile UX Fixes
+API Integration Hints / API Modal
+Watermark Enhancements (text/image)
+Document Redaction
+Text-to-PDF Converter
+PDF Metadata Removal
+OCR Enhancements
+HTML to PDF Conversion
+Additional Format Conversions
+Image Compression Tool
+PDF Compression
+Image Resize Tool
+Image Background → White
+Excel Productivity Suite (Excel to PDF, bundles)
+Batch Processing Enhancements
+Chunked Uploads
+Verification Tests & Security Considerations
+New Flask Routes (e.g., /redact, /text-to-pdf, /remove-metadata, /watermark)
