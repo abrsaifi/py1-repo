@@ -5,21 +5,29 @@ import os
 def _load_real_pypdf():
     """Import the real pypdf from site-packages, not this local shim directory."""
     # Temporarily remove the repo root from sys.path so the installed pypdf is found
-    _this_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    _filtered = [p for p in sys.path if os.path.abspath(p) != _this_dir]
-    # Remove any cached 'pypdf' module so we can re-import cleanly
+    _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _filtered = [p for p in sys.path if os.path.abspath(p) != _repo_root]
+    # Remove any cached 'pypdf' entry so a fresh import picks up site-packages
     _cached = sys.modules.pop('pypdf', None)
     _old_path = sys.path[:]
     sys.path[:] = _filtered
+    _imported = None
     try:
         import pypdf as _real  # noqa: F401
-        return _real
+        _imported = _real
     except ImportError:
-        return None
+        pass
     finally:
         sys.path[:] = _old_path
-        # Restore the shim in sys.modules
-        sys.modules['pypdf'] = sys.modules.get('pypdf') or _cached
+        # If import succeeded, keep the real module in sys.modules.
+        # If it failed, restore whatever was there before (the shim itself).
+        if _imported is None:
+            if _cached is not None:
+                sys.modules['pypdf'] = _cached
+            else:
+                sys.modules.pop('pypdf', None)
+        # else: sys.modules['pypdf'] already points to the real module
+    return _imported
 
 _real = _load_real_pypdf()
 if _real is not None:
