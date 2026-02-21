@@ -2372,15 +2372,20 @@
     }
 
     function renderServiceSettings(toolName) {
+      console.log('[DEBUG] renderServiceSettings called with:', toolName);
       const container = document.getElementById('serviceSettingsContainer');
       container.innerHTML = '';
 
       const serviceConfig = SERVICE_PARAMETERS[toolName];
+      console.log('[DEBUG] serviceConfig for', toolName, ':', serviceConfig);
       
       if (!serviceConfig || !serviceConfig.params) {
         // No specific settings for this service
+        console.log('[DEBUG] No service config or params found for', toolName);
         return;
       }
+
+      console.log('[DEBUG] Rendering', serviceConfig.params.length, 'parameters');
 
       // Create settings fieldset
       const fieldset = document.createElement('fieldset');
@@ -2572,10 +2577,12 @@
           btn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.85rem;';
           
           btn.addEventListener('click', () => {
+            console.log('[DEBUG] Preset clicked:', presetName, 'values:', presetValues);
             // Apply preset values to all inputs
             Object.entries(presetValues).forEach(([paramName, value]) => {
               const input = document.getElementById(paramName);
               if (input) {
+                console.log('[DEBUG] Setting', paramName, 'to', value);
                 if (input.type === 'checkbox') {
                   input.checked = value;
                 } else {
@@ -2592,6 +2599,8 @@
                     }
                   }
                 }
+              } else {
+                console.warn('[DEBUG] Input not found for param:', paramName);
               }
             });
             showToast(`Applied preset: ${presetName}`, 'info');
@@ -3195,15 +3204,20 @@
       
       // Collect all service-specific settings
       const serviceConfig = SERVICE_PARAMETERS[tool];
+      console.log('[DEBUG] Collecting params for tool:', tool, 'config:', serviceConfig);
       if (serviceConfig && serviceConfig.params) {
         serviceConfig.params.forEach(param => {
           const input = document.getElementById(param.name);
           if (input) {
             if (param.type === 'checkbox') {
               formData.append(param.name, input.checked);
+              console.log('[DEBUG] Added checkbox param:', param.name, '=', input.checked);
             } else {
               formData.append(param.name, input.value);
+              console.log('[DEBUG] Added param:', param.name, '=', input.value);
             }
+          } else {
+            console.warn('[DEBUG] Input element not found for param:', param.name);
           }
         });
       }
