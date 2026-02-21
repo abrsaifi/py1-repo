@@ -1,0 +1,80 @@
+# Core Web Framework
+Flask==3.1.2
+Werkzeug==3.1.5
+click==8.3.1
+
+# PDF Processing (alphabetical)
+PyMuPDF==1.27.1
+pypdf==3.18.0
+# NOTE: removed local `pypdf/__init__.py` shim; rely on the `pypdf` package in CI/environments.
+pdfminer.six==20251230
+pdfplumber==0.11.9
+reportlab==4.4.10
+pdf2image==1.17.0
+
+# Image Processing
+Pillow==12.1.1
+opencv-python-headless==4.13.0.92
+
+# Document Processing
+python-docx==1.2.0
+python-pptx==1.0.2
+openpyxl==3.1.5
+docx2pdf==0.1.8
+
+# Data Processing
+pandas==3.0.1
+numpy==2.4.2
+
+# OCR & ML
+easyocr==1.7.2
+torch==2.10.0
+
+# Web Utilities
+requests==2.32.5
+beautifulsoup4==4.14.3
+
+# HTML to PDF (optional, requires system libs)
+weasyprint==68.1
+pdfkit==1.0.0
+
+# Image to PDF conversion
+img2pdf==0.5.1
+
+# Logging & Monitoring
+python-json-logger==2.0.7
+protobuf==5.28.3
+
+# Testing
+pytest==9.0.2
+pytest-cov==5.0.0
+pytest-timeout==2.1.0
+pytest-flask==1.3.0
+
+# Security
+python-dotenv==1.0.1
+cryptography==46.0.5
+
+# Development Tools
+black==24.10.0
+pylint==3.3.3
+flake8==7.1.2
+mypy==1.14.1
+
+# Async & Background Tasks (optional, recommended)
+celery==5.4.0
+redis==5.1.1
+schedule==1.2.2
+
+# Database & ORM (optional, recommended for scalability)
+SQLAlchemy==2.0.32
+alembic==1.14.1
+
+# API Documentation
+flask-restx==1.3.2
+flask-swagger-ui==4.11.1
+
+# Rate Limiting & Security
+Flask-Limiter==4.0.0
+Flask-CORS==4.0.0
+Flask-Talisman==1.1.0

@@ -1,0 +1,12 @@
+{
+  "name": "docpromobile",
+  "displayName": "DocPro Mobile",
+  "expo": {
+    "name": "DocPro",
+    "slug": "docpro-mobile",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}

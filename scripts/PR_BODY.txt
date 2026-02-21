@@ -1,0 +1,34 @@
+Hybrid: LibreOffice UNO daemon + CLI fallback
+
+Summary
+- Implement a hybrid LibreOffice-to-PDF conversion path in `services/document_conversion.py`:
+  - Prefer a running LibreOffice UNO daemon (pyuno) when configured.
+  - Fall back to the `soffice` CLI when UNO/daemon conversion fails or is unavailable.
+  - Map file extensions to appropriate UNO export filters and expose env config for daemon host/port.
+- Frontend: polish Conversion Studio UI (drag/drop -> preview card flow, quick presets above manual parameters, collapsible advanced settings).
+- Server fixes: improved upload validation in `app/utils/file_validator.py`, corrected response MIME types in `app/api/routes/data.py`, and made `create_user()` idempotent to reduce test flakiness.
+- Tests: add `tests/test_document_conversion_hybrid.py` covering daemon (mocked) and CLI fallback (mocked).
+- Docs & deployment: add `docs/libreoffice_hybrid.md`, systemd unit and Docker Compose examples for a LibreOffice daemon, and CI workflow to run tests in a clean environment.
+
+Testing
+- Unit tests for the hybrid conversion pass locally (UNO and CLI paths mocked).
+- CI (.github/workflows/ci.yml) will run the full test-suite in a clean environment after PR creation.
+
+Environment variables
+- `LIBREOFFICE_PREFER_DAEMON` (1|0) — prefer UNO daemon when set.
+- `LIBREOFFICE_DAEMON_HOST`, `LIBREOFFICE_DAEMON_PORT` — UNO bridge host/port.
+- `LIBREOFFICE_SOFFICE_PATH` — optional override for the soffice binary path.
+
+Notes for reviewers
+- Review `services/document_conversion.py` for UNO/CLI fallback logic and the filter mapping for Writer/Calc/Impress.
+- Review `templates/Index.html` for UI changes (minimal JS/CSS refactor; no framework added).
+- Verify `tests/test_document_conversion_hybrid.py` for reasonable mock coverage and ensure no heavyweight imports run at import-time.
+
+How to create the PR (examples)
+- Using `gh` on PATH (interactive):
+  gh pr create --base main --head hybrid/soffice-hybrid-20260221-012921
+
+- Using `gh` and a body file (recommended):
+  gh pr create --base main --head hybrid/soffice-hybrid-20260221-012921 --title "Hybrid: LibreOffice UNO daemon + CLI fallback" --body-file .\\scripts\\PR_BODY.txt
+
+If you'd like, I can also open a draft PR body here for copy/paste or further polish.
