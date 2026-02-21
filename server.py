@@ -31,7 +31,11 @@ try:
     from weasyprint import HTML as WeasyHTML
 except Exception:
     WeasyHTML = None
-from pypdf import PdfReader, PdfWriter
+try:
+    from pypdf import PdfReader, PdfWriter
+except Exception:
+    PdfReader = None
+    PdfWriter = None
 from pathlib import Path
 import zipfile
 from datetime import datetime
