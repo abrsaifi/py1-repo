@@ -1088,7 +1088,6 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
         try:
             from openpyxl.worksheet.page import PageMargins, PrintOptions
-            from openpyxl.worksheet.print_settings import PrintPageOrder, CellComparison
             
             wb = load_workbook(temp_excel)
             ws = wb.active
@@ -1309,7 +1308,9 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                                     print(f"[excel_to_pdf] Compression not beneficial, keeping original")
                                     
                             except Exception as e:
-                                print(f"[excel_to_pdf] Warning: Could not compress PDF: {e}")
+                                # Handle encoding issues in error message for Windows
+                                error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                                print(f"[excel_to_pdf] Warning: Could not compress PDF: {error_msg}")
                                 logger.warning(f"Could not compress PDF: {e}")
                                 if os.path.exists(output_pdf_temp):
                                     try:
