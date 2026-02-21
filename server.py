@@ -744,9 +744,12 @@ def convert_image_route():
         except Exception:
             pass
 
-def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=True):
+def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=True, **kwargs):
     """Convert DOCX to PDF with color and image preservation using LibreOffice"""
     try:
+        # Extract PDF parameters if provided
+        pdf_params = {k: v for k, v in kwargs.items() if v is not None}
+        
         # Use LibreOffice for best formatting/color/image preservation
         import subprocess
         from pathlib import Path
@@ -755,6 +758,8 @@ def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=Tru
         os.makedirs(out_dir, exist_ok=True)
         
         logger.info(f'Converting DOCX to PDF: {docx_path} -> {output_pdf}')
+        if pdf_params:
+            logger.info(f'With PDF parameters: {pdf_params}')
         
         # LibreOffice command for DOCX -> PDF conversion
         cmd = [
@@ -1119,13 +1124,15 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
             # Apply print options
             ws.print_options = PrintOptions(
                 horizontalCentered=False,
-                verticalCentered=False,
-                printGridLines=gridlines,
-                printHeadings=include_headers
+                verticalCentered=False
             )
             
+            # Set print gridlines and headings as separate attributes
+            ws.sheet_view.showGridLines = gridlines
+            ws.print_options.printing = gridlines  # This might control gridline printing
+            
             print(f"[excel_to_pdf] Applied print_options:")
-            print(f"  printGridLines={ws.print_options.printGridLines}, printHeadings={ws.print_options.printHeadings}")
+            print(f"  gridlines={gridlines}, include_headers={include_headers}")
             
             # Apply scale/zoom
             ws.page_setup.scale = int(scale_factor)
@@ -1880,6 +1887,10 @@ def preview_conversion():
     Accepts form-data with file(s), operation, and conversion parameters.
     Returns JSON: { success: bool, images: [dataurl, ...], message: '' }
     """
+    # Log ALL form data received
+    logger.info(f"Preview request received. Form keys: {list(request.form.keys())}")
+    logger.info(f"All form data: {dict(request.form)}")
+    
     if 'file' in request.files:
         files = request.files.getlist('file')
     elif 'files' in request.files:
@@ -1915,6 +1926,46 @@ def preview_conversion():
     blur = request.form.get('blur', None)
     invert = request.form.get('invert', 'false').lower() == 'true'
     denoise = request.form.get('denoise', None)
+    
+    # Extract PDF-specific parameters for "To PDF" tool
+    pdf_params = {}
+    
+    # Always set these parameters (with defaults if not provided)
+    pdf_params['orientation'] = request.form.get('orientation', 'portrait')
+    pdf_params['paper_size'] = request.form.get('paper_size', 'A4')
+    
+    # Numeric margins - extract as floats with defaults
+    try:
+        pdf_params['margin_top'] = float(request.form.get('margin_top', 10))
+    except:
+        pdf_params['margin_top'] = 10
+    try:
+        pdf_params['margin_bottom'] = float(request.form.get('margin_bottom', 10))
+    except:
+        pdf_params['margin_bottom'] = 10
+    try:
+        pdf_params['margin_left'] = float(request.form.get('margin_left', 10))
+    except:
+        pdf_params['margin_left'] = 10
+    try:
+        pdf_params['margin_right'] = float(request.form.get('margin_right', 10))
+    except:
+        pdf_params['margin_right'] = 10
+    try:
+        pdf_params['scale_factor'] = int(request.form.get('scale_factor', 100))
+    except:
+        pdf_params['scale_factor'] = 100
+    
+    # Boolean parameters
+    pdf_params['include_headers'] = request.form.get('include_headers', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['gridlines'] = request.form.get('gridlines', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['page_numbers'] = request.form.get('page_numbers', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['preserve_colors'] = request.form.get('preserve_colors', 'true').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['embed_fonts'] = request.form.get('embed_fonts', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['background'] = request.form.get('background', 'false').lower() in ('true', 'yes', '1', 'on')
+    
+    # Log what parameters we're using
+    logger.info(f"Preview request parameters: {pdf_params}")
     
     # Convert to appropriate types
     if threshold:
@@ -1967,9 +2018,9 @@ def preview_conversion():
         elif ext in DOCUMENT_ALLOWED_EXTENSIONS:
             inter = os.path.join(temp_dir, f"__preview_{Path(filename).stem}.pdf")
             try:
-                logger.info(f'Attempting to convert {ext.upper()} file {filename}')
+                logger.info(f'Attempting to convert {ext.upper()} file {filename} with params: {pdf_params}')
                 if ext == 'docx':
-                    result = docx_to_pdf(input_path, inter)
+                    result = docx_to_pdf(input_path, inter, **pdf_params)
                     logger.info(f'docx_to_pdf returned: {result}')
                 elif ext in ['doc', 'odt']:
                     result = soffice_to_pdf(input_path, inter)
@@ -1985,11 +2036,11 @@ def preview_conversion():
         elif ext in EXCEL_ALLOWED_EXTENSIONS:
             inter = os.path.join(temp_dir, f"__preview_{Path(filename).stem}.pdf")
             try:
-                logger.info(f'Attempting to convert Excel file {filename}')
+                logger.info(f'Attempting to convert Excel file {filename} with params: {pdf_params}')
                 if ext == 'csv':
-                    result = csv_to_pdf(input_path, inter)
+                    result = csv_to_pdf(input_path, inter, **pdf_params)
                 else:
-                    result = excel_to_pdf(input_path, inter)
+                    result = excel_to_pdf(input_path, inter, **pdf_params)
                 logger.info(f'Excel/CSV conversion returned: {result}')
                 
                 if os.path.exists(inter):
@@ -5349,6 +5400,9 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             # Universal converter: handles any format and converts to PDF with advanced options
             ext = Path(input_path).suffix.lower().lstrip('.')
             
+            print(f"[execute_service_conversion] to_pdf: ext={ext}, kwargs={kwargs}")
+            logger.info(f"to_pdf conversion: ext={ext}, kwargs={kwargs}")
+            
             # Extract To PDF specific parameters
             image_quality = int(kwargs.get('image_quality', 85))
             page_numbers = kwargs.get('page_numbers', False) in (True, 'true', 'True')
@@ -5383,6 +5437,8 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             elif ext in ('doc', 'odt'):
                 return soffice_to_pdf(input_path, output_path)
             elif ext in ('xlsx', 'xls', 'xlsm', 'xlsb', 'ods', 'csv'):
+                print(f"[execute_service_conversion] Calling excel_to_pdf with kwargs: {kwargs}")
+                logger.info(f"Calling excel_to_pdf with kwargs: {kwargs}")
                 return excel_to_pdf(input_path, output_path, **kwargs)
             elif ext == 'pptx':
                 return powerpoint_to_pdf(input_path, output_path)

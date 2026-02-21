@@ -2576,7 +2576,7 @@
           btn.innerText = presetName;
           btn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.85rem;';
           
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             console.log('[DEBUG] Preset clicked:', presetName, 'values:', presetValues);
             // Apply preset values to all inputs
             Object.entries(presetValues).forEach(([paramName, value]) => {
@@ -2587,7 +2587,7 @@
                   input.checked = value;
                 } else {
                   input.value = value;
-                  // Update range display
+                  // Update range display if it's a range input
                   if (input.type === 'range') {
                     const display = document.getElementById(paramName + '_display');
                     if (display) display.innerText = value;
@@ -2604,6 +2604,19 @@
               }
             });
             showToast(`Applied preset: ${presetName}`, 'info');
+            
+            // DIRECTLY trigger preview update after applying values
+            console.log('[DEBUG] Preset applied, checking if file is loaded before generating preview...');
+            const fileInput = document.getElementById('studioFileInput');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+              console.log('[DEBUG] File found, generating preview immediately...');
+              // Small delay to ensure DOM is updated with new values
+              setTimeout(() => {
+                generatePreview(false);
+              }, 100);
+            } else {
+              console.log('[DEBUG] No file selected - preview not triggered');
+            }
           });
 
           presetsButtonGroup.appendChild(btn);
@@ -3070,17 +3083,19 @@
       const outputFormat = document.getElementById('outputFormat');
       const quality = document.getElementById('quality');
 
-      // Create a wrapper function that debounces preview updates
-      const autoPreviewTrigger = (eventType, paramName) => {
-        console.log(`[Auto Preview] Parameter changed: ${paramName}, Event: ${eventType}`);
+      // Create a debounced preview function
+      const triggerPreviewDebounced = () => {
+        console.log('[Preview Listener] Parameter changed - debouncing preview update');
         clearTimeout(previewDebounceTimer);
         previewDebounceTimer = setTimeout(() => {
           const fileInput = document.getElementById('studioFileInput');
           if (fileInput && fileInput.files && fileInput.files.length > 0) {
-            console.log('[Auto Preview] Debounce complete - triggering preview update');
+            console.log('[Preview Listener] Debounce complete - CALLING generatePreview');
             generatePreview(false);
+          } else {
+            console.log('[Preview Listener] No file selected - skipping preview');
           }
-        }, 1000); // Wait 1 second after last change before updating preview
+        }, 800); // Reduced debounce time to 800ms for faster feedback
       };
 
       // Listen for changes to output format
@@ -3089,7 +3104,10 @@
         outputFormat.removeEventListener('change', outputFormat._previewListener || (() => {}));
         
         // Create new listener
-        const listener = () => autoPreviewTrigger('change', 'outputFormat');
+        const listener = () => {
+          console.log('[Preview Listener] outputFormat changed');
+          triggerPreviewDebounced();
+        };
         outputFormat._previewListener = listener;
         outputFormat.addEventListener('change', listener);
       }
@@ -3100,7 +3118,10 @@
         quality.removeEventListener('change', quality._previewListener || (() => {}));
         
         // Create new listener
-        const listener = () => autoPreviewTrigger('change', 'quality');
+        const listener = () => {
+          console.log('[Preview Listener] quality changed');
+          triggerPreviewDebounced();
+        };
         quality._previewListener = listener;
         quality.addEventListener('change', listener);
       }
@@ -3122,8 +3143,11 @@
         // Get parameter name
         const paramName = input.name || input.id || 'unknown';
         
-        // Create new listener
-        const listener = () => autoPreviewTrigger(eventType, paramName);
+        // Create new listener that directly triggers preview
+        const listener = (e) => {
+          console.log(`[Preview Listener] ${paramName} changed (${eventType}) to:`, e.target.value || e.target.checked);
+          triggerPreviewDebounced();
+        };
         input._previewListener = listener;
         input._previewEventType = eventType;
         input.addEventListener(eventType, listener);
