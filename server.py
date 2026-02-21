@@ -1019,7 +1019,7 @@ def csv_to_pdf(csv_path, output_pdf, **kwargs):
         return False
 
 def excel_to_pdf(excel_path, output_pdf, **kwargs):
-    """Convert Excel to PDF using LibreOffice with proper parameter support"""
+    """Convert Excel/CSV to PDF using LibreOffice with proper parameter support"""
     try:
         from pathlib import Path
         
@@ -1040,14 +1040,46 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         gridlines = to_bool(kwargs.get('gridlines', False))
         scale_factor = float(kwargs.get('scale_factor', 100))
         
+        print(f"\n========== EXCEL_TO_PDF DEBUG START ==========")
+        print(f"[excel_to_pdf] Input: {excel_path}")
+        print(f"[excel_to_pdf] Output: {output_pdf}")
+        print(f"[excel_to_pdf] Parameters received:")
+        print(f"  orientation={orientation} (type: {type(orientation).__name__})")
+        print(f"  paper_size={paper_size} (type: {type(paper_size).__name__})")
+        print(f"  margins: top={margin_top}mm, bottom={margin_bottom}mm, left={margin_left}mm, right={margin_right}mm")
+        print(f"  include_headers={include_headers} (type: {type(include_headers).__name__})")
+        print(f"  gridlines={gridlines} (type: {type(gridlines).__name__})")
+        print(f"  scale_factor={scale_factor}% (type: {type(scale_factor).__name__})")
+        
         logger.info(f"Converting Excel with parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm, scale={scale_factor}%, headers={include_headers}, gridlines={gridlines}")
         
         out_dir = os.path.dirname(output_pdf) or '.'
         os.makedirs(out_dir, exist_ok=True)
         
-        # Create temp copy and apply page setup parameters
-        temp_excel = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False).name
-        shutil.copy(excel_path, temp_excel)
+        # Determine input file type
+        input_ext = Path(excel_path).suffix.lower()
+        print(f"[excel_to_pdf] Input file extension: '{input_ext}'")
+        
+        # If CSV, convert to XLSX first (so we can apply page setup)
+        temp_excel = excel_path
+        if input_ext == '.csv':
+            print(f"[excel_to_pdf] CSV file detected, converting to XLSX...")
+            from openpyxl import Workbook
+            import csv as csv_module
+            
+            temp_excel = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False).name
+            wb = Workbook()
+            ws = wb.active
+            
+            with open(excel_path, 'r', encoding='utf-8', errors='ignore') as f:
+                reader = csv_module.reader(f)
+                for row_idx, row in enumerate(reader, 1):
+                    for col_idx, cell in enumerate(row, 1):
+                        ws.cell(row=row_idx, column=col_idx, value=cell)
+            
+            wb.save(temp_excel)
+            wb.close()
+            print(f"[excel_to_pdf] CSV converted to XLSX: {temp_excel}")
         
         try:
             from openpyxl.worksheet.page import PageMargins, PrintOptions
@@ -1068,6 +1100,9 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
             ws.page_setup.paperSize = paper_size_map.get(paper_size, 9)
             ws.page_setup.orientation = orientation  # 'portrait' or 'landscape'
             
+            print(f"[excel_to_pdf] Applied page_setup:")
+            print(f"  paperSize={ws.page_setup.paperSize}, orientation={ws.page_setup.orientation}")
+            
             # Apply margins (convert mm to inches: 1 inch = 25.4mm)
             ws.page_margins = PageMargins(
                 left=margin_left / 25.4,
@@ -1078,6 +1113,9 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 footer=0.3
             )
             
+            print(f"[excel_to_pdf] Applied page_margins:")
+            print(f"  left={ws.page_margins.left}, right={ws.page_margins.right}, top={ws.page_margins.top}, bottom={ws.page_margins.bottom}")
+            
             # Apply print options
             ws.print_options = PrintOptions(
                 horizontalCentered=False,
@@ -1086,12 +1124,18 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 printHeadings=include_headers
             )
             
+            print(f"[excel_to_pdf] Applied print_options:")
+            print(f"  printGridLines={ws.print_options.printGridLines}, printHeadings={ws.print_options.printHeadings}")
+            
             # Apply scale/zoom
             ws.page_setup.scale = int(scale_factor)
+            
+            print(f"[excel_to_pdf] Applied scale: {ws.page_setup.scale}%")
             
             wb.save(temp_excel)
             wb.close()
             
+            print(f"[excel_to_pdf] Excel file with settings saved to: {temp_excel}")
             logger.info(f"Applied page setup: orientation={orientation}, paperSize={paper_size}")
             
         except Exception as e:
@@ -1100,6 +1144,7 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
         # Convert using LibreOffice
         soffice = get_soffice_path()
+        print(f"[excel_to_pdf] Using soffice: {soffice}")
         logger.info(f"Using soffice: {soffice}")
         
         cmd = [
@@ -1110,23 +1155,35 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
             temp_excel
         ]
         
+        print(f"[excel_to_pdf] Running LibreOffice command: {' '.join(cmd)}")
+        print(f"[excel_to_pdf] Converting from: {temp_excel}")
         logger.info(f"Running conversion...")
         result = subprocess.run(cmd, capture_output=True, timeout=120)
         
+        print(f"[excel_to_pdf] LibreOffice return code: {result.returncode}")
         logger.info(f"Return code: {result.returncode}")
         if result.stdout:
-            logger.info(f"Stdout: {result.stdout.decode('utf-8', errors='ignore')}")
+            stdout_text = result.stdout.decode('utf-8', errors='ignore')
+            print(f"[excel_to_pdf] LibreOffice stdout: {stdout_text}")
+            logger.info(f"Stdout: {stdout_text}")
         if result.stderr:
-            logger.warning(f"Stderr: {result.stderr.decode('utf-8', errors='ignore')}")
+            stderr_text = result.stderr.decode('utf-8', errors='ignore')
+            print(f"[excel_to_pdf] LibreOffice stderr: {stderr_text}")
+            logger.warning(f"Stderr: {stderr_text}")
         
         if result.returncode == 0:
             temp_pdf = os.path.join(out_dir, f"{Path(temp_excel).stem}.pdf")
+            print(f"[excel_to_pdf] Looking for PDF at: {temp_pdf}")
             logger.info(f"Looking for PDF at: {temp_pdf}")
             
             if os.path.exists(temp_pdf):
-                logger.info(f"Found PDF: {os.path.getsize(temp_pdf)} bytes")
+                pdf_size = os.path.getsize(temp_pdf)
+                print(f"[excel_to_pdf] PDF found: {pdf_size} bytes")
+                logger.info(f"Found PDF: {pdf_size} bytes")
                 if os.path.abspath(temp_pdf) != os.path.abspath(output_pdf):
                     shutil.move(temp_pdf, output_pdf)
+                print(f"[excel_to_pdf] SUCCESS! PDF created: {output_pdf} ({pdf_size} bytes)")
+                print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
                 logger.info(f"Successfully created: {output_pdf}")
                 
                 # Cleanup temp Excel
@@ -1137,8 +1194,12 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 
                 return True
             else:
+                print(f"[excel_to_pdf] ERROR: PDF not found at: {temp_pdf}")
+                print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
                 logger.error(f"PDF not found at: {temp_pdf}")
         else:
+            print(f"[excel_to_pdf] ERROR: LibreOffice conversion failed with return code {result.returncode}")
+            print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
             logger.error(f"LibreOffice conversion failed")
         
         # Cleanup on error
