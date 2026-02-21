@@ -892,66 +892,21 @@ def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=Tru
             return False
 
 
-def soffice_to_pdf(input_path, output_pdf, timeout=60):
+def soffice_to_pdf(input_path, output_pdf, timeout=60, **kwargs):
     """Convert an Office document to PDF using LibreOffice (soffice) if available.
 
-    This is primarily used to support legacy .doc files. Returns True on success.
+    This is primarily used to support legacy .doc/.odt files. Returns True on success.
+    Now supports advanced parameters for page setup.
     """
     try:
         out_dir = os.path.dirname(output_pdf)
         os.makedirs(out_dir, exist_ok=True)
         
         logger.info(f'Converting document to PDF via LibreOffice: {input_path} -> {output_pdf}')
-
-        # LibreOffice writes output as <stem>.pdf in out_dir
-        cmd = [
-            get_soffice_path(),
-            '--headless',
-            '--nologo',
-            '--nolockcheck',
-            '--nodefault',
-            '--nofirststartwizard',
-            '--convert-to',
-            'pdf',
-            '--outdir',
-            out_dir,
-            input_path,
-        ]
-
-        logger.info(f'Running soffice command: {" ".join(cmd)}')
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         
-        logger.info(f'soffice return code: {proc.returncode}')
-        if proc.stdout:
-            logger.info(f'soffice stdout: {proc.stdout}')
-        if proc.stderr:
-            logger.warning(f'soffice stderr: {proc.stderr}')
+        # Use the new _convert_with_libreoffice helper that handles post-processing
+        return _convert_with_libreoffice(input_path, output_pdf, **kwargs)
         
-        if proc.returncode != 0:
-            logger.error(f'soffice conversion failed with return code {proc.returncode}')
-            return False
-
-        produced = os.path.join(out_dir, f"{Path(input_path).stem}.pdf")
-        logger.info(f'Looking for PDF at: {produced}')
-        
-        if not os.path.exists(produced):
-            logger.error(f'Expected PDF not found at {produced}')
-            return False
-
-        logger.info(f'Found PDF at {produced}, file size: {os.path.getsize(produced)} bytes')
-
-        # Move/rename to the requested output path if needed
-        if os.path.abspath(produced) != os.path.abspath(output_pdf):
-            try:
-                if os.path.exists(output_pdf):
-                    os.remove(output_pdf)
-            except Exception:
-                pass
-            logger.info(f'Moving PDF from {produced} to {output_pdf}')
-            shutil.move(produced, output_pdf)
-
-        logger.info(f'Successfully created PDF: {output_pdf}')
-        return os.path.exists(output_pdf)
     except Exception as e:
         logger.error(f'soffice_to_pdf error: {e}', exc_info=True)
         return False
@@ -1353,6 +1308,199 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
     except Exception as e:
         logger.error(f"Excel to PDF error: {e}", exc_info=True)
+        return False
+
+
+def docx_to_pdf_with_params(docx_path, output_pdf, **kwargs):
+    """Convert DOCX to PDF with page layout parameters"""
+    try:
+        # Try to import python-docx
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt
+            from docx.oxml.ns import qn
+            from docx.oxml import OxmlElement
+        except ImportError:
+            print("[docx_to_pdf] python-docx not available, using LibreOffice only")
+            # Fall back to LibreOffice without page setup
+            return _convert_with_libreoffice(docx_path, output_pdf, **kwargs)
+        
+        # Extract parameters
+        orientation = kwargs.get('orientation', 'portrait').lower()
+        paper_size = kwargs.get('paper_size', 'A4')
+        margin_top = float(kwargs.get('margin_top', 20))
+        margin_bottom = float(kwargs.get('margin_bottom', 20))
+        margin_left = float(kwargs.get('margin_left', 20))
+        margin_right = float(kwargs.get('margin_right', 20))
+        scale_factor = float(kwargs.get('scale_factor', 100))
+        
+        print(f"\n========== DOCX_TO_PDF DEBUG START ==========")
+        print(f"[docx_to_pdf] Input: {docx_path}")
+        print(f"[docx_to_pdf] Output: {output_pdf}")
+        print(f"[docx_to_pdf] Parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm")
+        
+        out_dir = os.path.dirname(output_pdf) or '.'
+        os.makedirs(out_dir, exist_ok=True)
+        
+        # Load document
+        doc = Document(docx_path)
+        
+        # Apply page setup
+        section = doc.sections[0]
+        
+        # Set margins (convert mm to inches: 1 inch = 25.4mm)
+        section.top_margin = Inches(margin_top / 25.4)
+        section.bottom_margin = Inches(margin_bottom / 25.4)
+        section.left_margin = Inches(margin_left / 25.4)
+        section.right_margin = Inches(margin_right / 25.4)
+        
+        # Set page orientation (landscape=horizontal)
+        if orientation == 'landscape':
+            section.page_height = Inches(8.27)  # A4 width in landscape
+            section.page_width = Inches(11.69)  # A4 height in landscape
+        else:
+            section.page_height = Inches(11.69)  # A4 height in portrait
+            section.page_width = Inches(8.27)   # A4 width in portrait
+        
+        # Save modified document to temporary file
+        temp_docx = tempfile.NamedTemporaryFile(suffix='.docx', delete=False).name
+        doc.save(temp_docx)
+        print(f"[docx_to_pdf] Modified DOCX saved: {temp_docx}")
+        
+        # Convert to PDF using LibreOffice
+        print(f"[docx_to_pdf] Converting to PDF using LibreOffice...")
+        success = _convert_with_libreoffice(temp_docx, output_pdf, **kwargs)
+        
+        # Cleanup temp file
+        try:
+            os.unlink(temp_docx)
+        except:
+            pass
+        
+        if success:
+            pdf_size = os.path.getsize(output_pdf)
+            print(f"[docx_to_pdf] SUCCESS! PDF created: {output_pdf} ({pdf_size} bytes)")
+            print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+            logger.info(f"Successfully created DOCX-based PDF: {output_pdf}")
+            return True
+        else:
+            print(f"[docx_to_pdf] ERROR: LibreOffice conversion failed")
+            print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+            return False
+            
+    except Exception as e:
+        logger.error(f"DOCX to PDF error: {e}", exc_info=True)
+        print(f"[docx_to_pdf] ERROR: {e}")
+        print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+        return False
+
+
+def _convert_with_libreoffice(input_file, output_pdf, **kwargs):
+    """Helper function to convert any document format to PDF using LibreOffice"""
+    try:
+        out_dir = os.path.dirname(output_pdf) or '.'
+        os.makedirs(out_dir, exist_ok=True)
+        
+        soffice = get_soffice_path()
+        print(f"[libreoffice_convert] Using soffice: {soffice}")
+        
+        cmd = [
+            soffice,
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', out_dir,
+            input_file
+        ]
+        
+        print(f"[libreoffice_convert] Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        
+        if result.returncode == 0:
+            temp_pdf = os.path.join(out_dir, f"{Path(input_file).stem}.pdf")
+            if os.path.exists(temp_pdf):
+                if os.path.abspath(temp_pdf) != os.path.abspath(output_pdf):
+                    shutil.move(temp_pdf, output_pdf)
+                
+                # Apply post-processing (page numbers and compression)
+                page_numbers_enabled = kwargs.get('page_numbers', False)
+                compression_level = kwargs.get('compression', 'normal')
+                
+                if page_numbers_enabled or compression_level != 'normal':
+                    try:
+                        from PyPDF2 import PdfWriter, PdfReader
+                        from reportlab.pdfgen import canvas
+                        from io import BytesIO
+                        
+                        output_pdf_temp = output_pdf.replace('.pdf', '_temp.pdf')
+                        
+                        if page_numbers_enabled:
+                            print(f"[libreoffice_convert] Adding page numbers...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                num_pages = len(pdf_reader.pages)
+                                
+                                for page_num in range(num_pages):
+                                    page = pdf_reader.pages[page_num]
+                                    packet = BytesIO()
+                                    can = canvas.Canvas(packet, pagesize=(612, 792))
+                                    can.setFont("Helvetica", 9)
+                                    can.drawString(500, 20, f"Page {page_num + 1} of {num_pages}")
+                                    can.save()
+                                    packet.seek(0)
+                                    annotation = PdfReader(packet)
+                                    page.merge_page(annotation.pages[0])
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                if os.path.exists(output_pdf_temp):
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[libreoffice_convert] Page numbers added")
+                            except Exception as e:
+                                print(f"[libreoffice_convert] Warning: Could not add page numbers: {e}")
+                        
+                        if compression_level == 'high':
+                            print(f"[libreoffice_convert] Applying compression...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                
+                                for page in pdf_reader.pages:
+                                    page.compress_content_streams()
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                original_size = os.path.getsize(output_pdf)
+                                compressed_size = os.path.getsize(output_pdf_temp)
+                                
+                                if compressed_size < original_size:
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    ratio = (1 - compressed_size / original_size) * 100
+                                    print(f"[libreoffice_convert] Compression: {original_size} → {compressed_size} bytes ({ratio:.1f}% reduction)")
+                                else:
+                                    os.remove(output_pdf_temp)
+                            except Exception as e:
+                                print(f"[libreoffice_convert] Warning: Compression failed: {e}")
+                                if os.path.exists(output_pdf_temp):
+                                    try:
+                                        os.remove(output_pdf_temp)
+                                    except:
+                                        pass
+                    except ImportError:
+                        print(f"[libreoffice_convert] PyPDF2/reportlab not available for post-processing")
+                
+                return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"LibreOffice conversion error: {e}", exc_info=True)
+        print(f"[libreoffice_convert] ERROR: {e}")
         return False
 
 
@@ -5567,9 +5715,11 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             
             # Document formats
             elif ext == 'docx':
-                return docx_to_pdf(input_path, output_path, preserve_colors=preserve_colors, preserve_images=preserve_images)
+                # Use new docx_to_pdf_with_params for advanced parameter support
+                return docx_to_pdf_with_params(input_path, output_path, **kwargs)
             elif ext in ('doc', 'odt'):
-                return soffice_to_pdf(input_path, output_path)
+                # Use updated soffice_to_pdf with parameter support
+                return soffice_to_pdf(input_path, output_path, **kwargs)
             elif ext in ('xlsx', 'xls', 'xlsm', 'xlsb', 'ods', 'csv'):
                 print(f"[execute_service_conversion] Calling excel_to_pdf with kwargs: {kwargs}")
                 logger.info(f"Calling excel_to_pdf with kwargs: {kwargs}")
