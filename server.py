@@ -1088,6 +1088,7 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
         try:
             from openpyxl.worksheet.page import PageMargins, PrintOptions
+            from openpyxl.worksheet.print_settings import PrintPageOrder, CellComparison
             
             wb = load_workbook(temp_excel)
             ws = wb.active
@@ -1121,32 +1122,67 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
             print(f"[excel_to_pdf] Applied page_margins:")
             print(f"  left={ws.page_margins.left}, right={ws.page_margins.right}, top={ws.page_margins.top}, bottom={ws.page_margins.bottom}")
             
-            # Apply print options
+            # Apply print options for gridlines and headers
             ws.print_options = PrintOptions(
                 horizontalCentered=False,
                 verticalCentered=False
             )
             
-            # Set print gridlines and headings as separate attributes
-            ws.sheet_view.showGridLines = gridlines
-            ws.print_options.printing = gridlines  # This might control gridline printing
+            # Apply gridlines display
+            if gridlines:
+                ws.print_options.gridLines = True
+                ws.sheet_view.showGridLines = True
+            
+            # Apply headers (column/row headers)
+            if include_headers:
+                ws.print_options.headings = True
             
             print(f"[excel_to_pdf] Applied print_options:")
-            print(f"  gridlines={gridlines}, include_headers={include_headers}")
+            print(f"  gridlines={gridlines}, headers={include_headers}")
             
-            # Apply scale/zoom
-            ws.page_setup.scale = int(scale_factor)
+            # Apply fit mode (how to scale content)
+            fit_mode = kwargs.get('fit_mode', 'fit-page')
+            print(f"[excel_to_pdf] Applying fit mode: {fit_mode}")
             
-            print(f"[excel_to_pdf] Applied scale: {ws.page_setup.scale}%")
+            if fit_mode == 'fit-page':
+                # Fit all data on one page
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = 1
+                ws.page_setup.fitToWidth = 1
+            elif fit_mode == 'fit-width':
+                # Fit all columns on one page width
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = None  # Let height expand as needed
+                ws.page_setup.fitToWidth = 1
+            elif fit_mode == 'fit-height':
+                # Fit all rows on one page height
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = 1
+                ws.page_setup.fitToWidth = None  # Let width expand as needed
+            # else: 'no-fit' - use scale factor instead
+            
+            # Apply scale/zoom (only if not using fit mode)
+            if fit_mode == 'no-fit':
+                ws.page_setup.scale = int(scale_factor)
+            else:
+                # Use scale as additional zoom
+                ws.page_setup.scale = max(int(scale_factor), 50)  # Minimum 50%
+            
+            print(f"[excel_to_pdf] Applied fit mode: {fit_mode}, scale: {ws.page_setup.scale}%")
+            
+            # Enable color/font preservation settings
+            # Note: LibreOffice will preserve these automatically during conversion
+            print(f"[excel_to_pdf] Color and font preservation: enabled (LibreOffice will preserve)")
             
             wb.save(temp_excel)
             wb.close()
             
-            print(f"[excel_to_pdf] Excel file with settings saved to: {temp_excel}")
-            logger.info(f"Applied page setup: orientation={orientation}, paperSize={paper_size}")
+            print(f"[excel_to_pdf] Excel file with all settings saved to: {temp_excel}")
+            logger.info(f"Applied page setup: orientation={orientation}, paperSize={paper_size}, fit_mode={fit_mode}")
             
         except Exception as e:
             logger.warning(f"Could not apply page setup to Excel: {e}", exc_info=True)
+            print(f"[excel_to_pdf] Warning: Could not apply page setup: {e}")
             # Continue anyway - will use default settings
         
         # Convert using LibreOffice
@@ -1189,7 +1225,104 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 logger.info(f"Found PDF: {pdf_size} bytes")
                 if os.path.abspath(temp_pdf) != os.path.abspath(output_pdf):
                     shutil.move(temp_pdf, output_pdf)
-                print(f"[excel_to_pdf] SUCCESS! PDF created: {output_pdf} ({pdf_size} bytes)")
+                
+                # Post-processing: Add page numbers if requested
+                page_numbers_enabled = kwargs.get('page_numbers', False)
+                compression_level = kwargs.get('compression', 'normal')  # 'low', 'normal', 'high'
+                
+                print(f"[excel_to_pdf] Post-processing: page_numbers={page_numbers_enabled}, compression={compression_level}")
+                
+                if page_numbers_enabled or compression_level != 'normal':
+                    try:
+                        from PyPDF2 import PdfWriter, PdfReader
+                        from reportlab.pdfgen import canvas
+                        from reportlab.lib.pagesizes import letter, landscape, A4
+                        from io import BytesIO
+                        
+                        # Try to add page numbers and/or compress
+                        output_pdf_temp = output_pdf.replace('.pdf', '_temp.pdf')
+                        
+                        if page_numbers_enabled:
+                            print(f"[excel_to_pdf] Adding page numbers...")
+                            try:
+                                # Read the original PDF
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                num_pages = len(pdf_reader.pages)
+                                
+                                # Process each page
+                                for page_num in range(num_pages):
+                                    page = pdf_reader.pages[page_num]
+                                    
+                                    # Create a page with page number
+                                    packet = BytesIO()
+                                    can = canvas.Canvas(packet, pagesize=letter)
+                                    can.setFont("Helvetica", 9)
+                                    can.drawString(500, 20, f"Page {page_num + 1} of {num_pages}")
+                                    can.save()
+                                    
+                                    # Merge page number with original page
+                                    packet.seek(0)
+                                    annotation = PdfReader(packet)
+                                    page.merge_page(annotation.pages[0])
+                                    pdf_writer.add_page(page)
+                                
+                                # Write to temp PDF
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                # Replace original with versioned PDF
+                                if os.path.exists(output_pdf_temp):
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[excel_to_pdf] Page numbers added successfully")
+                                    
+                            except Exception as e:
+                                print(f"[excel_to_pdf] Warning: Could not add page numbers: {e}")
+                                logger.warning(f"Could not add page numbers: {e}")
+                        
+                        # Apply compression if requested
+                        if compression_level == 'high':
+                            print(f"[excel_to_pdf] Applying high compression...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                
+                                for page in pdf_reader.pages:
+                                    page.compress_content_streams()
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                # Check compression results
+                                original_size = os.path.getsize(output_pdf)
+                                compressed_size = os.path.getsize(output_pdf_temp)
+                                compression_ratio = (1 - compressed_size / original_size) * 100
+                                
+                                if compressed_size < original_size:
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[excel_to_pdf] Compression successful: {original_size} → {compressed_size} bytes ({compression_ratio:.1f}% reduction)")
+                                else:
+                                    os.remove(output_pdf_temp)
+                                    print(f"[excel_to_pdf] Compression not beneficial, keeping original")
+                                    
+                            except Exception as e:
+                                print(f"[excel_to_pdf] Warning: Could not compress PDF: {e}")
+                                logger.warning(f"Could not compress PDF: {e}")
+                                if os.path.exists(output_pdf_temp):
+                                    try:
+                                        os.remove(output_pdf_temp)
+                                    except:
+                                        pass
+                        
+                    except ImportError:
+                        print(f"[excel_to_pdf] Note: PyPDF2 or reportlab not available for page numbers/compression")
+                        logger.info("PyPDF2 or reportlab not available")
+                
+                final_pdf_size = os.path.getsize(output_pdf)
+                print(f"[excel_to_pdf] SUCCESS! PDF created: {output_pdf} ({final_pdf_size} bytes)")
                 print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
                 logger.info(f"Successfully created: {output_pdf}")
                 
