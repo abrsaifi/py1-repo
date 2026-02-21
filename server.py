@@ -1023,6 +1023,12 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
     try:
         from pathlib import Path
         
+        # Helper function to convert string booleans
+        def to_bool(val):
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
+        
         # Get parameters
         orientation = kwargs.get('orientation', 'portrait').lower()
         paper_size = kwargs.get('paper_size', 'A4').upper()
@@ -1030,11 +1036,11 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         margin_bottom = float(kwargs.get('margin_bottom', 25))
         margin_left = float(kwargs.get('margin_left', 25))
         margin_right = float(kwargs.get('margin_right', 25))
-        include_headers = kwargs.get('include_headers', True)
-        gridlines = kwargs.get('gridlines', False)
+        include_headers = to_bool(kwargs.get('include_headers', True))
+        gridlines = to_bool(kwargs.get('gridlines', False))
         scale_factor = float(kwargs.get('scale_factor', 100))
         
-        logger.info(f"Converting Excel with parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm, scale={scale_factor}%")
+        logger.info(f"Converting Excel with parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm, scale={scale_factor}%, headers={include_headers}, gridlines={gridlines}")
         
         out_dir = os.path.dirname(output_pdf) or '.'
         os.makedirs(out_dir, exist_ok=True)
@@ -5842,6 +5848,13 @@ def api_convert():
     
     Returns: {success: true/false, files: [{name, size, path}], error: string}
     """
+    
+    # Helper function to convert string booleans from form data
+    def to_bool(val):
+        if isinstance(val, bool):
+            return val
+        return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
+    
     try:
         if 'files' not in request.files and 'files[]' not in request.files:
             return jsonify({'success': False, 'error': 'No files provided'}), 400
@@ -5930,9 +5943,9 @@ def api_convert():
                     'gamma': request.form.get('gamma', '1.0'),
                     'sharpness': request.form.get('sharpness', '1'),
                     'blur': request.form.get('blur', '0'),
-                    'invert': request.form.get('invert', 'false'),
+                    'invert': to_bool(request.form.get('invert', 'false')),
                     'denoise': request.form.get('denoise', '0'),
-                    'edgeEnhance': request.form.get('edgeEnhance', 'true'),
+                    'edgeEnhance': to_bool(request.form.get('edgeEnhance', 'true')),
                     # To PDF parameters
                     'orientation': request.form.get('orientation', 'portrait'),
                     'paper_size': request.form.get('paper_size', 'A4'),
@@ -5941,15 +5954,15 @@ def api_convert():
                     'margin_left': request.form.get('margin_left', '20'),
                     'margin_right': request.form.get('margin_right', '20'),
                     'fit_mode': request.form.get('fit_mode', 'fit-page'),
-                    'include_headers': request.form.get('include_headers', 'true'),
-                    'gridlines': request.form.get('gridlines', 'false'),
+                    'include_headers': to_bool(request.form.get('include_headers', 'true')),
+                    'gridlines': to_bool(request.form.get('gridlines', 'false')),
                     'scale_factor': request.form.get('scale_factor', '100'),
                     'image_quality': request.form.get('image_quality', '85'),
-                    'page_numbers': request.form.get('page_numbers', 'false'),
+                    'page_numbers': to_bool(request.form.get('page_numbers', 'false')),
                     'compression': request.form.get('compression', 'medium'),
-                    'preserve_colors': request.form.get('preserve_colors', 'true'),
-                    'embed_fonts': request.form.get('embed_fonts', 'true'),
-                    'background': request.form.get('background', 'true'),
+                    'preserve_colors': to_bool(request.form.get('preserve_colors', 'true')),
+                    'embed_fonts': to_bool(request.form.get('embed_fonts', 'true')),
+                    'background': to_bool(request.form.get('background', 'true')),
                 }
                 
                 # Execute the service conversion
