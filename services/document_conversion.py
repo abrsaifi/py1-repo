@@ -354,7 +354,7 @@ def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=Tru
 
 def _create_property(name, value):
     try:
-        from com.sun.star.beans import PropertyValue
+        from com.sun.star.beans import PropertyValue  # type: ignore
         p = PropertyValue()
         p.Name = name
         p.Value = value
@@ -384,7 +384,7 @@ def soffice_to_pdf(input_path, output_pdf, timeout=60):
     # Attempt UNO daemon conversion if configured
     if use_daemon:
         try:
-            import uno
+            import uno  # type: ignore
             # Resolve a remote office component context
             local_ctx = uno.getComponentContext()
             resolver = local_ctx.ServiceManager.createInstanceWithContext(
