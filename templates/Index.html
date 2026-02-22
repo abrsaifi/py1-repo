@@ -438,6 +438,28 @@
       }
     }
 
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+    }
+
     /* Download link button styling */
     #conversion-results a[download] {
       background: linear-gradient(135deg, #4CAF50, #45a049);
@@ -5239,9 +5261,26 @@
         </div>
       `;
       
+      // Store conversion results in localStorage for recovery
+      const conversionData = {
+        files: files,
+        toolName: toolName,
+        conversionTime: conversionTime,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('lastConversionResults', JSON.stringify(conversionData));
+      
       // Show the offcanvas
-      const offcanvas = new bootstrap.Offcanvas(document.getElementById('conversionResultsOffcanvas'));
+      const offcanvasElement = document.getElementById('conversionResultsOffcanvas');
+      const offcanvas = new bootstrap.Offcanvas(offcanvasElement);
+      
+      // Add event listener for offcanvas close to show recovery UI
+      offcanvasElement.addEventListener('hide.bs.offcanvas', handleOffcanvasClose, { once: true });
+      
       offcanvas.show();
+      
+      // Show "Recent Results" button on the conversion page
+      showRecentResultsButton();
     }
     
     // === NEW FEATURE: Download All Files as ZIP ===
@@ -5307,6 +5346,113 @@
       const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById(offcanvasId));
       if (offcanvas) {
         offcanvas.hide();
+      }
+    }
+    
+    // === HANDLE OFFCANVAS CLOSE - Show Toast + Recent Results Button ===
+    function handleOffcanvasClose() {
+      // Show toast with reopen option
+      const toastContainer = document.getElementById('toastContainer');
+      const toastId = 'conversionCloseToast_' + Date.now();
+      
+      const toastHTML = `
+        <div id="${toastId}" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; color: var(--text-primary); animation: slideIn 0.3s ease;">
+          <i class="bi bi-info-circle" style="font-size: 1.2rem; color: #2196F3; flex-shrink: 0;"></i>
+          <div style="flex: 1;">
+            <strong>Results saved!</strong>
+            <span style="color: var(--text-secondary); font-size: 0.9rem; display: block;">You can reopen them anytime using the Recent Results button.</span>
+          </div>
+          <button onclick="reopenConversionResults(); document.getElementById('${toastId}').remove();" style="background: #2196F3; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 0.85rem; white-space: nowrap;" title="Reopen results">
+            Reopen
+          </button>
+          <button onclick="document.getElementById('${toastId}').remove();" style="background: transparent; color: var(--text-secondary); border: none; cursor: pointer; font-size: 1.2rem; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-x" style="font-size: 1rem;"></i>
+          </button>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      
+      // Remove toast after 6 seconds
+      setTimeout(() => {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+          toast.style.animation = 'slideOut 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }
+      }, 6000);
+    }
+    
+    // === SHOW RECENT RESULTS BUTTON ===
+    function showRecentResultsButton() {
+      // Check if button already exists
+      let recentBtn = document.getElementById('recentResultsBtn');
+      if (!recentBtn) {
+        // Create the Recent Results button
+        const fileCardArea = document.getElementById('fileCardArea');
+        const recentBtnContainer = document.createElement('div');
+        recentBtnContainer.id = 'recentResultsContainer';
+        recentBtnContainer.style.cssText = `
+          margin-top: 12px;
+          padding: 12px;
+          background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(66, 165, 245, 0.1));
+          border: 1px solid #2196F3;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        `;
+        
+        recentBtnContainer.innerHTML = `
+          <i class="bi bi-clock-history" style="font-size: 1rem; color: #2196F3;"></i>
+          <button id="recentResultsBtn" onclick="reopenConversionResults()" style="
+            background: transparent;
+            border: none;
+            color: #2196F3;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-align: left;
+            flex: 1;
+            padding: 0;
+          " title="Reopen your recent conversion results">
+            <span>Recent Results Available</span>
+            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;"><i class="bi bi-arrow-up-right-circle" style="margin-right: 4px;"></i>Click to view</span>
+          </button>
+        `;
+        
+        fileCardArea.appendChild(recentBtnContainer);
+      }
+    }
+    
+    // === REOPEN CONVERSION RESULTS FROM STORAGE ===
+    function reopenConversionResults() {
+      const conversionData = localStorage.getItem('lastConversionResults');
+      
+      if (!conversionData) {
+        showToast('No recent results found', 'warning');
+        return;
+      }
+      
+      try {
+        const data = JSON.parse(conversionData);
+        // Check if data is still fresh (less than 24 hours old)
+        const now = Date.now();
+        const timeDiff = now - data.timestamp;
+        const hoursOld = timeDiff / (1000 * 60 * 60);
+        
+        if (hoursOld > 24) {
+          showToast('Recent results expired (older than 24 hours)', 'warning');
+          localStorage.removeItem('lastConversionResults');
+          return;
+        }
+        
+        // Reopen the offcanvas with stored data
+        showConversionResultsOffcanvas(data.files);
+        showToast('Recent results restored!', 'success');
+      } catch (error) {
+        showToast('Failed to restore results', 'error');
+        console.error('Error restoring results:', error);
       }
     }
     
