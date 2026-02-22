@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
     * {
       margin: 0;
@@ -53,7 +53,7 @@
     .wrapper {
       max-width: 1400px;
       width: 92%;
-      margin: 0 auto 2rem;
+      margin: 0 auto 1rem;
     }
 
     /* --- FIXED TOP NAVBAR --- */
@@ -262,7 +262,7 @@
 
     /* --- service cards (clickable & linked) --- */
     .service-category {
-      margin: 3rem 0 2rem;
+      margin: 1.5rem 0 1rem;
     }
     .category-title {
       font-size: 2rem;
@@ -270,7 +270,7 @@
       color: var(--text-primary);
       border-bottom: 2px solid var(--border-color);
       padding-bottom: 0.5rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.8rem;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -280,6 +280,105 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
       gap: 16px;
+    }
+
+    /* Category Filter Buttons */
+    .category-filter-btn {
+      background: var(--bg-secondary);
+      border: 1.5px solid var(--border-color);
+      border-radius: 100px;
+      padding: 0.75rem 1.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+    }
+
+    .category-filter-btn:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-secondary);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(182, 139, 127, 0.15);
+    }
+
+    .category-filter-btn.active {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-color: var(--accent-primary);
+      color: white;
+      box-shadow: 0 6px 16px rgba(182, 139, 127, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .category-filter-btn.active:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(182, 139, 127, 0.4);
+    }
+
+    body.dark-mode .category-filter-btn {
+      background: #2a2a2a;
+      border-color: #333;
+      color: var(--text-secondary);
+    }
+
+    body.dark-mode .category-filter-btn:hover {
+      background: #3a3a3a;
+      border-color: #444;
+      box-shadow: 0 4px 12px rgba(212, 168, 154, 0.15);
+    }
+
+    body.dark-mode .category-filter-btn.active {
+      box-shadow: 0 6px 16px rgba(212, 168, 154, 0.35);
+    }
+
+    /* Service Card Item - for filtered grid */
+    .service-card-item {
+      background: var(--bg-secondary);
+      border-radius: 20px;
+      padding: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      border: 1px solid var(--border-color);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease, transform 0.15s ease;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      min-height: 120px;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .service-card-item:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--accent-secondary);
+      box-shadow: 0 8px 16px var(--shadow-light);
+      color: var(--accent-primary);
+    }
+
+    .service-card-item i {
+      font-size: 1.8rem;
+      color: var(--accent-primary);
+      transition: transform 0.2s ease;
+    }
+
+    .service-card-item:hover i {
+      transform: scale(1.2) rotate(5deg);
+    }
+
+    .service-card-item span {
+      font-size: 0.9rem;
+      line-height: 1.3;
+      word-break: break-word;
     }
     .service-card {
       background: var(--bg-secondary);
@@ -302,17 +401,71 @@
       box-shadow: 0 8px 14px var(--shadow-light);
     }
     .service-icon {
-      font-size: 1.4rem;
-      min-width: 32px;
+      font-size: 1.3rem;
+      min-width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--accent-primary);
+    }
+
+    .service-card i {
+      font-size: 1.3rem;
+      color: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+    }
+
+    /* Conversion Results / Download Section */
+    #conversion-results {
+      animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Download link button styling */
+    #conversion-results a[download] {
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    #conversion-results a[download]:hover {
+      background: linear-gradient(135deg, #45a049, #3d8b40);
+      box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* Dark mode styles for download section */
+    body.dark-mode #conversion-results {
+      background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.1)) !important;
+      border-color: #66bb6a !important;
+    }
+
+    body.dark-mode #conversion-results h3 {
+      color: #81c784 !important;
+    }
+
+    body.dark-mode #conversion-results > div > div {
+      background: rgba(42, 42, 42, 0.8) !important;
     }
 
     /* --- two-column conversion page (linked from cards) --- */
     .conversion-studio {
       display: flex;
       gap: 28px;
-      margin: 30px 0 50px;
-      min-height: 600px;
+      margin: 15px 0 20px;
+      min-height: 400px;
       animation: fadeIn 0.4s ease-out;
     }
     .left-preview {
@@ -320,7 +473,7 @@
       background: rgba(255, 250, 245, 0.6);
       backdrop-filter: blur(10px);
       border-radius: 48px;
-      padding: 2rem;
+      padding: 1.5rem;
       border: 1px solid var(--border-color);
       transition: all 0.3s;
       display: flex;
@@ -333,29 +486,51 @@
     }
 
     .drag-area-enhanced {
-      background: var(--bg-tertiary);
-      border: 2px dashed var(--border-color);
-      border-radius: 36px;
-      padding: 3rem 2rem;
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(214, 188, 174, 0.05) 100%);
+      border: 3px dashed var(--accent-secondary);
+      border-radius: 40px;
+      padding: 2.5rem 1.5rem;
       text-align: center;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 300px;
+      min-height: 240px;
       cursor: pointer;
+      position: relative;
+      overflow: hidden;
     }
+    
+    .drag-area-enhanced::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(182, 139, 127, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    
     .drag-area-enhanced:hover {
       border-color: var(--accent-primary);
-      background: rgba(214, 188, 174, 0.05);
-      transform: translateY(-2px);
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(214, 188, 174, 0.12) 100%);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(182, 139, 127, 0.12);
     }
+    
     .drag-area-enhanced.dragover {
       border-color: var(--accent-primary);
-      background: rgba(214, 188, 174, 0.15);
-      transform: scale(1.02);
-      box-shadow: 0 8px 24px rgba(182, 139, 127, 0.15);
+      background: linear-gradient(135deg, rgba(214, 188, 174, 0.15) 0%, rgba(214, 188, 174, 0.25) 100%);
+      transform: scale(1.03);
+      box-shadow: 0 16px 48px rgba(182, 139, 127, 0.2);
+      animation: pulse-border 0.6s ease-in-out;
+    }
+    
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 16px 48px rgba(182, 139, 127, 0.2); }
+      50% { box-shadow: 0 24px 64px rgba(182, 139, 127, 0.3); }
     }
 
     /* --- FILE BADGE CARD --- */
@@ -485,9 +660,20 @@
       background: var(--bg-tertiary);
       backdrop-filter: blur(16px);
       border-radius: 48px;
-      padding: 2rem;
+      padding: 1.5rem;
       border: 1px solid var(--border-color);
-      transition: all 0.3s;
+      transition: all 0.4s ease;
+      display: none;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .right-settings.visible {
+      display: block;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
     body.dark-mode .right-settings {
@@ -930,7 +1116,7 @@
     /* --- HERO & FEATURES --- */
     .hero {
       text-align: center;
-      margin: 2rem 0 2rem;
+      margin: 1.5rem 0 2.5rem;
     }
     .hero h1 {
       font-size: 3.5rem;
@@ -948,25 +1134,37 @@
     }
 
     .feature-card {
-      background: var(--bg-secondary);
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(214, 188, 174, 0.08) 100%);
       border-radius: 36px;
-      padding: 2rem;
-      border: 1px solid var(--border-color);
+      padding: 2.5rem 2rem;
+      border: 1.5px solid var(--border-color);
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .feature-card:hover {
       transform: translateY(-8px);
       box-shadow: 0 12px 24px var(--shadow-light);
-      border-color: var(--accent-secondary);
+      border-color: var(--accent-primary);
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(214, 188, 174, 0.15) 100%);
+    }
+    .feature-card i {
+      font-size: 2.2rem;
+      color: var(--accent-primary);
+      margin-bottom: 0.8rem;
     }
     .feature-card h3 {
       color: var(--text-primary);
-      margin-bottom: 0.5rem;
-      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      font-size: 1.4rem;
+      font-weight: 600;
     }
     .feature-card p {
       color: var(--text-secondary);
-      font-size: 0.95rem;
+      font-size: 1rem;
+      line-height: 1.6;
     }
 
     .hidden-input {
@@ -1166,13 +1364,705 @@
       }
     }
 
-    /* Touch-friendly targets for mobile */
-    @media (hover: none) and (pointer: coarse) {
-      button, a, .clickable {
-        min-height: 48px;
-        min-width: 48px;
-        padding: 0.6rem;
-      }
+    /* --- PARAMETER TABS SYSTEM (Phase 1 Enhancement) --- */
+    .param-tabs-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border-color);
+      animation: slideDown 0.3s ease-out;
+    }
+
+    .param-tab-btn {
+      background: transparent;
+      border: 2px solid transparent;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-size: 0.95rem;
+      position: relative;
+    }
+
+    .param-tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(214, 188, 174, 0.08);
+    }
+
+    .param-tab-btn.active {
+      color: var(--accent-primary);
+      border-color: var(--accent-primary);
+      background: rgba(214, 188, 174, 0.12);
+    }
+
+    .param-tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .param-tab-content.active {
+      display: block;
+    }
+
+    /* --- PARAMETER GROUPS (Color-Coded Cards) --- */
+    .param-group {
+      background: var(--bg-secondary);
+      border-left: 4px solid var(--accent-primary);
+      border-radius: 12px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+      animation: slideDown 0.3s ease-out;
+      transition: all 0.2s ease;
+    }
+
+    .param-group:hover {
+      box-shadow: 0 4px 12px var(--shadow-light);
+      transform: translateX(2px);
+    }
+
+    /* Color-coded parameter groups */
+    .param-group.layout {
+      border-left-color: #3498db;
+    }
+
+    .param-group.layout .param-group-title {
+      color: #3498db;
+    }
+
+    .param-group.content {
+      border-left-color: #e67e22;
+    }
+
+    .param-group.content .param-group-title {
+      color: #e67e22;
+    }
+
+    .param-group.output {
+      border-left-color: #27ae60;
+    }
+
+    .param-group.output .param-group-title {
+      color: #27ae60;
+    }
+
+    .param-group.advanced {
+      border-left-color: #9b59b6;
+    }
+
+    .param-group.advanced .param-group-title {
+      color: #9b59b6;
+    }
+
+    .param-group-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .param-group-title::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* --- IMPROVED PARAMETER LAYOUT --- */
+    .param-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .param-row.double {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .param-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .param-label-with-help {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .param-label-with-help label {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .param-help-icon {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: help;
+      transition: all 0.2s;
+    }
+
+    .param-help-icon:hover {
+      color: var(--accent-primary);
+      transform: scale(1.2);
+    }
+
+    .param-help-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-style: italic;
+      display: none;
+      padding: 0.4rem 0.6rem;
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 6px;
+      border-left: 2px solid var(--accent-primary);
+    }
+
+    .param-help-text.show {
+      display: block;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    body.dark-mode .param-help-text {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* --- PRESET TAGS --- */
+    .preset-tag {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      background: linear-gradient(135deg, var(--accent-secondary) 0%, rgba(214, 188, 174, 0.6) 100%);
+      color: white;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .preset-tag.recommended {
+      background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    }
+
+    .preset-tag.popular {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+
+    .preset-tag.new {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+
+    /* --- IMPROVED PRESET CARDS --- */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.8rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .preset-card {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(214, 188, 174, 0.05) 100%);
+      border: 1.5px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .preset-card:hover {
+      border-color: var(--accent-primary);
+      background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(214, 188, 174, 0.15) 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(182, 139, 127, 0.15);
+    }
+
+    .preset-card-info {
+      flex: 1;
+    }
+
+    .preset-card-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .preset-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .preset-card-action {
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .preset-card-action:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(182, 139, 127, 0.3);
+    }
+
+    .preset-card-action:active {
+      transform: scale(0.95);
+    }
+
+    /* === PHASE 2: SEARCH, RESET, & HELP === */
+
+    /* Search Box */
+    .param-search-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.5rem;
+      gap: 0.8rem;
+      transition: all 0.3s ease;
+    }
+
+    .param-search-box:focus-within {
+      border-color: var(--accent-primary);
+      box-shadow: 0 2px 8px rgba(182, 139, 127, 0.15);
+    }
+
+    .param-search-box i {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .param-search-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .param-search-box input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .search-results {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .search-results.found {
+      color: var(--accent-primary);
+    }
+
+    /* Settings Toolbar */
+    .settings-toolbar {
+      display: flex;
+      gap: 0.8rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .settings-toolbar button {
+      flex: 1;
+      min-width: 100px;
+      padding: 0.7rem 1rem;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .settings-toolbar button:hover {
+      border-color: var(--accent-primary);
+      background: rgba(214, 188, 174, 0.08);
+      color: var(--accent-primary);
+    }
+
+    .settings-toolbar button.btn-danger {
+      border-color: #e74c3c;
+      color: #e74c3c;
+    }
+
+    .settings-toolbar button.btn-danger:hover {
+      background: rgba(231, 76, 60, 0.08);
+      border-color: #c0392b;
+    }
+
+    .settings-toolbar button.btn-success {
+      border-color: #27ae60;
+      color: #27ae60;
+    }
+
+    .settings-toolbar button.btn-success:hover {
+      background: rgba(39, 174, 96, 0.08);
+      border-color: #229954;
+    }
+
+    /* Parameter Hidden State */
+    .param-group.hidden {
+      display: none;
+    }
+
+    .form-group.hidden {
+      display: none;
+    }
+
+    /* Help & Tooltip System */
+    .param-help-toggle {
+      font-size: 0.8rem;
+      color: var(--accent-primary);
+      cursor: help;
+      text-decoration: underline;
+      margin-left: 0.5rem;
+    }
+
+    .param-help-toggle:hover {
+      opacity: 0.8;
+    }
+
+    .param-help-expanded {
+      background: rgba(52, 152, 219, 0.08);
+      border-left: 3px solid #3498db;
+      padding: 0.8rem;
+      border-radius: 4px;
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .param-help-example {
+      margin-top: 0.4rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid rgba(52, 152, 219, 0.3);
+      font-style: italic;
+      color: var(--accent-primary);
+    }
+
+    /* Custom Preset Dialog */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .modal-body {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-body input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .modal-body input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 2px 8px rgba(182, 139, 127, 0.15);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 0.8rem;
+      justify-content: flex-end;
+    }
+
+    .modal-footer button {
+      padding: 0.8rem 1.6rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .modal-footer .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .modal-footer .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(182, 139, 127, 0.3);
+    }
+
+    .modal-footer .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+    }
+
+    .modal-footer .btn-secondary:hover {
+      border-color: var(--accent-primary);
+      background: rgba(214, 188, 174, 0.08);
+    }
+
+    /* Custom Presets Label */
+    .presets-divider {
+      margin: 1.5rem 0 1rem 0;
+      padding: 0.5rem 0;
+      border-top: 2px solid var(--border-color);
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .custom-preset-card {
+      position: relative;
+    }
+
+    .custom-preset-badge {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.8rem;
+      background: #3498db;
+      color: white;
+      font-size: 0.65rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .custom-preset-delete {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 24px;
+      height: 24px;
+      background: rgba(231, 76, 60, 0.9);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .custom-preset-card:hover .custom-preset-delete {
+      opacity: 1;
+    }
+
+    .custom-preset-delete:hover {
+      background: #c0392b;
+    }
+
+    /* --- PHASE 3A: HELP TOOLTIPS SYSTEM --- */
+    .param-help-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background: var(--accent-primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: help;
+      margin-left: 0.4rem;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .param-help-icon:hover {
+      background: #a84d1e;
+      transform: scale(1.1);
+    }
+
+    /* Tooltip popup styling */
+    .param-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent-primary);
+      color: white;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      white-space: normal;
+      width: 220px;
+      text-align: left;
+      line-height: 1.4;
+      margin-bottom: 0.6rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Tooltip arrow */
+    .param-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid var(--accent-primary);
+    }
+
+    /* Show tooltip on hover */
+    .param-help-icon:hover .param-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Tooltip wrapper for position context */
+    .param-help-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* --- PHASE 3A: RECENTLY USED PRESETS --- */
+    .recently-used-label {
+      margin: 1.5rem 0 1rem 0;
+      padding: 0.5rem 0;
+      border-top: 2px solid var(--accent-primary);
+      font-weight: 600;
+      color: var(--accent-primary);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .recently-used-card {
+      border: 2px solid var(--accent-primary) !important;
+      background: rgba(182, 139, 127, 0.04);
+    }
+
+    .recently-used-card:hover {
+      background: rgba(182, 139, 127, 0.08);
+      box-shadow: 0 2px 8px rgba(182, 139, 127, 0.2);
+    }
+
+    /* --- PHASE 3C: COLLAPSE/EXPAND GROUPS --- */
+    .param-group-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .param-group-header:hover {
+      opacity: 0.8;
+    }
+
+    .param-group-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      font-size: 0.8rem;
+      transition: transform 0.2s ease;
+    }
+
+    .param-group-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .param-group-params {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      max-height: 10000px;
+      opacity: 1;
+    }
+
+    .param-group-params.collapsed {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
     }
 
   </style>
@@ -1185,7 +2075,7 @@
   <nav class="navbar-fixed">
     <div class="nav-container">
       <div class="logo" onclick="switchPage('home')">
-        <i class="fa-regular fa-star"></i>
+        <i class="bi bi-star"></i>
         <span>lumina</span>
       </div>
 
@@ -1193,7 +2083,7 @@
       <div class="nav-menu">
         <!-- PDF Core Dropdown -->
         <div class="dropdown">
-          <button class="dropbtn">PDF Core <i class="fa-solid fa-chevron-down" style="font-size:0.8rem;"></i></button>
+          <button class="dropbtn">PDF Core <i class="bi bi-chevron-down" style="font-size:0.8rem;"></i></button>
           <div class="dropdown-content">
             <a href="#" onclick="openConversion('PDF to B&W'); return false;">⚫ PDF to B&W</a>
             <a href="#" onclick="openConversion('To PDF'); return false;">📄 To PDF</a>
@@ -1214,7 +2104,7 @@
 
         <!-- PDF Conversion Dropdown -->
         <div class="dropdown">
-          <button class="dropbtn">Conversions <i class="fa-solid fa-chevron-down"></i></button>
+          <button class="dropbtn">Conversions <i class="bi bi-chevron-down"></i></button>
           <div class="dropdown-content">
             <a href="#" onclick="openConversion('PDF→PPT'); return false;">📽️ PDF→PPT</a>
             <a href="#" onclick="openConversion('PPT→PDF'); return false;">📄 PPT→PDF</a>
@@ -1233,7 +2123,7 @@
 
         <!-- Image Tools Dropdown -->
         <div class="dropdown">
-          <button class="dropbtn">Images <i class="fa-solid fa-chevron-down"></i></button>
+          <button class="dropbtn">Images <i class="bi bi-chevron-down"></i></button>
           <div class="dropdown-content">
             <a href="#" onclick="openConversion('Image Convert'); return false;">🖼️ Image Convert</a>
             <a href="#" onclick="openConversion('Image Compress'); return false;">🗜️ Image Compress</a>
@@ -1245,7 +2135,7 @@
 
         <!-- Data & Spreadsheet Dropdown -->
         <div class="dropdown">
-          <button class="dropbtn">Data <i class="fa-solid fa-chevron-down"></i></button>
+          <button class="dropbtn">Data <i class="bi bi-chevron-down"></i></button>
           <div class="dropdown-content">
             <a href="#" onclick="openConversion('Data Validator'); return false;">✅ Data Validator</a>
             <a href="#" onclick="openConversion('PDF Export'); return false;">📤 PDF Export</a>
@@ -1256,7 +2146,7 @@
 
         <!-- More Tools Dropdown -->
         <div class="dropdown">
-          <button class="dropbtn">More <i class="fa-solid fa-chevron-down"></i></button>
+          <button class="dropbtn">More <i class="bi bi-chevron-down"></i></button>
           <div class="dropdown-content">
             <a href="#" onclick="openConversion('PDF to B&W (pro)'); return false;">⚫ PDF to B&W (pro)</a>
             <a href="#" onclick="openConversion('To PDF (advanced)'); return false;">📄 To PDF (advanced)</a>
@@ -1279,13 +2169,13 @@
       <!-- right side icons (theme, history, settings) -->
       <div class="right-icons">
         <button class="icon-btn" id="themeToggle" title="toggle dark mode">
-          <i class="fa-regular fa-moon"></i>
+          <i class="bi bi-moon"></i>
         </button>
         <button class="icon-btn" onclick="toggleRecentSidebar()" title="recent conversions">
-          <i class="fa-regular fa-history"></i>
+          <i class="bi bi-clock-history"></i>
         </button>
         <button class="icon-btn" onclick="toggleSettingsSidebar()" title="settings">
-          <i class="fa-regular fa-gear"></i>
+          <i class="bi bi-gear"></i>
         </button>
       </div>
     </div>
@@ -1299,123 +2189,113 @@
         <p>50+ professional conversion tools — PDF, images, documents, and data</p>
       </div>
 
-      <!-- top feature cards (quick) -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:28px; margin-bottom:3rem;">
+      <!-- Category Filter Buttons -->
+      <div style="display: flex; gap: 12px; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center; animation: slideDown 0.4s ease-out;">
+        <button class="category-filter-btn active" onclick="filterTools('all')" data-category="all">
+          <i class="bi bi-grid-3x3-gap"></i> All tools
+        </button>
+        <button class="category-filter-btn" onclick="filterTools('pdf')" data-category="pdf">
+          <i class="bi bi-filetype-pdf"></i> PDF
+        </button>
+        <button class="category-filter-btn" onclick="filterTools('image')" data-category="image">
+          <i class="bi bi-image"></i> Images
+        </button>
+        <button class="category-filter-btn" onclick="filterTools('document')" data-category="document">
+          <i class="bi bi-file-earmark"></i> Documents
+        </button>
+        <button class="category-filter-btn" onclick="filterTools('data')" data-category="data">
+          <i class="bi bi-table"></i> Data
+        </button>
+      </div>
+
+      <!-- Tools Grid (filtered) -->
+      <div id="toolsGrid" class="services-grid" style="margin-bottom: 3rem;">
+        <!-- PDF Tools -->
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('To PDF')"><i class="bi bi-file-earmark-pdf"></i><span>To PDF</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('PDF to B&W')"><i class="bi bi-circle-fill"></i><span>PDF to B&W</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Split PDF')"><i class="bi bi-scissors"></i><span>Split PDF</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Merge PDF')"><i class="bi bi-link-45deg"></i><span>Merge PDF</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Extract')"><i class="bi bi-clipboard"></i><span>Extract</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Remove Pages')"><i class="bi bi-trash"></i><span>Remove Pages</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('OCR')"><i class="bi bi-search"></i><span>OCR</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Clean')"><i class="bi bi-stars"></i><span>Clean</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('PDF Compress')"><i class="bi bi-box"></i><span>Compress</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Encrypt')"><i class="bi bi-lock"></i><span>Encrypt</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Decrypt')"><i class="bi bi-unlock"></i><span>Decrypt</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Watermark')"><i class="bi bi-droplet"></i><span>Watermark</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Redact')"><i class="bi bi-shield-lock"></i><span>Redact</span></div>
+        <div class="service-card-item" data-category="pdf" onclick="openConversion('Metadata')"><i class="bi bi-broom"></i><span>Metadata</span></div>
+        
+        <!-- Image Tools -->
+        <div class="service-card-item" data-category="image" onclick="openConversion('Image Convert')"><i class="bi bi-image"></i><span>Image Convert</span></div>
+        <div class="service-card-item" data-category="image" onclick="openConversion('Image Compress')"><i class="bi bi-arrow-in"></i><span>Image Compress</span></div>
+        <div class="service-card-item" data-category="image" onclick="openConversion('Image Resize')"><i class="bi bi-rulers"></i><span>Image Resize</span></div>
+        <div class="service-card-item" data-category="image" onclick="openConversion('Remove BG')"><i class="bi bi-circle"></i><span>Remove BG</span></div>
+        <div class="service-card-item" data-category="image" onclick="openConversion('Duplicate Remover')"><i class="bi bi-arrow-clockwise"></i><span>Duplicate Remover</span></div>
+        
+        <!-- Document Tools -->
+        <div class="service-card-item" data-category="document" onclick="openConversion('PDF→PPT')"><i class="bi bi-film"></i><span>PDF→PPT</span></div>
+        <div class="service-card-item" data-category="document" onclick="openConversion('PPT→PDF')"><i class="bi bi-file-earmark-pdf"></i><span>PPT→PDF</span></div>
+        <div class="service-card-item" data-category="document" onclick="openConversion('PDF→HTML')"><i class="bi bi-newspaper"></i><span>PDF→HTML</span></div>
+        <div class="service-card-item" data-category="document" onclick="openConversion('HTML→PDF')"><i class="bi bi-globe"></i><span>HTML→PDF</span></div>
+        <div class="service-card-item" data-category="document" onclick="openConversion('Text→PDF')"><i class="bi bi-pencil-square"></i><span>Text→PDF</span></div>
+        <div class="service-card-item" data-category="document" onclick="openConversion('No Colors')"><i class="bi bi-circle-fill"></i><span>No Colors</span></div>
+        
+        <!-- Data Tools -->
+        <div class="service-card-item" data-category="data" onclick="openConversion('Excel→PDF')"><i class="bi bi-bar-chart"></i><span>Excel→PDF</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Excel→CSV')"><i class="bi bi-bar-chart"></i><span>Excel→CSV</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Formulas→Values')"><i class="bi bi-calculator"></i><span>Formulas→Values</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Clean Charts')"><i class="bi bi-bar-chart"></i><span>Clean Charts</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Normalize')"><i class="bi bi-rulers"></i><span>Normalize</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Split Sheets')"><i class="bi bi-newspaper"></i><span>Split Sheets</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Data Validator')"><i class="bi bi-check-circle"></i><span>Data Validator</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('PDF Export')"><i class="bi bi-box-arrow-up"></i><span>PDF Export</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Reporting')"><i class="bi bi-bar-chart"></i><span>Reporting</span></div>
+        <div class="service-card-item" data-category="data" onclick="openConversion('Database')"><i class="bi bi-hdd-rack"></i><span>Database</span></div>
+      </div>
+
+      <!-- Feature Cards at Bottom -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:28px; margin-top:3rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
         <div class="feature-card">
-          <h3>✨ pristine quality</h3>
-          <p>Lossless conversion for all formats.</p>
+          <i class="bi bi-lightning-fill"></i>
+          <h3>Lightning Fast</h3>
+          <p>Conversions in seconds with edge infrastructure.</p>
         </div>
         <div class="feature-card">
-          <h3>⚡ lightning fast</h3>
-          <p>Process files in seconds.</p>
+          <i class="bi bi-shield-lock"></i>
+          <h3>Bank-level Security</h3>
+          <p>256-bit encryption, auto-deleted after 1 hour.</p>
         </div>
         <div class="feature-card">
-          <h3>🔒 privacy first</h3>
-          <p>End‑to‑end encrypted processing.</p>
-        </div>
-      </div>
-
-      <!-- ===== ALL SERVICE CARDS (linked to conversion page) ===== -->
-      <!-- PDF Core -->
-      <div class="service-category">
-        <div class="category-title"><i class="fa-regular fa-file-pdf"></i> PDF Core</div>
-        <div class="services-grid">
-          <div class="service-card" onclick="openConversion('PDF to B&W')"><span class="service-icon">⚫</span> PDF to B&W</div>
-          <div class="service-card" onclick="openConversion('To PDF')"><span class="service-icon">📄</span> To PDF</div>
-          <div class="service-card" onclick="openConversion('Extract')"><span class="service-icon">📋</span> Extract</div>
-          <div class="service-card" onclick="openConversion('Split PDF')"><span class="service-icon">✂️</span> Split PDF</div>
-          <div class="service-card" onclick="openConversion('Merge PDF')"><span class="service-icon">🔗</span> Merge PDF</div>
-          <div class="service-card" onclick="openConversion('Remove Pages')"><span class="service-icon">🗑️</span> Remove Pages</div>
-          <div class="service-card" onclick="openConversion('OCR')"><span class="service-icon">🔍</span> OCR</div>
-          <div class="service-card" onclick="openConversion('Watermark')"><span class="service-icon">💧</span> Watermark</div>
-          <div class="service-card" onclick="openConversion('Clean')"><span class="service-icon">✨</span> Clean</div>
-          <div class="service-card" onclick="openConversion('PDF Compress')"><span class="service-icon">📦</span> PDF Compress</div>
-          <div class="service-card" onclick="openConversion('Encrypt')"><span class="service-icon">🔒</span> Encrypt</div>
-          <div class="service-card" onclick="openConversion('Decrypt')"><span class="service-icon">🔓</span> Decrypt</div>
-          <div class="service-card" onclick="openConversion('Redact')"><span class="service-icon">🔐</span> Redact</div>
-          <div class="service-card" onclick="openConversion('Metadata')"><span class="service-icon">🧹</span> Metadata</div>
-        </div>
-      </div>
-
-      <!-- PDF Conversion -->
-      <div class="service-category">
-        <div class="category-title"><i class="fa-regular fa-arrow-right-arrow-left"></i> File Conversions</div>
-        <div class="services-grid">
-          <div class="service-card" onclick="openConversion('PDF→PPT')"><span class="service-icon">📽️</span> PDF→PPT</div>
-          <div class="service-card" onclick="openConversion('PPT→PDF')"><span class="service-icon">📄</span> PPT→PDF</div>
-          <div class="service-card" onclick="openConversion('PDF→HTML')"><span class="service-icon">📑</span> PDF→HTML</div>
-          <div class="service-card" onclick="openConversion('HTML→PDF')"><span class="service-icon">🌐</span> HTML→PDF</div>
-          <div class="service-card" onclick="openConversion('Excel→PDF')"><span class="service-icon">📊</span> Excel→PDF</div>
-          <div class="service-card" onclick="openConversion('Excel→CSV')"><span class="service-icon">📊</span> Excel→CSV</div>
-          <div class="service-card" onclick="openConversion('Text→PDF')"><span class="service-icon">📝</span> Text→PDF</div>
-          <div class="service-card" onclick="openConversion('No Colors')"><span class="service-icon">⚫</span> No Colors</div>
-          <div class="service-card" onclick="openConversion('Formulas→Values')"><span class="service-icon">🧮</span> Formulas→Values</div>
-          <div class="service-card" onclick="openConversion('Clean Charts')"><span class="service-icon">📊</span> Clean Charts</div>
-          <div class="service-card" onclick="openConversion('Normalize')"><span class="service-icon">📐</span> Normalize</div>
-          <div class="service-card" onclick="openConversion('Split Sheets')"><span class="service-icon">📑</span> Split Sheets</div>
-        </div>
-      </div>
-
-      <!-- Image Tools -->
-      <div class="service-category">
-        <div class="category-title"><i class="fa-regular fa-image"></i> Image Tools</div>
-        <div class="services-grid">
-          <div class="service-card" onclick="openConversion('Image Convert')"><span class="service-icon">🖼️</span> Image Convert</div>
-          <div class="service-card" onclick="openConversion('Image Compress')"><span class="service-icon">🗜️</span> Image Compress</div>
-          <div class="service-card" onclick="openConversion('Image Resize')"><span class="service-icon">📐</span> Image Resize</div>
-          <div class="service-card" onclick="openConversion('Remove BG')"><span class="service-icon">⚪</span> Remove BG</div>
-          <div class="service-card" onclick="openConversion('Duplicate Remover')"><span class="service-icon">🔄</span> Duplicate Remover</div>
-        </div>
-      </div>
-
-      <!-- Data & Spreadsheet -->
-      <div class="service-category">
-        <div class="category-title"><i class="fa-regular fa-table"></i> Data & Spreadsheet</div>
-        <div class="services-grid">
-          <div class="service-card" onclick="openConversion('Data Validator')"><span class="service-icon">✅</span> Data Validator</div>
-          <div class="service-card" onclick="openConversion('PDF Export')"><span class="service-icon">📤</span> PDF Export</div>
-          <div class="service-card" onclick="openConversion('Reporting')"><span class="service-icon">📊</span> Reporting</div>
-          <div class="service-card" onclick="openConversion('Database')"><span class="service-icon">🗄️</span> Database</div>
-        </div>
-      </div>
-
-      <!-- More Tools -->
-      <div class="service-category">
-        <div class="category-title"><i class="fa-regular fa-ellipsis"></i> More Tools</div>
-        <div class="services-grid">
-          <div class="service-card" onclick="openConversion('PDF to B&W (pro)')"><span class="service-icon">⚫</span> PDF to B&W (pro)</div>
-          <div class="service-card" onclick="openConversion('To PDF (advanced)')"><span class="service-icon">📄</span> To PDF (advanced)</div>
-          <div class="service-card" onclick="openConversion('Extract (extended)')"><span class="service-icon">📋</span> Extract (extended)</div>
-          <div class="service-card" onclick="openConversion('Split PDF (batch)')"><span class="service-icon">✂️</span> Split PDF (batch)</div>
-          <div class="service-card" onclick="openConversion('Merge PDF (smart)')"><span class="service-icon">🔗</span> Merge PDF (smart)</div>
-          <div class="service-card" onclick="openConversion('Remove Pages (range)')"><span class="service-icon">🗑️</span> Remove Pages (range)</div>
-          <div class="service-card" onclick="openConversion('OCR (searchable)')"><span class="service-icon">🔍</span> OCR (searchable)</div>
-          <div class="service-card" onclick="openConversion('Watermark (image/text)')"><span class="service-icon">💧</span> Watermark (image/text)</div>
-          <div class="service-card" onclick="openConversion('Clean (deskew)')"><span class="service-icon">✨</span> Clean (deskew)</div>
-          <div class="service-card" onclick="openConversion('PDF Compress (lossless)')"><span class="service-icon">📦</span> PDF Compress (lossless)</div>
-          <div class="service-card" onclick="openConversion('Encrypt (AES-256)')"><span class="service-icon">🔒</span> Encrypt (AES-256)</div>
-          <div class="service-card" onclick="openConversion('Decrypt (remove)')"><span class="service-icon">🔓</span> Decrypt (remove)</div>
-          <div class="service-card" onclick="openConversion('Redact (permanent)')"><span class="service-icon">🔐</span> Redact (permanent)</div>
-          <div class="service-card" onclick="openConversion('Metadata (clean)')"><span class="service-icon">🧹</span> Metadata (clean)</div>
+          <i class="bi bi-globe"></i>
+          <h3>No Registration</h3>
+          <p>All tools free, no account needed.</p>
         </div>
       </div>
     </div>
 
     <!-- ========== CONVERSION PAGE (linked from cards) ========== -->
     <div id="page-conversion" class="page">
-      <div class="hero" style="margin-bottom:0.5rem;">
-        <h1>conversion <span>studio</span></h1>
-        <p>selected tool: <span id="selectedTool" style="color: var(--accent-primary); font-weight: 600;">none</span></p>
+      <div class="hero" style="margin-bottom:0.5rem; display: flex; align-items: center; gap: 1.5rem;">
+        <button onclick="goBack()" style="background: none; border: none; cursor: pointer; padding: 0.5rem; color: var(--accent-primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='rgba(182, 139, 127, 0.1)'" onmouseout="this.style.backgroundColor='transparent'" title="Go Back">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <div style="flex: 1;">
+          <h1 id="conversionPageTitle" style="margin: 0; font-size: 1rem; text-align: left;">none</h1>
+          <p style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.3rem; text-align: left;">Ready to convert your files</p>
+        </div>
+        <!-- Hidden element for backwards compatibility with JS code -->
+        <span id="selectedTool" style="display: none;">none</span>
       </div>
       <div class="conversion-studio">
         <div class="left-preview">
           <!-- DRAG & DROP ZONE - Shows initially -->
           <div class="drag-area-enhanced" id="studioDropZone" style="display: flex;">
-            <i class="fa-regular fa-hand-pointer" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--accent-primary);"></i>
+            <i class="bi bi-hand-index-thumb" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--accent-primary);"></i>
             <h3 style="color: var(--text-primary); margin-bottom: 0.5rem; font-size: 1.3rem;">Drag your file here</h3>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">or click below to browse</p>
             <button class="btn-outline-light" id="studioBrowseBtn" style="padding:0.9rem 2.4rem; font-weight: 600; font-size: 1rem;">
-              <i class="fa-regular fa-folder-open" style="margin-right: 0.6rem;"></i> Browse Files
+              <i class="bi bi-folder-open" style="margin-right: 0.6rem;"></i> Browse Files
             </button>
             <input type="file" id="studioFileInput" class="hidden-input">
           </div>
@@ -1426,7 +2306,7 @@
             <div class="file-badge-card" id="fileCard">
               <div class="file-badge-info">
                 <div class="file-badge-icon">
-                  <i id="fileIcon" class="fa-regular fa-file"></i>
+                  <i id="fileIcon" class="bi bi-file"></i>
                 </div>
                 <div class="file-badge-details">
                   <div class="file-badge-name" id="fileCardName">file.pdf</div>
@@ -1435,10 +2315,10 @@
               </div>
               <div class="file-badge-actions">
                 <button class="file-badge-btn-add" id="addMoreFilesBtn" title="Add more files">
-                  <i class="fa-regular fa-plus"></i>
+                  <i class="bi bi-plus"></i>
                 </button>
                 <button class="file-badge-btn-remove" id="removeFileBtn" title="Remove file">
-                  <i class="fa-regular fa-trash"></i>
+                  <i class="bi bi-trash"></i>
                 </button>
               </div>
             </div>
@@ -1446,7 +2326,7 @@
             <!-- Preview Area -->
             <div style="background: var(--bg-tertiary); border-radius:24px; padding:1.8rem; margin-top:1.2rem; border: 1px solid var(--border-color); flex: 1; display: flex; flex-direction: column; overflow: auto;">
               <div id="previewPlaceholder" style="color: var(--text-secondary); text-align: center; padding: 2rem; flex: 1; display: flex; flex-direction: column; justify-content: center; overflow-y: auto;">
-                <i class="fa-regular fa-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                <i class="bi bi-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
                 <span style="font-size: 0.95rem;">Preview will appear here when you click <strong>"live preview"</strong></span>
               </div>
             </div>
@@ -1454,7 +2334,7 @@
           
           <!-- File Type Warning -->
           <div id="fileTypeWarning" style="display: none; background: rgba(255, 152, 0, 0.1); border: 1px solid #ff9800; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem;">
-            <i class="fa-regular fa-circle-exclamation" style="color: #ff9800; margin-right: 0.5rem;"></i>
+            <i class="bi bi-exclamation-circle" style="color: #ff9800; margin-right: 0.5rem;"></i>
             <span id="fileTypeWarningText"></span>
           </div>
           
@@ -1464,7 +2344,7 @@
             <div id="activeParametersText" style="color: var(--accent-primary); font-family: monospace; word-break: break-word; line-height: 1.4;"></div>
           </div>
         </div>
-        <div class="right-settings">
+        <div class="right-settings" id="rightSettingsPanel">
           <h3>settings for <span id="settingToolName" style="color: var(--accent-primary);">tool</span></h3>
           
           <!-- Common Settings -->
@@ -1494,22 +2374,115 @@
             </select>
           </div>
 
-          <!-- Service-Specific Settings Container -->
+          <!-- Service-Specific Settings Container with Tabs -->
           <div id="serviceSettingsContainer" style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
-            <!-- Settings populated dynamically -->
+            <!-- Parameter Tabs -->
+            <div class="param-tabs-container" id="paramTabsContainer">
+              <button class="param-tab-btn active" data-tab="basic" onclick="switchParamTab(event, 'basic')">
+                <i class="bi bi-sliders" style="margin-right: 0.4rem;"></i> Basic
+              </button>
+              <button class="param-tab-btn" data-tab="advanced" onclick="switchParamTab(event, 'advanced')">
+                <i class="bi bi-sliders" style="margin-right: 0.4rem;"></i> Advanced
+              </button>
+              <button class="param-tab-btn" data-tab="presets" onclick="switchParamTab(event, 'presets')">
+                <i class="bi bi-wand2" style="margin-right: 0.4rem;"></i> Presets
+              </button>
+            </div>
+
+            <!-- Tab Content: Basic (most common 3-5 parameters) -->
+            <div class="param-tab-content active" id="tab-basic">
+              <div id="basicParamsContainer">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Tab Content: Advanced (all parameters organized by group) -->
+            <div class="param-tab-content" id="tab-advanced">
+              <!-- Phase 2: Search Box -->
+              <div class="param-search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="paramSearch" placeholder="Search parameters..." onkeyup="searchParameters(this.value)">
+                <span class="search-results" id="searchResults">All parameters</span>
+              </div>
+
+              <div id="advancedParamsContainer">
+                <!-- Populated dynamically -->
+              </div>
+
+              <!-- Phase 2: Settings Toolbar -->
+              <div class="settings-toolbar">
+                <button onclick="resetSettings()" class="btn-danger">
+                  <i class="bi bi-arrow-clockwise"></i> Reset
+                </button>
+                <button onclick="saveAsPreset()" class="btn-success">
+                  <i class="bi bi-save"></i> Save
+                </button>
+                <button onclick="exportSettings()">
+                  <i class="bi bi-download"></i> Export
+                </button>
+                <button onclick="importSettings()">
+                  <i class="bi bi-upload"></i> Import
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab Content: Presets (enhanced preset cards with descriptions) -->
+            <div class="param-tab-content" id="tab-presets">
+              <div id="presetsContainer" class="presets-grid">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Fallback for services without SERVICE_PARAMETERS defined -->
+            <div id="legacySettingsContainer" style="display: none;">
+              <!-- Legacy fieldsets will be placed here -->
+            </div>
+          </div>
+
+          <!-- Modal: Save Custom Preset -->
+          <div class="modal" id="savePresetModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <i class="bi bi-bookmark"></i> Save as Custom Preset
+              </div>
+              <div class="modal-body">
+                <input type="text" id="presetName" placeholder="Enter preset name..." autocomplete="off">
+                <textarea id="presetDesc" placeholder="Add optional description..." style="width: 100%; margin-top: 0.8rem; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; color: var(--text-primary); background: var(--bg-secondary); resize: vertical; min-height: 60px; transition: all 0.2s ease;" rows="3"></textarea>
+              </div>
+              <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSavePresetModal()">Cancel</button>
+                <button class="btn-primary" onclick="confirmSavePreset()">Save Preset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal: Import Settings -->
+          <div class="modal" id="importModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <i class="bi bi-file-arrow-down"></i> Import Settings
+              </div>
+              <div class="modal-body">
+                <input type="file" id="importFile" accept=".json" style="padding: 0.8rem; width: 100%; box-sizing: border-box;">
+              </div>
+              <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeImportModal()">Cancel</button>
+                <button class="btn-primary" onclick="confirmImport()">Import</button>
+              </div>
+            </div>
           </div>
 
           <!-- Preview & Convert Buttons -->
           <div style="display: flex; gap: 0.8rem; margin-top: 1.5rem;">
             <button class="btn-outline-light" id="previewBtn" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border-color);">
-              <i class="fa-regular fa-eye" style="margin-right: 0.5rem;"></i> live preview
+              <i class="bi bi-eye" style="margin-right: 0.5rem;"></i> live preview
             </button>
             <button class="btn-convert" id="convertBtn" style="flex: 1;">start conversion</button>
           </div>
           
           <!-- Preview Loading & Error States -->
           <div id="previewStatus" style="display: none; margin-top: 1rem; padding: 0.8rem; border-radius: 8px; font-size: 0.9rem;">
-            <div id="previewLoading" style="display: none; color: var(--text-secondary);"><i class="fa-regular fa-spinner fa-spin"></i> Generating preview...</div>
+            <div id="previewLoading" style="display: none; color: var(--text-secondary);"><i class="bi bi-hourglass-split" style="display: inline-block; animation: spin 1s linear infinite;"></i> Generating preview...</div>
             <div id="previewError" style="display: none; color: #d32f2f; background: rgba(211, 47, 47, 0.1); padding: 0.8rem; border-radius: 6px;"></div>
           </div>
         </div>
@@ -1524,18 +2497,18 @@
   <!-- ========== RECENT CONVERSIONS SIDEBAR ========== -->
   <div class="sidebar" id="recentSidebar">
     <div class="sidebar-header">
-      <span><i class="fa-regular fa-history"></i> Recent</span>
-      <button class="sidebar-close" onclick="toggleRecentSidebar()"><i class="fa-regular fa-xmark"></i></button>
+      <span><i class="bi bi-clock-history"></i> Recent</span>
+      <button class="sidebar-close" onclick="toggleRecentSidebar()"><i class="bi bi-x"></i></button>
     </div>
     <div class="sidebar-content" id="recentList"></div>
-    <button class="clear-history-btn" onclick="clearHistory()"><i class="fa-regular fa-trash"></i> Clear History</button>
+    <button class="clear-history-btn" onclick="clearHistory()"><i class="bi bi-trash"></i> Clear History</button>
   </div>
 
   <!-- ========== SETTINGS SIDEBAR ========== -->
   <div class="sidebar" id="settingsSidebar">
     <div class="sidebar-header">
-      <span><i class="fa-regular fa-gear"></i> Settings</span>
-      <button class="sidebar-close" onclick="toggleSettingsSidebar()"><i class="fa-regular fa-xmark"></i></button>
+      <span><i class="bi bi-gear"></i> Settings</span>
+      <button class="sidebar-close" onclick="toggleSettingsSidebar()"><i class="bi bi-x"></i></button>
     </div>
     <div class="sidebar-content">
       <div class="form-group">
@@ -1560,7 +2533,7 @@
           <option value="50">Low</option>
         </select>
       </div>
-      <button class="settings-save-btn" onclick="saveSettings()"><i class="fa-regular fa-check"></i> Save Settings</button>
+      <button class="settings-save-btn" onclick="saveSettings()"><i class="bi bi-check"></i> Save Settings</button>
     </div>
   </div>
 
@@ -2312,21 +3285,360 @@
 
     document.getElementById('themeToggle')?.addEventListener('click', toggleDarkMode);
 
+    // Phase 2: Modal click-outside closing
+    ['savePresetModal', 'importModal'].forEach(modalId => {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('show');
+          }
+        });
+      }
+    });
+
+    // === PARAMETER TABS ===
+    function switchParamTab(event, tabName) {
+      // Prevent default behavior
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      // Hide all tab content
+      document.querySelectorAll('.param-tab-content').forEach(tab => {
+        tab.style.display = 'none';
+      });
+
+      // Show selected tab
+      const selectedTab = document.getElementById('tab-' + tabName);
+      if (selectedTab) {
+        selectedTab.style.display = 'block';
+      }
+
+      // Update active button styling
+      document.querySelectorAll('.param-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
+    }
+
+    function getParameterCategory(paramName) {
+      // Categorize parameters for color-coding
+      const layoutParams = ['orientation', 'paper_size', 'margin_top', 'margin_bottom', 'margin_left', 'margin_right', 'landscape', 'paperSize', 'pageSize', 'imagesPerSlide'];
+      const contentParams = ['scale_factor', 'image_quality', 'fit_mode', 'gridlines', 'include_headers', 'quality', 'fontSize', 'fontFamily', 'lineSpacing', 'include_images', 'css_optimization', 'preserve_layout', 'width', 'height', 'keep_aspect', 'output_format', 'removeMetadata', 'format', 'dpi', 'brightness', 'contrast', 'gamma', 'sharpness', 'blur', 'color_mode', 'fit_to_width'];
+      const outputParams = ['page_numbers', 'compression', 'preserve_colors', 'embed_fonts', 'background', 'remove_metadata', 'remove_annotations', 'optimize', 'delimiter', 'remove_metadata', 'watermark_text', 'position', 'opacity', 'password', 'encryption_level', 'pages', 'pages_to_remove', 'invert', 'image_quality', 'split_mode', 'keepOrder', 'language', 'confidence', 'search_terms', 'redaction_color', 'case_sensitive'];
+
+      if (layoutParams.includes(paramName)) return 'layout';
+      if (contentParams.includes(paramName)) return 'content';
+      if (outputParams.includes(paramName)) return 'output';
+      return 'advanced';
+    }
+
+    // === PHASE 2: SEARCH, RESET, PRESETS ===
+
+    function searchParameters(query) {
+      const advancedContainer = document.getElementById('advancedParamsContainer');
+      if (!advancedContainer) return;
+
+      const paramGroups = advancedContainer.querySelectorAll('.param-group');
+      const formGroups = advancedContainer.querySelectorAll('.form-group');
+      let visibleCount = 0;
+      let totalCount = formGroups.length;
+
+      if (!query) {
+        // Show all
+        paramGroups.forEach(group => group.classList.remove('hidden'));
+        formGroups.forEach(group => group.classList.remove('hidden'));
+        document.getElementById('searchResults').textContent = 'All parameters';
+        document.getElementById('searchResults').classList.remove('found');
+      } else {
+        const lowerQuery = query.toLowerCase();
+        let hasVisibleGroups = false;
+
+        formGroups.forEach(group => {
+          const label = group.querySelector('label');
+          const text = (label?.textContent || '').toLowerCase();
+          const isMatch = text.includes(lowerQuery);
+
+          if (isMatch) {
+            group.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            group.classList.add('hidden');
+          }
+        });
+
+        // Show/hide groups based on visibility of children
+        paramGroups.forEach(group => {
+          const visibleChildren = Array.from(group.querySelectorAll('.form-group')).filter(
+            child => !child.classList.contains('hidden')
+          );
+          if (visibleChildren.length > 0) {
+            group.classList.remove('hidden');
+            hasVisibleGroups = true;
+          } else {
+            group.classList.add('hidden');
+          }
+        });
+
+        const resultsText = visibleCount === totalCount 
+          ? 'All parameters' 
+          : `${visibleCount} of ${totalCount}`;
+        document.getElementById('searchResults').textContent = resultsText;
+        document.getElementById('searchResults').classList.toggle('found', visibleCount > 0);
+      }
+    }
+
+    function resetSettings() {
+      const toolName = document.getElementById('selectedTool').innerText;
+      const serviceConfig = SERVICE_PARAMETERS[toolName];
+      if (!serviceConfig || !serviceConfig.params) return;
+
+      const confirmed = confirm('Reset all parameters to default values?');
+      if (!confirmed) return;
+
+      serviceConfig.params.forEach(param => {
+        const input = document.getElementById(param.name);
+        if (input) {
+          if (input.type === 'checkbox') {
+            input.checked = param.default;
+          } else {
+            input.value = param.default;
+
+            if (input.type === 'range') {
+              const display = document.getElementById(param.name + '_display');
+              if (display) display.innerText = param.default;
+              const percent = (param.default - param.min) / (param.max - param.min) * 100;
+              input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+            }
+          }
+        }
+      });
+
+      // Clear search
+      document.getElementById('paramSearch').value = '';
+      searchParameters('');
+
+      showToast('Settings reset to defaults', 'info');
+    }
+
+    function saveAsPreset() {
+      document.getElementById('presetName').value = '';
+      document.getElementById('savePresetModal').classList.add('show');
+      document.getElementById('presetName').focus();
+    }
+
+    function closeSavePresetModal() {
+      document.getElementById('savePresetModal').classList.remove('show');
+    }
+
+    function confirmSavePreset() {
+      const presetName = document.getElementById('presetName').value.trim();
+      if (!presetName) {
+        showToast('Please enter a preset name', 'error');
+        return;
+      }
+
+      const presetDesc = document.getElementById('presetDesc').value.trim(); // Phase 3B
+      const toolName = document.getElementById('selectedTool').innerText;
+      const serviceConfig = SERVICE_PARAMETERS[toolName];
+      if (!serviceConfig || !serviceConfig.params) return;
+
+      const presetValues = {};
+      serviceConfig.params.forEach(param => {
+        const input = document.getElementById(param.name);
+        if (input) {
+          presetValues[param.name] = input.type === 'checkbox' ? input.checked : input.value;
+        }
+      });
+
+      const storageKey = `custom_presets_${toolName}`;
+      const customPresets = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      // Phase 3B: Store preset with description metadata
+      customPresets[presetName] = {
+        params: presetValues,
+        description: presetDesc,
+        created: Date.now()
+      };
+      localStorage.setItem(storageKey, JSON.stringify(customPresets));
+
+      closeSavePresetModal();
+      document.getElementById('presetDesc').value = ''; // Clear description field
+      showToast(`Saved custom preset: ${presetName}`, 'success');
+
+      // Refresh presets tab
+      const toolNameDisplay = document.getElementById('selectedTool').innerText;
+      renderServiceSettings(toolNameDisplay);
+    }
+
+    function deleteCustomPreset(toolName, presetName) {
+      const confirmed = confirm(`Delete custom preset "${presetName}"?`);
+      if (!confirmed) return;
+
+      const storageKey = `custom_presets_${toolName}`;
+      const customPresets = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      delete customPresets[presetName];
+      localStorage.setItem(storageKey, JSON.stringify(customPresets));
+
+      showToast(`Deleted custom preset: ${presetName}`, 'info');
+      renderServiceSettings(toolName);
+    }
+
+    function exportSettings() {
+      const toolName = document.getElementById('selectedTool').innerText;
+      const serviceConfig = SERVICE_PARAMETERS[toolName];
+      if (!serviceConfig || !serviceConfig.params) return;
+
+      const settings = { tool: toolName, params: {} };
+      serviceConfig.params.forEach(param => {
+        const input = document.getElementById(param.name);
+        if (input) {
+          settings.params[param.name] = input.type === 'checkbox' ? input.checked : input.value;
+        }
+      });
+
+      const json = JSON.stringify(settings, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${toolName}_settings_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('Settings exported successfully', 'success');
+    }
+
+    function importSettings() {
+      document.getElementById('importFile').value = '';
+      document.getElementById('importModal').classList.add('show');
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').classList.remove('show');
+    }
+
+    function confirmImport() {
+      const file = document.getElementById('importFile').files[0];
+      if (!file) {
+        showToast('Please select a file', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const settings = JSON.parse(e.target.result);
+          const toolName = document.getElementById('selectedTool').innerText;
+
+          if (settings.tool && settings.tool !== toolName) {
+            showToast(`Preset is for "${settings.tool}", current tool is "${toolName}"`, 'error');
+            return;
+          }
+
+          Object.entries(settings.params).forEach(([paramName, value]) => {
+            const input = document.getElementById(paramName);
+            if (input) {
+              if (input.type === 'checkbox') {
+                input.checked = value;
+              } else {
+                input.value = value;
+                if (input.type === 'range') {
+                  const display = document.getElementById(paramName + '_display');
+                  if (display) display.innerText = value;
+                  const serviceConfig = SERVICE_PARAMETERS[toolName];
+                  const param = serviceConfig.params.find(p => p.name === paramName);
+                  if (param) {
+                    const percent = (value - param.min) / (param.max - param.min) * 100;
+                    input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+                  }
+                }
+              }
+            }
+          });
+
+          closeImportModal();
+          showToast('Settings imported successfully', 'success');
+        } catch (error) {
+          showToast('Error importing settings: ' + error.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // === ORIGINAL PARAMETER FUNCTIONS ===
+
     // === PAGE NAVIGATION ===
     function switchPage(pageId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
       document.getElementById('page-' + pageId).classList.add('active-page');
+      
+      // Hide settings panel when switching pages (only show when tool is selected)
+      const rightSettingsPanel = document.getElementById('rightSettingsPanel');
+      if (rightSettingsPanel && pageId !== 'conversion') {
+        rightSettingsPanel.classList.remove('visible');
+      }
+      
       closeSidebars();
+    }
+
+    function goBack() {
+      switchPage('home');
+    }
+
+    function filterTools(category) {
+      // Update active button with animation
+      document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-category="${category}"]`).classList.add('active');
+
+      // Filter tools with staggered animation
+      const toolsGrid = document.getElementById('toolsGrid');
+      const tools = toolsGrid.querySelectorAll('.service-card-item');
+      let delay = 0;
+
+      tools.forEach((tool, index) => {
+        const toolCategory = tool.getAttribute('data-category');
+        
+        if (category === 'all' || toolCategory === category) {
+          setTimeout(() => {
+            tool.style.display = 'block';
+            setTimeout(() => {
+              tool.style.opacity = '1';
+              tool.style.transform = 'scale(1)';
+            }, 10);
+          }, delay);
+          delay += 20;
+        } else {
+          tool.style.opacity = '0';
+          tool.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            if (tool.style.opacity === '0') {
+              tool.style.display = 'none';
+            }
+          }, 150);
+        }
+      });
     }
 
     function openConversion(toolName) {
       switchPage('conversion');
       document.getElementById('selectedTool').innerText = toolName;
+      document.getElementById('conversionPageTitle').innerText = toolName;
       document.getElementById('settingToolName').innerText = toolName;
+      
+      // Settings panel will show only after file upload, not on tool selection
       
       // Clear preview when switching tools
       const previewPlaceholder = document.getElementById('previewPlaceholder');
-      previewPlaceholder.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 2rem; font-size: 0.95rem;"><i class="fa-regular fa-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>Preview will appear here when you click <strong>"live preview"</strong></div>';
+      previewPlaceholder.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 2rem; font-size: 0.95rem;"><i class="bi bi-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>Preview will appear here when you click <strong>"live preview"</strong></div>';
       
       // Show file type warning if tool has supported formats restriction
       const fileTypeWarning = document.getElementById('fileTypeWarning');
@@ -2371,263 +3683,486 @@
       renderServiceSettings(toolName);
     }
 
+    // === TAB AND PARAMETER FUNCTIONS ===
+
+    function createParamElement(param) {
+      const group = document.createElement('div');
+      group.className = 'form-group';
+      group.style.marginBottom = '0.8rem';
+
+      const label = document.createElement('label');
+      label.htmlFor = param.name;
+      label.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;';
+      
+      // Create label wrapper with help icon if help text exists (Phase 3A)
+      const labelWrapper = document.createElement('span');
+      labelWrapper.style.cssText = 'display: flex; align-items: center; gap: 0.4rem;';
+      labelWrapper.textContent = param.label;
+      
+      if (param.help) {
+        const helpWrapper = document.createElement('span');
+        helpWrapper.className = 'param-help-wrapper';
+        helpWrapper.style.cssText = 'position: relative;';
+        
+        const helpIcon = document.createElement('span');
+        helpIcon.className = 'param-help-icon';
+        helpIcon.textContent = '?';
+        helpIcon.title = 'Help';
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'param-tooltip';
+        tooltip.textContent = param.help;
+        
+        helpWrapper.appendChild(helpIcon);
+        helpWrapper.appendChild(tooltip);
+        labelWrapper.appendChild(helpWrapper);
+      }
+      
+      label.appendChild(labelWrapper);
+      group.appendChild(label);
+
+      let input;
+
+      if (param.type === 'range') {
+        const rangeContainer = document.createElement('div');
+        rangeContainer.style.cssText = 'display: flex; align-items: center; gap: 0.8rem;';
+
+        input = document.createElement('input');
+        input.type = 'range';
+        input.id = param.name;
+        input.name = param.name;
+        input.min = param.min;
+        input.max = param.max;
+        input.step = param.step || 1;
+        input.value = param.default;
+        input.style.cssText = 'flex: 1; height: 6px; border-radius: 3px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ' + ((param.default - param.min) / (param.max - param.min) * 100) + '%, var(--border-color) ' + ((param.default - param.min) / (param.max - param.min) * 100) + '%, var(--border-color) 100%);';
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.id = param.name + '_display';
+        valueDisplay.style.cssText = 'min-width: 50px; text-align: right; font-weight: 600; color: var(--accent-primary);';
+        valueDisplay.innerText = param.default;
+
+        input.addEventListener('input', (e) => {
+          valueDisplay.innerText = e.target.value;
+          const percent = (e.target.value - param.min) / (param.max - param.min) * 100;
+          e.target.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+        });
+
+        rangeContainer.appendChild(input);
+        rangeContainer.appendChild(valueDisplay);
+        group.appendChild(rangeContainer);
+
+      } else if (param.type === 'select') {
+        input = document.createElement('select');
+        input.id = param.name;
+        input.name = param.name;
+        input.value = param.default;
+        param.values.forEach(value => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.innerText = value;
+          input.appendChild(option);
+        });
+        group.appendChild(input);
+
+      } else if (param.type === 'checkbox') {
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = param.name;
+        input.name = param.name;
+        input.checked = param.default;
+        input.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
+        
+        const checkboxLabel = document.createElement('label');
+        checkboxLabel.style.cssText = 'display: flex; align-items: center; gap: 0.8rem; cursor: pointer;';
+        checkboxLabel.appendChild(input);
+        
+        const labelText = document.createElement('span');
+        labelText.innerText = param.label;
+        checkboxLabel.appendChild(labelText);
+        
+        group.innerHTML = '';
+        group.appendChild(checkboxLabel);
+
+      } else if (param.type === 'password') {
+        input = document.createElement('input');
+        input.type = 'password';
+        input.id = param.name;
+        input.name = param.name;
+        input.value = param.default;
+        input.placeholder = param.label;
+        group.appendChild(input);
+
+      } else if (param.type === 'text') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.id = param.name;
+        input.name = param.name;
+        input.value = param.default;
+        input.placeholder = param.label;
+        input.style.cssText = 'width: 100%;';
+        group.appendChild(input);
+
+      } else if (param.type === 'number') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.id = param.name;
+        input.name = param.name;
+        input.value = param.default;
+        input.min = param.min;
+        input.max = param.max;
+        input.style.cssText = 'width: 100%;';
+        group.appendChild(input);
+      }
+
+      return group;
+    }
+
+    // === PHASE 3A: RECENTLY USED PRESETS TRACKING ===
+    function updatePresetUsage(toolName, presetName) {
+      const usageKey = `preset_usage_${toolName}`;
+      const usage = JSON.parse(localStorage.getItem(usageKey) || '{}');
+      usage[presetName] = Date.now();
+      localStorage.setItem(usageKey, JSON.stringify(usage));
+    }
+
+    function getRecentPresets(toolName, limit = 5) {
+      const usageKey = `preset_usage_${toolName}`;
+      const usage = JSON.parse(localStorage.getItem(usageKey) || '{}');
+      
+      // Sort presets by usage timestamp (newest first)
+      const sorted = Object.entries(usage)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([name]) => name);
+      
+      return sorted;
+    }
+
+    function formatTimeAgo(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (seconds < 60) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      if (days < 30) return `${days}d ago`;
+      return 'Long ago';
+    }
+
     function renderServiceSettings(toolName) {
       console.log('[DEBUG] renderServiceSettings called with:', toolName);
       const container = document.getElementById('serviceSettingsContainer');
-      container.innerHTML = '';
 
       const serviceConfig = SERVICE_PARAMETERS[toolName];
       console.log('[DEBUG] serviceConfig for', toolName, ':', serviceConfig);
       
       if (!serviceConfig || !serviceConfig.params) {
-        // No specific settings for this service
         console.log('[DEBUG] No service config or params found for', toolName);
+        const tabContainer = document.querySelector('.param-tabs-container');
+        if (tabContainer) tabContainer.style.display = 'none';
+        const legacyContainer = document.getElementById('legacySettingsContainer');
+        if (legacyContainer) legacyContainer.style.display = 'block';
         return;
       }
 
-      console.log('[DEBUG] Rendering', serviceConfig.params.length, 'parameters');
+      // Use tabbed interface
+      const tabContainer = document.querySelector('.param-tabs-container');
+      const basicContainer = document.getElementById('basicParamsContainer');
+      const advancedContainer = document.getElementById('advancedParamsContainer');
+      const presetsContainer = document.getElementById('presetsContainer');
+      const legacyContainer = document.getElementById('legacySettingsContainer');
 
-      // Create settings fieldset
-      const fieldset = document.createElement('fieldset');
-      fieldset.style.cssText = 'border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;';
+      if (basicContainer && advancedContainer && presetsContainer) {
+        basicContainer.innerHTML = '';
+        advancedContainer.innerHTML = '';
+        presetsContainer.innerHTML = '';
+        if (legacyContainer) legacyContainer.style.display = 'none';
+        if (tabContainer) tabContainer.style.display = 'flex';
 
-      const legend = document.createElement('legend');
-      legend.style.cssText = 'padding: 0 0.5rem; font-weight: 600; color: var(--accent-primary); display: flex; align-items: center; cursor: pointer; user-select: none;';
-      
-      const legendText = document.createElement('span');
-      legendText.innerText = serviceConfig.label + ' Options';
-      legend.appendChild(legendText);
+        // Organize parameters by category
+        const paramsByCategory = { layout: [], content: [], output: [], advanced: [] };
+        
+        serviceConfig.params.forEach(param => {
+          const category = getParameterCategory(param.name);
+          paramsByCategory[category].push(param);
+        });
 
-      // Add toggle button
-      const toggleBtn = document.createElement('button');
-      toggleBtn.type = 'button';
-      toggleBtn.className = 'fieldset-toggle-btn';
-      toggleBtn.innerHTML = '<i class="fa-regular fa-chevron-down"></i>';
-      toggleBtn.style.cssText = 'background: transparent; border: none; color: var(--accent-primary); cursor: pointer; font-size: 1rem; padding: 0; margin-left: 0.5rem; transition: transform 0.3s ease; display: inline-block;';
-      legend.appendChild(toggleBtn);
-      
-      fieldset.appendChild(legend);
+        // Helper to render parameter group
+        const renderParamGroup = (category, params, container) => {
+          if (params.length === 0) return;
 
-      // Create collapsible content wrapper
-      const contentWrapper = document.createElement('div');
-      contentWrapper.className = 'fieldset-content';
+          const categoryColors = {
+            layout: { bg: 'rgba(52, 152, 219, 0.08)', border: '#3498db', label: '📐 Layout' },
+            content: { bg: 'rgba(230, 126, 34, 0.08)', border: '#e67e22', label: '📄 Content' },
+            output: { bg: 'rgba(39, 174, 96, 0.08)', border: '#27ae60', label: '📦 Output' },
+            advanced: { bg: 'rgba(155, 89, 182, 0.08)', border: '#9b59b6', label: '⚙️ Advanced' }
+          };
 
-      // Render each parameter
-      serviceConfig.params.forEach(param => {
-        const group = document.createElement('div');
-        group.className = 'form-group';
-        group.style.marginBottom = '0.8rem';
+          const config = categoryColors[category];
 
-        const label = document.createElement('label');
-        label.htmlFor = param.name;
-        label.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;';
-        label.innerHTML = `<span>${param.label}</span><small style="color: var(--text-secondary); font-size: 0.8rem;">${param.help || ''}</small>`;
+          const groupDiv = document.createElement('div');
+          groupDiv.className = `param-group ${category}`;
+          groupDiv.style.cssText = `background: ${config.bg}; border-left: 4px solid ${config.border}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;`;
 
-        group.appendChild(label);
+          // === PHASE 3C: Add collapse header with toggle button ===
+          const headerContainer = document.createElement('div');
+          headerContainer.className = 'param-group-header';
+          headerContainer.style.cssText = 'margin-bottom: 0.8rem;';
+          
+          const toggleBtn = document.createElement('span');
+          toggleBtn.className = 'param-group-toggle';
+          toggleBtn.textContent = '▼';
+          toggleBtn.style.cssText = `color: ${config.border};`;
+          
+          const groupTitle = document.createElement('span');
+          groupTitle.style.cssText = `font-weight: 600; color: ${config.border}; font-size: 0.95rem; flex: 1;`;
+          groupTitle.innerText = config.label;
+          
+          headerContainer.appendChild(toggleBtn);
+          headerContainer.appendChild(groupTitle);
+          groupDiv.appendChild(headerContainer);
 
-        let input;
-
-        if (param.type === 'range') {
-          const rangeContainer = document.createElement('div');
-          rangeContainer.style.cssText = 'display: flex; align-items: center; gap: 0.8rem;';
-
-          input = document.createElement('input');
-          input.type = 'range';
-          input.id = param.name;
-          input.name = param.name;
-          input.min = param.min;
-          input.max = param.max;
-          input.step = param.step || 1;
-          input.value = param.default;
-          input.style.cssText = 'flex: 1; height: 6px; border-radius: 3px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ' + ((param.default - param.min) / (param.max - param.min) * 100) + '%, var(--border-color) ' + ((param.default - param.min) / (param.max - param.min) * 100) + '%, var(--border-color) 100%);';
-
-          const valueDisplay = document.createElement('span');
-          valueDisplay.id = param.name + '_display';
-          valueDisplay.style.cssText = 'min-width: 50px; text-align: right; font-weight: 600; color: var(--accent-primary);';
-          valueDisplay.innerText = param.default;
-
-          input.addEventListener('input', (e) => {
-            valueDisplay.innerText = e.target.value;
-            // Update the gradient
-            const percent = (e.target.value - param.min) / (param.max - param.min) * 100;
-            e.target.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+          // Container for parameters that can be collapsed
+          const paramsContainer = document.createElement('div');
+          paramsContainer.className = 'param-group-params';
+          
+          params.forEach(param => {
+            paramsContainer.appendChild(createParamElement(param));
           });
 
-          rangeContainer.appendChild(input);
-          rangeContainer.appendChild(valueDisplay);
-          group.appendChild(rangeContainer);
+          groupDiv.appendChild(paramsContainer);
 
-        } else if (param.type === 'select') {
-          input = document.createElement('select');
-          input.id = param.name;
-          input.name = param.name;
-          input.value = param.default;
+          // Check if group is collapsed in localStorage
+          const collapseKey = `collapse_${toolName}_${category}`;
+          const isCollapsed = localStorage.getItem(collapseKey) === 'true';
+          if (isCollapsed) {
+            toggleBtn.classList.add('collapsed');
+            paramsContainer.classList.add('collapsed');
+          }
 
-          param.values.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.innerText = value;
-            input.appendChild(option);
+          // Add click handler for toggling
+          headerContainer.addEventListener('click', () => {
+            const wasCollapsed = paramsContainer.classList.contains('collapsed');
+            paramsContainer.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('collapsed');
+            
+            // Save state
+            localStorage.setItem(collapseKey, !wasCollapsed);
           });
 
-          group.appendChild(input);
+          container.appendChild(groupDiv);
+        };
 
-        } else if (param.type === 'checkbox') {
-          input = document.createElement('input');
-          input.type = 'checkbox';
-          input.id = param.name;
-          input.name = param.name;
-          input.checked = param.default;
-          input.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
-          
-          const checkboxLabel = document.createElement('label');
-          checkboxLabel.style.cssText = 'display: flex; align-items: center; gap: 0.8rem; cursor: pointer;';
-          checkboxLabel.appendChild(input);
-          
-          const labelText = document.createElement('span');
-          labelText.innerText = param.label;
-          checkboxLabel.appendChild(labelText);
-          
-          group.innerHTML = '';
-          group.appendChild(checkboxLabel);
-
-        } else if (param.type === 'password') {
-          input = document.createElement('input');
-          input.type = 'password';
-          input.id = param.name;
-          input.name = param.name;
-          input.value = param.default;
-          input.placeholder = param.label;
-          group.appendChild(input);
-
-        } else if (param.type === 'text') {
-          input = document.createElement('input');
-          input.type = 'text';
-          input.id = param.name;
-          input.name = param.name;
-          input.value = param.default;
-          input.placeholder = param.label;
-          input.style.cssText = 'width: 100%;';
-          group.appendChild(input);
-
-        } else if (param.type === 'number') {
-          input = document.createElement('input');
-          input.type = 'number';
-          input.id = param.name;
-          input.name = param.name;
-          input.value = param.default;
-          input.min = param.min;
-          input.max = param.max;
-          input.style.cssText = 'width: 100%;';
-          group.appendChild(input);
+        // Render basic parameters (limit to 3-5 key ones)
+        const basicParams = serviceConfig.params.slice(0, 3);
+        if (basicParams.length > 0) {
+          const basicGroupDiv = document.createElement('div');
+          basicGroupDiv.style.cssText = 'display: flex; flex-direction: column; gap: 0.8rem;';
+          basicParams.forEach(param => {
+            basicGroupDiv.appendChild(createParamElement(param));
+          });
+          basicContainer.appendChild(basicGroupDiv);
         }
 
-        if (input && param.type !== 'checkbox') {
-          contentWrapper.appendChild(group);
-        } else if (param.type === 'checkbox') {
-          contentWrapper.appendChild(group);
+        // Render advanced parameters organized by category
+        if (paramsByCategory.layout.length > 0) renderParamGroup('layout', paramsByCategory.layout, advancedContainer);
+        if (paramsByCategory.content.length > 0) renderParamGroup('content', paramsByCategory.content, advancedContainer);
+        if (paramsByCategory.output.length > 0) renderParamGroup('output', paramsByCategory.output, advancedContainer);
+        if (paramsByCategory.advanced.length > 0) renderParamGroup('advanced', paramsByCategory.advanced, advancedContainer);
+
+        // === PHASE 3A: Render Recently Used Presets ===
+        const recentPresets = getRecentPresets(toolName, 5);
+        if (recentPresets.length > 0) {
+          const recentLabel = document.createElement('div');
+          recentLabel.className = 'recently-used-label';
+          recentLabel.textContent = 'Recently Used';
+          presetsContainer.appendChild(recentLabel);
+
+          recentPresets.forEach(presetName => {
+            const usageKey = `preset_usage_${toolName}`;
+            const usage = JSON.parse(localStorage.getItem(usageKey) || '{}');
+            const timestamp = usage[presetName];
+            const timeAgo = formatTimeAgo(timestamp);
+
+            // Find the preset values from either default or custom presets
+            let presetData = serviceConfig.presets?.[presetName];
+            let presetValues = presetData;
+            if (!presetData) {
+              const customPresetsKey = `custom_presets_${toolName}`;
+              const customPresets = JSON.parse(localStorage.getItem(customPresetsKey) || '{}');
+              presetData = customPresets[presetName];
+              // Phase 3B: Handle new format with metadata
+              presetValues = presetData?.params || presetData;
+            }
+
+            if (presetValues) {
+              const card = document.createElement('div');
+              card.className = 'preset-card recently-used-card';
+              card.style.cssText = 'cursor: pointer; transition: all 0.3s ease; border: 2px solid var(--accent-primary);';
+              card.innerHTML = `
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.3rem;">${presetName}</div>
+                <div style="font-size: 0.75rem; color: var(--accent-primary); margin-bottom: 0.8rem;">Last used: ${timeAgo}</div>
+                <button type="button" class="btn-outline-light" style="width: 100%; padding: 0.5rem;">Apply</button>
+              `;
+
+              card.querySelector('button').addEventListener('click', () => {
+                Object.entries(presetValues).forEach(([paramName, value]) => {
+                  const input = document.getElementById(paramName);
+                  if (input) {
+                    if (input.type === 'checkbox') {
+                      input.checked = value;
+                    } else {
+                      input.value = value;
+                      if (input.type === 'range') {
+                        const display = document.getElementById(paramName + '_display');
+                        if (display) display.innerText = value;
+                        const param = serviceConfig.params.find(p => p.name === paramName);
+                        if (param) {
+                          const percent = (value - param.min) / (param.max - param.min) * 100;
+                          input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+                        }
+                      }
+                    }
+                  }
+                });
+
+                updatePresetUsage(toolName, presetName);
+                showToast(`Applied: ${presetName}`, 'success');
+
+                const fileInput = document.getElementById('studioFileInput');
+                if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                  setTimeout(() => {
+                    generatePreview(false);
+                  }, 100);
+                }
+              });
+
+              presetsContainer.appendChild(card);
+            }
+          });
         }
-      });
 
-      // Add content wrapper to fieldset
-      fieldset.appendChild(contentWrapper);
+        // Render preset cards
+        if (serviceConfig.presets) {
+          Object.entries(serviceConfig.presets).forEach(([presetName, presetValues]) => {
+            const card = document.createElement('div');
+            card.className = 'preset-card';
+            card.style.cssText = 'cursor: pointer; transition: all 0.3s ease;';
+            card.innerHTML = `
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.3rem;">${presetName}</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.8rem;">Preset configuration</div>
+              <button type="button" class="btn-outline-light" style="width: 100%; padding: 0.5rem;">Apply</button>
+            `;
 
-      // Add toggle functionality - simple and direct
-      const toggleCollapse = () => {
-        const isCollapsed = contentWrapper.classList.contains('collapsed');
-        if (isCollapsed) {
-          contentWrapper.classList.remove('collapsed');
-          toggleBtn.style.transform = 'rotate(0deg)';
-        } else {
-          contentWrapper.classList.add('collapsed');
-          toggleBtn.style.transform = 'rotate(-90deg)';
-        }
-      };
-
-      // Attach click handlers
-      legend.style.cursor = 'pointer';
-      legend.addEventListener('click', (e) => {
-        e.preventDefault();
-        toggleCollapse();
-      });
-      
-      toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleCollapse();
-      });
-
-      // Add preset buttons FIRST if available
-      if (serviceConfig.presets) {
-        const presetsContainer = document.createElement('div');
-        presetsContainer.style.cssText = 'margin-bottom: 1.5rem;';
-
-        const presetsLabel = document.createElement('div');
-        presetsLabel.style.cssText = 'font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);';
-        presetsLabel.innerText = '⚙️ Quick Presets:';
-        presetsContainer.appendChild(presetsLabel);
-
-        const presetsButtonGroup = document.createElement('div');
-        presetsButtonGroup.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem;';
-
-        Object.entries(serviceConfig.presets).forEach(([presetName, presetValues]) => {
-          const btn = document.createElement('button');
-          btn.className = 'btn-outline-light';
-          btn.innerText = presetName;
-          btn.style.cssText = 'padding: 0.5rem 1rem; font-size: 0.85rem;';
-          
-          btn.addEventListener('click', async () => {
-            console.log('[DEBUG] Preset clicked:', presetName, 'values:', presetValues);
-            // Apply preset values to all inputs
-            Object.entries(presetValues).forEach(([paramName, value]) => {
-              const input = document.getElementById(paramName);
-              if (input) {
-                console.log('[DEBUG] Setting', paramName, 'to', value);
-                if (input.type === 'checkbox') {
-                  input.checked = value;
-                } else {
-                  input.value = value;
-                  // Update range display if it's a range input
-                  if (input.type === 'range') {
-                    const display = document.getElementById(paramName + '_display');
-                    if (display) display.innerText = value;
-                    // Update gradient
-                    const param = serviceConfig.params.find(p => p.name === paramName);
-                    if (param) {
-                      const percent = (value - param.min) / (param.max - param.min) * 100;
-                      input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+            card.querySelector('button').addEventListener('click', () => {
+              console.log('[DEBUG] Preset clicked:', presetName);
+              Object.entries(presetValues).forEach(([paramName, value]) => {
+                const input = document.getElementById(paramName);
+                if (input) {
+                  if (input.type === 'checkbox') {
+                    input.checked = value;
+                  } else {
+                    input.value = value;
+                    if (input.type === 'range') {
+                      const display = document.getElementById(paramName + '_display');
+                      if (display) display.innerText = value;
+                      const param = serviceConfig.params.find(p => p.name === paramName);
+                      if (param) {
+                        const percent = (value - param.min) / (param.max - param.min) * 100;
+                        input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+                      }
                     }
                   }
                 }
-              } else {
-                console.warn('[DEBUG] Input not found for param:', paramName);
+              });
+
+              updatePresetUsage(toolName, presetName); // Track usage (Phase 3A)
+              showToast(`Applied preset: ${presetName}`, 'info');
+
+              const fileInput = document.getElementById('studioFileInput');
+              if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                setTimeout(() => {
+                  generatePreview(false);
+                }, 100);
               }
             });
-            showToast(`Applied preset: ${presetName}`, 'info');
-            
-            // DIRECTLY trigger preview update after applying values
-            console.log('[DEBUG] Preset applied, checking if file is loaded before generating preview...');
-            const fileInput = document.getElementById('studioFileInput');
-            if (fileInput && fileInput.files && fileInput.files.length > 0) {
-              console.log('[DEBUG] File found, generating preview immediately...');
-              // Small delay to ensure DOM is updated with new values
-              setTimeout(() => {
-                generatePreview(false);
-              }, 100);
-            } else {
-              console.log('[DEBUG] No file selected - preview not triggered');
-            }
+
+            presetsContainer.appendChild(card);
           });
+        }
 
-          presetsButtonGroup.appendChild(btn);
-        });
+        // Phase 2: Render custom presets from localStorage
+        const customPresetsKey = `custom_presets_${toolName}`;
+        const customPresets = JSON.parse(localStorage.getItem(customPresetsKey) || '{}');
+        if (Object.keys(customPresets).length > 0) {
+          const divider = document.createElement('div');
+          divider.className = 'presets-divider';
+          divider.textContent = 'Custom Presets';
+          presetsContainer.appendChild(divider);
 
-        presetsContainer.appendChild(presetsButtonGroup);
-        container.appendChild(presetsContainer);
+          Object.entries(customPresets).forEach(([presetName, presetData]) => {
+            // Phase 3B: Handle both old format (direct params) and new format (with metadata)
+            const presetValues = presetData.params || presetData;
+            const description = presetData.description || '';
+            
+            const card = document.createElement('div');
+            card.className = 'preset-card custom-preset-card';
+            card.style.cssText = 'cursor: pointer; transition: all 0.3s ease; position: relative;';
+            card.innerHTML = `
+              <div class="custom-preset-badge">Custom</div>
+              <button class="custom-preset-delete" onclick="deleteCustomPreset('${toolName}', '${presetName.replace(/'/g, "\\'")}')" title="Delete preset">×</button>
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.3rem;">${presetName}</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.8rem;">${description || 'Your custom preset'}</div>
+              <button type="button" class="btn-outline-light" style="width: 100%; padding: 0.5rem;">Apply</button>
+            `;
+
+            card.querySelector('button:last-of-type').addEventListener('click', () => {
+              Object.entries(presetValues).forEach(([paramName, value]) => {
+                const input = document.getElementById(paramName);
+                if (input) {
+                  if (input.type === 'checkbox') {
+                    input.checked = value;
+                  } else {
+                    input.value = value;
+                    if (input.type === 'range') {
+                      const display = document.getElementById(paramName + '_display');
+                      if (display) display.innerText = value;
+                      const param = serviceConfig.params.find(p => p.name === paramName);
+                      if (param) {
+                        const percent = (value - param.min) / (param.max - param.min) * 100;
+                        input.style.background = `linear-gradient(to right, var(--accent-primary) 0%, var(--accent-primary) ${percent}%, var(--border-color) ${percent}%, var(--border-color) 100%)`;
+                      }
+                    }
+                  }
+                }
+              });
+
+              updatePresetUsage(toolName, presetName); // Track usage (Phase 3A)
+              showToast(`Applied custom preset: ${presetName}`, 'success');
+
+              const fileInput = document.getElementById('studioFileInput');
+              if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                setTimeout(() => {
+                  generatePreview(false);
+                }, 100);
+              }
+            });
+
+            presetsContainer.appendChild(card);
+          });
+        }
+
+        // Show basic tab by default
+        document.querySelectorAll('.param-tab-content').forEach(tab => tab.style.display = 'none');
+        document.getElementById('tab-basic').style.display = 'block';
+        document.querySelectorAll('.param-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('[data-tab="basic"]').classList.add('active');
       }
-
-      // THEN add manual parameters
-      container.appendChild(fieldset);
 
       // Re-attach preview listeners to all new service-specific inputs
       attachPreviewListeners();
@@ -2756,9 +4291,21 @@
       // Update icon based on file type
       updateFileIcon(file.type, file.name, fileIcon);
       
-      // Hide drag zone, show file card and preview area
+      // Hide drag zone, show file card and preview area, and show settings panel
       studioDropZone.style.display = 'none';
       fileCardArea.style.display = 'flex';
+      
+      // Show settings panel with smooth fade-in
+      const rightSettingsPanel = document.getElementById('rightSettingsPanel');
+      if (rightSettingsPanel) {
+        rightSettingsPanel.classList.add('visible');
+      }
+      
+      // Render service settings for the currently selected tool
+      const toolName = document.getElementById('selectedTool').innerText;
+      if (toolName && toolName !== 'none') {
+        renderServiceSettings(toolName);
+      }
       
       // Add to history
       addToHistory(file.name);
@@ -2769,23 +4316,23 @@
 
     function updateFileIcon(fileType, fileName, iconElement) {
       const ext = fileName.split('.').pop().toLowerCase();
-      let iconClass = 'fa-file';
+      let iconClass = 'file';
       
       if (fileType.includes('pdf') || ext === 'pdf') {
-        iconClass = 'fa-file-pdf';
+        iconClass = 'filetype-pdf';
       } else if (fileType.includes('word') || fileType.includes('document') || ext === 'docx' || ext === 'doc') {
-        iconClass = 'fa-file-word';
+        iconClass = 'filetype-doc';
       } else if (fileType.includes('spreadsheet') || fileType.includes('excel') || ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
-        iconClass = 'fa-file-excel';
+        iconClass = 'filetype-xls';
       } else if (fileType.includes('image') || ext.match(/jpg|jpeg|png|gif|bmp|webp/)) {
-        iconClass = 'fa-file-image';
+        iconClass = 'file-image';
       } else if (fileType.includes('presentation') || ext === 'pptx' || ext === 'ppt') {
-        iconClass = 'fa-file-powerpoint';
+        iconClass = 'filetype-ppt';
       } else if (fileType.includes('text') || ext === 'txt') {
-        iconClass = 'fa-file-lines';
+        iconClass = 'file-text';
       }
       
-      iconElement.className = `fa-regular ${iconClass}`;
+      iconElement.className = `bi bi-${iconClass}`;
     }
 
     function removeFile() {
@@ -2795,13 +4342,25 @@
       // Reset file input
       studioFileInput.value = '';
       
-      // Show drag zone, hide file card
+      // Show drag zone, hide file card, and hide settings panel
       studioDropZone.style.display = 'flex';
       fileCardArea.style.display = 'none';
       
+      // Hide settings panel with smooth fade-out
+      const rightSettingsPanel = document.getElementById('rightSettingsPanel');
+      if (rightSettingsPanel) {
+        rightSettingsPanel.classList.remove('visible');
+      }
+      
+      // Hide active parameters indicator
+      const activeParametersIndicator = document.getElementById('activeParametersIndicator');
+      if (activeParametersIndicator) {
+        activeParametersIndicator.style.display = 'none';
+      }
+      
       // Reset preview
       document.getElementById('previewPlaceholder').innerHTML = `
-        <i class="fa-regular fa-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+        <i class="bi bi-image" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
         <span style="font-size: 0.95rem;">Preview will appear here when you click <strong>"live preview"</strong></span>
       `;
       
@@ -2967,7 +4526,7 @@
         // Show progress for multi-page
         previewLoading.innerHTML = `
           <div style="display: flex; align-items: center; gap: 0.8rem;">
-            <i class="fa-regular fa-spinner fa-spin"></i>
+            <i class="bi bi-hourglass-split" style="display: inline-block; animation: spin 1s linear infinite;"></i>
             <span>Generating preview with your settings...</span>
             <div style="margin-left: auto; font-size: 0.85rem; color: var(--text-secondary);">
               <span id="previewProgressText">Processing...</span>
@@ -3026,7 +4585,7 @@
           
           previewHtml += '</div>';
           previewHtml += '<div style="margin-top: 1rem; padding: 0.8rem; background: #e8f5e9; border-radius: 8px; color: #2e7d32; font-size: 0.9rem;">';
-          previewHtml += '<i class="fa-regular fa-check-circle" style="margin-right: 0.5rem;"></i> Preview updated with current settings • Click "start conversion" to process all files';
+          previewHtml += '<i class="bi bi-check-circle" style="margin-right: 0.5rem;"></i> Preview updated with current settings • Click "start conversion" to process all files';
           previewHtml += '</div>';
 
           previewPlaceholder.style.opacity = '1';
@@ -3056,7 +4615,7 @@
         previewLoading.style.display = 'none';
         previewPlaceholder.style.opacity = '1';
         previewError.style.display = 'block';
-        previewError.innerHTML = `<i class="fa-regular fa-circle-xmark"></i> ${error.message}`;
+        previewError.innerHTML = `<i class="bi bi-x-circle"></i> ${error.message}`;
         console.error('Preview error:', error);
       }
     }
@@ -3273,28 +4832,49 @@
           
           showToast('Conversion complete!', 'success');
           
-          // Show download links
+          // Show download links in a prominent modal-like box
           if (data.files && data.files.length > 0) {
             // Remove old results if any
             const oldResults = document.getElementById('conversion-results');
             if (oldResults) oldResults.remove();
             
-            let downloadHtml = '<div style="color: #333; list-style: none; padding: 0; margin: 0;"><strong style="display: block; margin-bottom: 8px;">✅ Downloaded files:</strong>';
-            data.files.forEach(file => {
-              downloadHtml += `<div style="margin: 10px 0; padding: 8px; background: #fff; border-radius: 4px; border-left: 3px solid #4CAF50;"><a href="${file.download_url}" download="${file.name}" style="color: #4CAF50; text-decoration: none; font-weight: bold; cursor: pointer;">📥 ${file.name}</a> <span style="color: #999; font-size: 0.85em;">  (${(file.size / 1024).toFixed(2)} KB)</span></div>`;
-            });
-            downloadHtml += '</div>';
+            let downloadHtml = `
+              <div style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.08)); border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; margin-top: 20px;">
+                <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 15px;">
+                  <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; color: #4CAF50;"></i>
+                  <h3 style="margin: 0; color: #2e7d32; font-size: 1.1rem; font-weight: 600;">Conversion successful!</h3>
+                </div>
+                <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">Your files are ready to download</div>
+            `;
             
-            // Create a temporary container to show downloads
+            data.files.forEach(file => {
+              const sizeKB = (file.size / 1024).toFixed(2);
+              downloadHtml += `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 4px;">${file.name}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">${sizeKB} KB</div>
+                  </div>
+                  <a href="${file.download_url}" download="${file.name}" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.3s; border: none;">
+                    <i class="bi bi-download" style="font-size: 1rem;"></i> Download
+                  </a>
+                </div>
+              `;
+            });
+            
+            downloadHtml += `
+              </div>
+            `;
+            
+            // Create a container to show downloads
             const resultsDiv = document.createElement('div');
             resultsDiv.id = 'conversion-results';
             resultsDiv.innerHTML = downloadHtml;
-            resultsDiv.style.cssText = 'background: #f0f8f0; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #4CAF50; display: block;';
             
-            // Insert right after the convert button
-            const convertBtn = document.getElementById('convertBtn');
-            if (convertBtn && convertBtn.parentNode) {
-              convertBtn.parentNode.insertBefore(resultsDiv, convertBtn.nextSibling);
+            // Insert after the conversion-studio div (in the wrapper), not inside settings
+            const conversionStudio = document.querySelector('.conversion-studio');
+            if (conversionStudio && conversionStudio.parentNode) {
+              conversionStudio.parentNode.insertBefore(resultsDiv, conversionStudio.nextSibling);
             }
           }
           
@@ -3322,6 +4902,52 @@
       } else if (e.ctrlKey && e.key === 'h') {
         e.preventDefault();
         toggleRecentSidebar();
+      }
+      
+      // === PHASE 3B: KEYBOARD SHORTCUTS ===
+      // Ctrl+Shift+S: Save as preset
+      else if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        saveAsPreset();
+        showToast('Keyboard shortcut: Ctrl+Shift+S (Save preset)', 'info');
+      }
+      // Ctrl+Shift+E: Export settings
+      else if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        exportSettings();
+        showToast('Keyboard shortcut: Ctrl+Shift+E (Export)', 'info');
+      }
+      // Ctrl+Shift+I: Import settings
+      else if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+        importSettings();
+        showToast('Keyboard shortcut: Ctrl+Shift+I (Import)', 'info');
+      }
+      // Ctrl+Shift+R: Reset settings
+      else if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        resetSettings();
+        showToast('Keyboard shortcut: Ctrl+Shift+R (Reset)', 'info');
+      }
+      // Ctrl+F: Focus search box (override browser search)
+      else if (e.ctrlKey && e.key === 'f') {
+        const searchBox = document.getElementById('paramSearch');
+        if (searchBox) {
+          e.preventDefault();
+          searchBox.focus();
+          searchBox.select();
+          showToast('Keyboard shortcut: Ctrl+F (Search parameters)', 'info');
+        }
+      }
+      // Escape: Close modals
+      else if (e.key === 'Escape') {
+        const saveModal = document.getElementById('savePresetModal');
+        const importModal = document.getElementById('importModal');
+        if (saveModal && saveModal.classList.contains('show')) {
+          closeSavePresetModal();
+        } else if (importModal && importModal.classList.contains('show')) {
+          closeImportModal();
+        }
       }
     });
 
