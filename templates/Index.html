@@ -4361,10 +4361,10 @@
     function handleFiles(files) {
       if (files.length === 0) return;
       
-      // Remove Recent Results button when new file is selected (clear old results)
-      const recentResultsContainer = document.getElementById('recentResultsContainer');
-      if (recentResultsContainer) {
-        recentResultsContainer.remove();
+      // Remove recent results banner when new file is selected (clearing old results context)
+      const recentResultsBanner = document.getElementById('recentResultsBanner');
+      if (recentResultsBanner) {
+        recentResultsBanner.remove();
       }
       
       // Store current file in the input
@@ -4431,10 +4431,10 @@
       const fileCardArea = document.getElementById('fileCardArea');
       const studioFileInput = document.getElementById('studioFileInput');
       
-      // Remove Recent Results button
-      const recentResultsContainer = document.getElementById('recentResultsContainer');
-      if (recentResultsContainer) {
-        recentResultsContainer.remove();
+      // Remove recent results banner
+      const recentResultsBanner = document.getElementById('recentResultsBanner');
+      if (recentResultsBanner) {
+        recentResultsBanner.remove();
       }
       
       // Reset file input
@@ -5195,17 +5195,83 @@
           return;
         }
         
-        // Results are still valid, make sure we're on the conversion page
-        const conversionPage = document.getElementById('page-conversion');
-        if (conversionPage && conversionPage.classList.contains('active-page')) {
-          // Show the Recent Results button (check if it already exists to avoid duplicates)
-          if (!document.getElementById('recentResultsContainer')) {
-            showRecentResultsButton();
-          }
-        }
+        // Results are still valid - show the banner notification
+        showRecentResultsBanner();
       } catch (error) {
         console.error('Error checking recent results:', error);
       }
+    }
+    
+    // === SHOW RECENT RESULTS AS BANNER ===
+    function showRecentResultsBanner() {
+      // Check if we're on conversion page
+      const conversionPage = document.getElementById('page-conversion');
+      if (!conversionPage || !conversionPage.classList.contains('active-page')) {
+        return; // Not on conversion page
+      }
+      
+      // Check if banner already exists
+      if (document.getElementById('recentResultsBanner')) {
+        return; // Already showing
+      }
+      
+      // Create banner at the top of the left-preview area
+      const leftPreview = document.querySelector('.left-preview');
+      if (!leftPreview) return;
+      
+      const banner = document.createElement('div');
+      banner.id = 'recentResultsBanner';
+      banner.style.cssText = `
+        background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(66, 165, 245, 0.15));
+        border: 2px solid #2196F3;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideDown 0.4s ease;
+      `;
+      
+      banner.innerHTML = `
+        <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+          <i class="bi bi-clock-history" style="font-size: 1.3rem; color: #2196F3; min-width: 24px;"></i>
+          <div style="flex: 1;">
+            <div style="color: var(--text-primary); font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">Recent Results Available</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">Your last conversion is still accessible</div>
+          </div>
+        </div>
+        <button onclick="reopenConversionResults(); document.getElementById('recentResultsBanner').remove();" style="
+          background: #2196F3;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 8px 16px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.85rem;
+          white-space: nowrap;
+        ">
+          <i class="bi bi-arrow-up-right-circle" style="margin-right: 6px;"></i>View Results
+        </button>
+        <button onclick="document.getElementById('recentResultsBanner').remove();" style="
+          background: transparent;
+          color: var(--text-secondary);
+          border: none;
+          cursor: pointer;
+          font-size: 1.2rem;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <i class="bi bi-x" style="font-size: 1rem;"></i>
+        </button>
+      `;
+      
+      leftPreview.insertBefore(banner, leftPreview.firstChild);
     }
     
     // === OFFCANVAS RESULTS PANEL FUNCTION ===
@@ -5337,9 +5403,6 @@
       offcanvasElement.addEventListener('hide.bs.offcanvas', handleOffcanvasClose, { once: true });
       
       offcanvas.show();
-      
-      // Show "Recent Results" button on the conversion page
-      showRecentResultsButton();
     }
     
     // === NEW FEATURE: Download All Files as ZIP ===
