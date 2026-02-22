@@ -4952,6 +4952,12 @@
     });
 
     // === INIT ===
+    // Auto-redirect to home page on refresh if user is on conversion page
+    // This ensures users don't stay on conversion page after page refresh in SPA
+    if (document.getElementById('page-conversion')?.classList.contains('active-page')) {
+      switchPage('home');
+    }
+    
     initDarkMode();
     updateRecentList();
     loadSettings();
