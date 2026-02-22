@@ -44,6 +44,7 @@ import json as _json
 import time
 from collections import deque
 import subprocess
+from threading import Thread, Lock
 from app.utils.errors import register_error_handlers
 from app.utils.logger_setup import LoggerSetup
 
@@ -99,6 +100,69 @@ logger = LoggerSetup.setup(
 )
 app.logger = logger
 logger.info('DocPro server initialized with structured logging')
+
+# ========================
+# JOB TRACKING SYSTEM (SPA Async Support)
+# ========================
+_job_registry = {}  # {job_id: ConversionJob instance}
+_job_lock = Lock()  # Thread safety for job updates
+_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB max file size
+_conversion_rate_limit = {}  # {ip_address: [timestamps]}
+_rate_limit_window = 60  # 1 minute window
+_rate_limit_max_requests = 20  # Max 20 conversions per minute per IP (increased for testing)
+
+class ConversionJob:
+    """Represents an async conversion job"""
+    def __init__(self, job_id, tool_name, file_count):
+        self.job_id = job_id
+        self.tool_name = tool_name
+        self.file_count = file_count
+        self.status = 'queued'  # queued, processing, complete, error
+        self.progress = 0  # 0-100
+        self.result = None  # Conversion result
+        self.error = None  # Error message
+        self.timestamp = datetime.now()
+        self.start_time = None
+        self.end_time = None
+    
+    def to_dict(self):
+        elapsed = 0
+        if self.start_time:
+            end = self.end_time or datetime.now()
+            elapsed = (end - self.start_time).total_seconds()
+        
+        return {
+            'job_id': self.job_id,
+            'tool_name': self.tool_name,
+            'status': self.status,
+            'progress': self.progress,
+            'file_count': self.file_count,
+            'has_result': self.result is not None,
+            'error': self.error,
+            'elapsed_seconds': elapsed
+        }
+
+def _check_rate_limit(ip_address):
+    """Check if IP has exceeded rate limit. Returns True if allowed, False if limited."""
+    if ip_address not in _conversion_rate_limit:
+        _conversion_rate_limit[ip_address] = []
+    
+    now = time.time()
+    # Remove timestamps older than the rate limit window
+    _conversion_rate_limit[ip_address] = [
+        ts for ts in _conversion_rate_limit[ip_address] 
+        if now - ts < _rate_limit_window
+    ]
+    
+    if len(_conversion_rate_limit[ip_address]) >= _rate_limit_max_requests:
+        return False  # Rate limited
+    
+    _conversion_rate_limit[ip_address].append(now)
+    return True  # Allowed
+
+def _get_client_ip():
+    """Get client IP address, accounting for proxies"""
+    return request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
 
 # INTEGRATION: Register error handlers
 register_error_handlers(app)
@@ -6234,6 +6298,267 @@ def api_download(file_id):
     except Exception as e:
         print(f"[Download] Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ========================
+# ASYNC CONVERSION ENDPOINTS (SPA Support)
+# ========================
+
+def _process_conversion_job(job_id, temp_dir, files_list, tool_name, request_form):
+    """Background worker to process conversion asynchronously"""
+    job = _job_registry.get(job_id)
+    if not job:
+        return
+    
+    try:
+        with _job_lock:
+            job.status = 'processing'
+            job.start_time = datetime.now()
+        
+        # Helper function to convert string booleans from form data
+        def to_bool(val):
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
+        
+        converted_files = []
+        total_files = len(files_list)
+        
+        for idx, file_obj in enumerate(files_list):
+            if not file_obj or not file_obj.get('filename'):
+                continue
+            
+            # Update progress
+            progress = int((idx / total_files) * 100)
+            with _job_lock:
+                job.progress = progress
+            
+            # Write file bytes to disk
+            safe_name = sanitize_filename(file_obj['filename']) or ('upload_' + uuid.uuid4().hex)
+            input_path = os.path.join(temp_dir, safe_name)
+            
+            # Write the file content (bytes) to disk
+            try:
+                with open(input_path, 'wb') as f:
+                    f.write(file_obj['content'])
+            except Exception as e:
+                print(f"[Job {job_id}] Error writing file {file_obj['filename']}: {e}")
+                raise
+            
+            print(f"[Job {job_id}] Processing: {file_obj['filename']}")
+            
+            # Determine output filename
+            base_name = Path(file_obj['filename']).stem
+            output_format = request_form.get('output_format', 'pdf').lower()
+            
+            if tool_name == 'PDF to B&W' or tool_name == 'PDF to B&W Pro':
+                output_ext = 'pdf'
+            elif 'Image Convert' in tool_name:
+                output_ext = output_format or 'jpg'
+            elif 'CSV' in tool_name:
+                output_ext = 'csv'
+            elif 'HTML' in tool_name:
+                output_ext = 'html'
+            elif 'PPT' in tool_name:
+                output_ext = 'pptx'
+            elif 'Excel' in tool_name:
+                output_ext = 'xlsx'
+            elif 'Word' in tool_name:
+                output_ext = 'docx'
+            else:
+                output_ext = output_format or 'pdf'
+            
+            output_name = f"{base_name}.{output_ext}"
+            output_path = os.path.join(temp_dir, output_name)
+            
+            # Prepare conversion parameters
+            kwargs = {
+                'quality': int(request_form.get('quality', '85') or 85),
+                'output_format': output_ext,
+                'orientation': request_form.get('orientation', 'portrait'),
+                'paper_size': request_form.get('paper_size', 'A4'),
+                'margin_top': request_form.get('margin_top', '20'),
+                'margin_bottom': request_form.get('margin_bottom', '20'),
+                'margin_left': request_form.get('margin_left', '20'),
+                'margin_right': request_form.get('margin_right', '20'),
+                'threshold': request_form.get('threshold', '250'),
+                'contrast': request_form.get('contrast', '3'),
+                'gridlines': to_bool(request_form.get('gridlines', 'false')),
+                'include_headers': to_bool(request_form.get('include_headers', 'true')),
+                'scale_factor': request_form.get('scale_factor', '100'),
+                'image_quality': request_form.get('image_quality', '85'),
+            }
+            
+            # Execute conversion
+            try:
+                conversion_ok = execute_service_conversion(tool_name, input_path, output_path, **kwargs)
+                
+                if conversion_ok and os.path.exists(output_path):
+                    file_size = os.path.getsize(output_path)
+                    file_id = _store_converted_file(output_path, output_name)
+                    converted_files.append({
+                        'name': output_name,
+                        'size': file_size,
+                        'download_url': f'/api/download/{file_id}'
+                    })
+                    print(f"[Job {job_id}] File converted: {output_name} ({file_size} bytes)")
+            except Exception as e:
+                print(f"[Job {job_id}] Conversion error for {file.filename}: {e}")
+                raise
+        
+        # Update job with results
+        with _job_lock:
+            job.progress = 100
+            job.status = 'complete'
+            job.result = converted_files
+            job.end_time = datetime.now()
+        
+        print(f"[Job {job_id}] Conversion complete: {len(converted_files)} files")
+        log_history(f'async-convert-{tool_name}', [f['filename'] for f in files_list], 'success')
+    
+    except Exception as e:
+        print(f"[Job {job_id}] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        with _job_lock:
+            job.status = 'error'
+            job.error = str(e)
+            job.end_time = datetime.now()
+        log_history(f'async-convert-{tool_name}', [], 'error', str(e))
+    
+    finally:
+        # Note: Keep files briefly for download
+        pass
+
+@app.route('/api/convert/start', methods=['POST'])
+def api_convert_start():
+    """Start an async conversion job.
+    
+    Returns: {success: true/false, job_id: str, error: string}
+    """
+    try:
+        # Check rate limiting
+        client_ip = _get_client_ip()
+        if not _check_rate_limit(client_ip):
+            return jsonify({
+                'success': False,
+                'error': 'Rate limit exceeded. Maximum 5 conversions per minute.'
+            }), 429
+        
+        # Validate file presence
+        if 'files' not in request.files and 'files[]' not in request.files:
+            return jsonify({'success': False, 'error': 'No files provided'}), 400
+        
+        files_key = 'files' if 'files' in request.files else 'files[]'
+        files_list = request.files.getlist(files_key)
+        
+        if not files_list:
+            return jsonify({'success': False, 'error': 'No files provided'}), 400
+        
+        # Validate file sizes
+        total_size = sum(len(f.getvalue()) for f in files_list if f)
+        if total_size > _MAX_FILE_SIZE:
+            max_mb = _MAX_FILE_SIZE / (1024 * 1024)
+            return jsonify({
+                'success': False,
+                'error': f'Total file size exceeds {max_mb:.0f}MB limit'
+            }), 413
+        
+        tool_name = request.form.get('tool_name', 'To PDF')
+        
+        # READ FILES INTO MEMORY BEFORE THREAD STARTS
+        # (FileStorage objects become invalid outside request context)
+        files_in_memory = []
+        for f in files_list:
+            if f and f.filename:
+                try:
+                    file_bytes = f.read()  # Read bytes while in request context
+                    files_in_memory.append({
+                        'filename': f.filename,
+                        'content': file_bytes
+                    })
+                except Exception as e:
+                    print(f"[Conversion] Error reading file {f.filename}: {e}")
+        
+        if not files_in_memory:
+            return jsonify({'success': False, 'error': 'Could not read uploaded files'}), 400
+        
+        # Create job
+        job_id = str(uuid.uuid4())
+        job = ConversionJob(job_id, tool_name, len(files_in_memory))
+        
+        with _job_lock:
+            _job_registry[job_id] = job
+        
+        # Create temporary directory for this job
+        temp_dir = tempfile.mkdtemp()
+        
+        # Convert request.form to dict for thread context (forms aren't thread-safe)
+        form_data = dict(request.form)
+        
+        # Start background conversion worker
+        worker_thread = Thread(
+            target=_process_conversion_job,
+            args=(job_id, temp_dir, files_in_memory, tool_name, form_data),
+            daemon=True
+        )
+        worker_thread.start()
+        
+        print(f"[Conversion] Started job {job_id} for {tool_name} with {len(files_list)} files")
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': f'Conversion job started. Job ID: {job_id}'
+        }), 202
+    
+    except Exception as e:
+        print(f"[Conversion] Error starting job: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/convert/status/<job_id>', methods=['GET'])
+def api_convert_status(job_id):
+    """Check conversion job status.
+    
+    Returns: {
+        success: true/false,
+        status: 'queued'|'processing'|'complete'|'error',
+        progress: 0-100,
+        files: [...] (if complete),
+        error: string (if error)
+    }
+    """
+    try:
+        with _job_lock:
+            job = _job_registry.get(job_id)
+        
+        if not job:
+            return jsonify({
+                'success': False,
+                'error': 'Job not found'
+            }), 404
+        
+        response = job.to_dict()
+        response['success'] = True
+        
+        # If complete, include result files
+        if job.status == 'complete' and job.result:
+            response['files'] = job.result
+        
+        return jsonify(response), 200
+    
+    except Exception as e:
+        print(f"[Status Check] Error for job {job_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @app.route('/api/convert', methods=['POST'])
