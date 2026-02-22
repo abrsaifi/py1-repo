@@ -5370,12 +5370,20 @@
         <!-- Sharing & Quick Actions -->
         <div style="padding: 12px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
           <p style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">Share & Quick Actions:</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
             <button onclick="copyAllDownloadLinks()" class="btn" style="padding: 8px; background: #00BCD4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
               <i class="bi bi-files" style="margin-right: 4px;"></i> Copy All Links
             </button>
             <button onclick="saveConversionConfig()" class="btn" style="padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
               <i class="bi bi-bookmark" style="margin-right: 4px;"></i> Save Config
+            </button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button onclick="shareOnWhatsApp()" class="btn" style="padding: 8px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on WhatsApp">
+              <i class="bi bi-chat-dots" style="margin-right: 4px;"></i> WhatsApp
+            </button>
+            <button onclick="shareOnTelegram()" class="btn" style="padding: 8px; background: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on Telegram">
+              <i class="bi bi-send" style="margin-right: 4px;"></i> Telegram
             </button>
           </div>
         </div>
@@ -5461,6 +5469,49 @@
       }).catch(() => {
         showToast('Failed to copy link', 'error');
       });
+    }
+    
+    // === SHARE ON WHATSAPP ===
+    function shareOnWhatsApp() {
+      try {
+        // Get all download links
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
+        
+        if (links) {
+          const message = encodeURIComponent(`Hey! I just converted my files using ${toolName}.\\n\\nHere are the download links:\\n${links}`);
+          const whatsappUrl = `https://wa.me/?text=${message}`;
+          window.open(whatsappUrl, '_blank', 'width=600,height=700');
+          showToast('Opening WhatsApp...', 'success');
+        } else {
+          showToast('No files to share', 'warning');
+        }
+      } catch (error) {
+        showToast('Failed to share on WhatsApp', 'error');
+        console.error('WhatsApp share error:', error);
+      }
+    }
+    
+    // === SHARE ON TELEGRAM ===
+    function shareOnTelegram() {
+      try {
+        // Get all download links
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
+        
+        if (links) {
+          const baseUrl = window.location.origin;
+          const message = encodeURIComponent(`Hey! I just converted my files using ${toolName}.\\n\\nHere are the download links:\\n${links}`);
+          const telegramUrl = `https://t.me/share/url?url=${baseUrl}&text=${message}`;
+          window.open(telegramUrl, '_blank', 'width=600,height=700');
+          showToast('Opening Telegram...', 'success');
+        } else {
+          showToast('No files to share', 'warning');
+        }
+      } catch (error) {
+        showToast('Failed to share on Telegram', 'error');
+        console.error('Telegram share error:', error);
+      }
     }
     
     // === CLOSE OFFCANVAS FUNCTION ===
