@@ -5129,56 +5129,168 @@
     
     // === OFFCANVAS RESULTS PANEL FUNCTION ===
     function showConversionResultsOffcanvas(files) {
-      // Build results HTML
+      // Get conversion details from the page
+      const conversionTime = new Date().toLocaleTimeString();
+      const toolName = document.getElementById('selectedTool').innerText || 'Unknown Tool';
+      
+      // Build results HTML with enhanced features
       let resultsHtml = '';
+      let totalSize = 0;
+      
       files.forEach(file => {
+        totalSize += file.size;
         const sizeKB = (file.size / 1024).toFixed(2);
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const displaySize = sizeKB > 1024 ? fileSizeMB + ' MB' : sizeKB + ' KB';
+        
         resultsHtml += `
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #4CAF50;">
-            <div style="flex: 1; min-width: 0;">
-              <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 6px; font-size: 0.95rem;">${file.name}</div>
-              <div style="color: var(--text-secondary); font-size: 0.85rem;">${sizeKB > 1024 ? fileSizeMB + ' MB' : sizeKB + ' KB'}</div>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #4CAF50;">
+            <div style="display: flex; align-items: start; justify-content: space-between; gap: 12px;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 6px; font-size: 0.95rem;">${file.name}</div>
+                <div style="color: var(--text-secondary); font-size: 0.85rem;">📦 ${displaySize}</div>
+              </div>
             </div>
-            <div style="display: flex; gap: 8px; flex-shrink: 0;">
-              <button onclick="copyToClipboard('${file.download_url}')" class="btn btn-sm" style="background: #FF9800; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 600; white-space: nowrap;" title="Copy download link">
-                <i class="bi bi-link-45deg" style="margin-right: 4px;"></i> Copy
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button onclick="window.open('${file.download_url}', '_blank')" class="btn btn-sm" style="background: #2196F3; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Open/Preview file">
+                <i class="bi bi-eye" style="margin-right: 3px;"></i> Preview
               </button>
-              <a href="${file.download_url}" download="${file.name}" class="btn btn-sm" style="background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; border: none;">
-                <i class="bi bi-download" style="font-size: 0.9rem;"></i> Download
+              <button onclick="copyToClipboard('${file.download_url}')" class="btn btn-sm" style="background: #FF9800; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Copy download link">
+                <i class="bi bi-link-45deg" style="margin-right: 3px;"></i> Copy
+              </button>
+              <button onclick="sendEmailWithLink('${file.name}', '${file.download_url}')" class="btn btn-sm" style="background: #9C27B0; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Send via email">
+                <i class="bi bi-envelope" style="margin-right: 3px;"></i> Email
+              </button>
+              <a href="${file.download_url}" download="${file.name}" class="btn btn-sm" style="background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 3px; border: none;">
+                <i class="bi bi-download" style="font-size: 0.85rem;"></i> Download
               </a>
             </div>
           </div>
         `;
       });
       
+      // Build action buttons section
+      const totalSizeKB = (totalSize / 1024).toFixed(2);
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      const displayTotalSize = totalSizeKB > 1024 ? totalSizeMB + ' MB' : totalSizeKB + ' KB';
+      
+      let actionButtons = '';
+      if (files.length > 1) {
+        actionButtons += `
+          <button onclick="downloadAllAsZip()" class="btn" style="width: 100%; padding: 10px; background: #FF6F00; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;">
+            <i class="bi bi-archive" style="margin-right: 6px;"></i> Download All as ZIP
+          </button>
+        `;
+      }
+      
+      actionButtons += `
+        <button onclick="closeOffcanvas('conversionResultsOffcanvas'); document.getElementById('studioFileInput').value = ''; document.getElementById('studioFileInput').click();" class="btn" style="width: 100%; padding: 10px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+          <i class="bi bi-plus-lg" style="margin-right: 6px;"></i> Convert Another File
+        </button>
+      `;
+      
       // Update offcanvas body
       const offcanvasBody = document.getElementById('conversionResultsBody');
       offcanvasBody.innerHTML = `
+        <!-- Success Header -->
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
           <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4CAF50, #45a049); display: flex; align-items: center; justify-content: center;">
             <i class="bi bi-check-circle-fill" style="font-size: 1.8rem; color: white;"></i>
           </div>
           <div>
             <h5 style="margin: 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">Conversion Complete!</h5>
-            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${files.length} file(s) ready to download</p>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${files.length} file(s) ready • ${displayTotalSize}</p>
           </div>
         </div>
         
-        <div style="margin-bottom: 20px;">
+        <!-- Conversion Details -->
+        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Tool Used:</span>
+            <span style="color: var(--text-primary); font-weight: 600;">${toolName}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Time:</span>
+            <span style="color: var(--text-primary); font-weight: 600;">${conversionTime}</span>
+          </div>
+        </div>
+        
+        <!-- Files List -->
+        <div style="margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
           ${resultsHtml}
         </div>
         
-        <div style="padding-top: 16px; border-top: 1px solid var(--border-color);">
-          <button onclick="closeOffcanvas('conversionResultsOffcanvas'); document.getElementById('studioFileInput').value = ''; document.getElementById('studioFileInput').click();" class="btn" style="width: 100%; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
-            <i class="bi bi-plus-lg" style="margin-right: 8px;"></i> Convert Another File
-          </button>
+        <!-- Sharing & Quick Actions -->
+        <div style="padding: 12px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
+          <p style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">Share & Quick Actions:</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button onclick="copyAllDownloadLinks()" class="btn" style="padding: 8px; background: #00BCD4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              <i class="bi bi-files" style="margin-right: 4px;"></i> Copy All Links
+            </button>
+            <button onclick="saveConversionConfig()" class="btn" style="padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+              <i class="bi bi-bookmark" style="margin-right: 4px;"></i> Save Config
+            </button>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div style="padding-top: 12px;">
+          ${actionButtons}
         </div>
       `;
       
       // Show the offcanvas
       const offcanvas = new bootstrap.Offcanvas(document.getElementById('conversionResultsOffcanvas'));
       offcanvas.show();
+    }
+    
+    // === NEW FEATURE: Download All Files as ZIP ===
+    function downloadAllAsZip() {
+      showToast('ZIP download feature coming soon! For now, download files individually.', 'info');
+      // TODO: Implement server-side ZIP generation
+    }
+    
+    // === NEW FEATURE: Copy All Download Links ===
+    function copyAllDownloadLinks() {
+      // This would be called with files data - for now show placeholder
+      const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+      if (links) {
+        navigator.clipboard.writeText(links).then(() => {
+          showToast('All download links copied to clipboard!', 'success');
+        }).catch(() => {
+          showToast('Failed to copy links', 'error');
+        });
+      } else {
+        showToast('No files to copy', 'warning');
+      }
+    }
+    
+    // === NEW FEATURE: Send Email with Download Link ===
+    function sendEmailWithLink(fileName, downloadUrl) {
+      const subject = encodeURIComponent(`Your converted file: ${fileName}`);
+      const body = encodeURIComponent(`Your file has been converted!\\n\\nFile: ${fileName}\\nDownload: ${downloadUrl}\\n\\nThis link is valid for a limited time.`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      showToast('Opening email client...', 'info');
+    }
+    
+    // === NEW FEATURE: Save Conversion Config as Preset ===
+    function saveConversionConfig() {
+      const toolName = document.getElementById('selectedTool').innerText;
+      const presetName = prompt('Save this conversion preset as:', 'My Preset');
+      
+      if (presetName) {
+        const config = {
+          tool: toolName,
+          timestamp: new Date().toISOString(),
+          // Add more config as needed
+        };
+        
+        let presets = JSON.parse(localStorage.getItem('conversionPresets') || '[]');
+        presets.push({ name: presetName, config: config });
+        localStorage.setItem('conversionPresets', JSON.stringify(presets));
+        
+        showToast(`Preset "${presetName}" saved!`, 'success');
+      }
     }
     
     // === COPY TO CLIPBOARD FUNCTION ===
