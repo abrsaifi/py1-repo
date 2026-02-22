@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <!-- Bootstrap CSS for Offcanvas -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -460,6 +462,41 @@
 
     body.dark-mode #conversion-results > div > div {
       background: rgba(42, 42, 42, 0.8) !important;
+    }
+
+    /* === OFFCANVAS STYLES === */
+    .offcanvas {
+      width: 100% !important;
+      max-width: 500px !important;
+      box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .offcanvas-header {
+      padding: 1.5rem !important;
+      border-bottom: 1px solid var(--border-color) !important;
+      background: var(--bg-primary) !important;
+    }
+
+    .offcanvas-title {
+      font-weight: 700 !important;
+      color: var(--text-primary) !important;
+      font-size: 1.25rem !important;
+    }
+
+    .offcanvas-body {
+      padding: 1.5rem !important;
+      background: var(--bg-primary) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.dark-mode .offcanvas {
+      background: var(--bg-primary) !important;
+      color: var(--text-primary) !important;
+    }
+
+    body.dark-mode .offcanvas-header {
+      border-color: var(--border-color) !important;
+      background: var(--bg-primary) !important;
     }
 
     /* --- two-column conversion page (linked from cards) --- */
@@ -5176,6 +5213,9 @@
       <!-- Content will be populated by showConversionResultsOffcanvas() -->
     </div>
   </div>
+
+  <!-- Bootstrap JS for Offcanvas -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
