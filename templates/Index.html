@@ -3660,6 +3660,14 @@
         rightSettingsPanel.classList.remove('visible');
       }
       
+      // Check for recent results if switching to conversion page
+      if (pageId === 'conversion') {
+        // Use setTimeout to ensure page is fully rendered
+        setTimeout(() => {
+          checkAndShowRecentResultsOnLoad();
+        }, 100);
+      }
+      
       closeSidebars();
     }
 
@@ -4353,6 +4361,12 @@
     function handleFiles(files) {
       if (files.length === 0) return;
       
+      // Remove Recent Results button when new file is selected (clear old results)
+      const recentResultsContainer = document.getElementById('recentResultsContainer');
+      if (recentResultsContainer) {
+        recentResultsContainer.remove();
+      }
+      
       // Store current file in the input
       const file = files[0];
       const fileCardArea = document.getElementById('fileCardArea');
@@ -4416,6 +4430,12 @@
     function removeFile() {
       const fileCardArea = document.getElementById('fileCardArea');
       const studioFileInput = document.getElementById('studioFileInput');
+      
+      // Remove Recent Results button
+      const recentResultsContainer = document.getElementById('recentResultsContainer');
+      if (recentResultsContainer) {
+        recentResultsContainer.remove();
+      }
       
       // Reset file input
       studioFileInput.value = '';
@@ -5146,6 +5166,45 @@
         document.getElementById('selectedTool').innerText = savedTool;
         document.getElementById('conversionPageTitle').innerText = savedTool;
         document.getElementById('settingToolName').innerText = savedTool;
+      }
+    }
+    
+    // Check for recent conversion results on page load (with delay to ensure DOM is ready)
+    setTimeout(() => {
+      checkAndShowRecentResultsOnLoad();
+    }, 200);
+    
+    // === CHECK FOR RECENT RESULTS ON PAGE LOAD ===
+    function checkAndShowRecentResultsOnLoad() {
+      const conversionData = localStorage.getItem('lastConversionResults');
+      if (!conversionData) {
+        return; // No recent results
+      }
+      
+      try {
+        const data = JSON.parse(conversionData);
+        
+        // Check if results are still fresh (not older than 24 hours)
+        const now = Date.now();
+        const timeDiff = now - data.timestamp;
+        const hoursOld = timeDiff / (1000 * 60 * 60);
+        
+        if (hoursOld > 24) {
+          // Results expired, remove them
+          localStorage.removeItem('lastConversionResults');
+          return;
+        }
+        
+        // Results are still valid, make sure we're on the conversion page
+        const conversionPage = document.getElementById('page-conversion');
+        if (conversionPage && conversionPage.classList.contains('active-page')) {
+          // Show the Recent Results button (check if it already exists to avoid duplicates)
+          if (!document.getElementById('recentResultsContainer')) {
+            showRecentResultsButton();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking recent results:', error);
       }
     }
     
