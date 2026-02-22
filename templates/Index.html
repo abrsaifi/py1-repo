@@ -27,6 +27,7 @@
       --border-color: #f0e2d8;
       --shadow-light: rgba(0, 0, 0, 0.08);
       --shadow-medium: rgba(0, 0, 0, 0.12);
+      --close-btn-filter: none;
     }
 
     body {
@@ -48,6 +49,7 @@
       --border-color: #333;
       --shadow-light: rgba(0, 0, 0, 0.3);
       --shadow-medium: rgba(0, 0, 0, 0.4);
+      --close-btn-filter: invert(1);
     }
 
     .wrapper {
@@ -4950,52 +4952,9 @@
               
               showToast('Conversion complete!', 'success');
               
-              // Show download links
+              // Show download links in offcanvas panel
               if (statusData.files && statusData.files.length > 0) {
-                // Remove old results if any
-                const oldResults = document.getElementById('conversion-results');
-                if (oldResults) oldResults.remove();
-                
-                let downloadHtml = `
-                  <div style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.08)); border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; margin-top: 20px;">
-                    <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 15px;">
-                      <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; color: #4CAF50;"></i>
-                      <h3 style="margin: 0; color: #2e7d32; font-size: 1.1rem; font-weight: 600;">Conversion successful!</h3>
-                    </div>
-                    <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">Your files are ready to download</div>
-                `;
-                
-                statusData.files.forEach(file => {
-                  const sizeKB = (file.size / 1024).toFixed(2);
-                  downloadHtml += `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #4CAF50;">
-                      <div style="flex: 1; min-width: 0;">
-                        <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 4px;">${file.name}</div>
-                        <div style="color: var(--text-secondary); font-size: 0.85rem;">${sizeKB} KB</div>
-                      </div>
-                      <a href="${file.download_url}" download="${file.name}" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.3s; border: none;">
-                        <i class="bi bi-download" style="font-size: 1rem;"></i> Download
-                      </a>
-                    </div>
-                  `;
-                });
-                
-                downloadHtml += `
-                  <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                    <button onclick="document.getElementById('studioFileInput').value = ''; document.getElementById('studioFileInput').click();" style="padding: 10px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
-                      <i class="bi bi-plus-lg" style="margin-right: 6px;"></i> Convert Another File
-                    </button>
-                  </div>
-                </div>`;
-                
-                const resultsDiv = document.createElement('div');
-                resultsDiv.id = 'conversion-results';
-                resultsDiv.innerHTML = downloadHtml;
-                
-                const conversionStudio = document.querySelector('.conversion-studio');
-                if (conversionStudio && conversionStudio.parentNode) {
-                  conversionStudio.parentNode.insertBefore(resultsDiv, conversionStudio.nextSibling);
-                }
+                showConversionResultsOffcanvas(statusData.files);
               }
               
               // Keep file visible on the page - DO NOT clear it!
@@ -5131,9 +5090,92 @@
       }
     }
     
+    // === OFFCANVAS RESULTS PANEL FUNCTION ===
+    function showConversionResultsOffcanvas(files) {
+      // Build results HTML
+      let resultsHtml = '';
+      files.forEach(file => {
+        const sizeKB = (file.size / 1024).toFixed(2);
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        resultsHtml += `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #4CAF50;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 6px; font-size: 0.95rem;">${file.name}</div>
+              <div style="color: var(--text-secondary); font-size: 0.85rem;">${sizeKB > 1024 ? fileSizeMB + ' MB' : sizeKB + ' KB'}</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              <button onclick="copyToClipboard('${file.download_url}')" class="btn btn-sm" style="background: #FF9800; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 600; white-space: nowrap;" title="Copy download link">
+                <i class="bi bi-link-45deg" style="margin-right: 4px;"></i> Copy
+              </button>
+              <a href="${file.download_url}" download="${file.name}" class="btn btn-sm" style="background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; border: none;">
+                <i class="bi bi-download" style="font-size: 0.9rem;"></i> Download
+              </a>
+            </div>
+          </div>
+        `;
+      });
+      
+      // Update offcanvas body
+      const offcanvasBody = document.getElementById('conversionResultsBody');
+      offcanvasBody.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4CAF50, #45a049); display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-check-circle-fill" style="font-size: 1.8rem; color: white;"></i>
+          </div>
+          <div>
+            <h5 style="margin: 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">Conversion Complete!</h5>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${files.length} file(s) ready to download</p>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          ${resultsHtml}
+        </div>
+        
+        <div style="padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button onclick="closeOffcanvas('conversionResultsOffcanvas'); document.getElementById('studioFileInput').value = ''; document.getElementById('studioFileInput').click();" class="btn" style="width: 100%; padding: 12px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
+            <i class="bi bi-plus-lg" style="margin-right: 8px;"></i> Convert Another File
+          </button>
+        </div>
+      `;
+      
+      // Show the offcanvas
+      const offcanvas = new bootstrap.Offcanvas(document.getElementById('conversionResultsOffcanvas'));
+      offcanvas.show();
+    }
+    
+    // === COPY TO CLIPBOARD FUNCTION ===
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Download link copied to clipboard!', 'success');
+      }).catch(() => {
+        showToast('Failed to copy link', 'error');
+      });
+    }
+    
+    // === CLOSE OFFCANVAS FUNCTION ===
+    function closeOffcanvas(offcanvasId) {
+      const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById(offcanvasId));
+      if (offcanvas) {
+        offcanvas.hide();
+      }
+    }
+    
     initDarkMode();
     updateRecentList();
     loadSettings();
   </script>
+  
+  <!-- === CONVERSION RESULTS OFFCANVAS PANEL === -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="conversionResultsOffcanvas" aria-labelledby="conversionResultsLabel" style="width: 100%; max-width: 500px;">
+    <div class="offcanvas-header" style="border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
+      <h5 class="offcanvas-title" id="conversionResultsLabel" style="margin: 0; font-weight: 700; color: var(--text-primary);">Download Results</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="filter: var(--close-btn-filter);"></button>
+    </div>
+    <div class="offcanvas-body" id="conversionResultsBody" style="padding: 24px; background: var(--bg-primary); color: var(--text-primary);">
+      <!-- Content will be populated by showConversionResultsOffcanvas() -->
+    </div>
+  </div>
+
 </body>
 </html>
