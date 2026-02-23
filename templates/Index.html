@@ -2250,6 +2250,71 @@
         <p>50+ professional conversion tools — PDF, images, documents, and data</p>
       </div>
 
+      <!-- QUICK ACCESS DASHBOARD -->
+      <div id="dashboardPanel" style="margin-bottom: 3rem; animation: slideDown 0.5s ease-out;">
+        <!-- Dashboard Grid: Recently Used, Stats, Search -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          
+          <!-- Recently Used Tools Widget -->
+          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+              <i class="bi bi-clock-history" style="font-size: 1.2rem; margin-right: 0.5rem; color: var(--accent-color);"></i>
+              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Recently Used</h3>
+            </div>
+            <div id="recentlyUsedList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No recent tools yet</div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Widget -->
+          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+              <i class="bi bi-graph-up" style="font-size: 1.2rem; margin-right: 0.5rem; color: var(--accent-color);"></i>
+              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Quick Stats</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Conversions:</span>
+                <span id="statConversions" style="font-weight: 600; color: var(--accent-color);">0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Files Processed:</span>
+                <span id="statFiles" style="font-weight: 600; color: var(--accent-color);">0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">Today:</span>
+                <span id="statToday" style="font-weight: 600; color: var(--accent-color);">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Favorites Widget -->
+          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+              <i class="bi bi-star" style="font-size: 1.2rem; margin-right: 0.5rem; color: #FFD700;"></i>
+              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Favorites</h3>
+            </div>
+            <div id="favoritesList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No favorites yet</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tool Search Bar -->
+        <div style="margin-bottom: 2rem;">
+          <div style="position: relative;">
+            <input 
+              type="text" 
+              id="toolSearchInput" 
+              placeholder="Search tools... (e.g., PDF, compress, convert)" 
+              style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); font-size: 0.9rem;"
+              onkeyup="handleToolSearch(this.value)"
+            />
+            <i class="bi bi-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+          </div>
+        </div>
+      </div>
+
       <!-- Category Filter Buttons -->
       <div style="display: flex; gap: 12px; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center; animation: slideDown 0.4s ease-out;">
         <button class="category-filter-btn active" onclick="filterTools('all')" data-category="all">
@@ -3709,9 +3774,135 @@
           }, 150);
         }
       });
+
+      // Reset search input when filtering by category
+      document.getElementById('toolSearchInput').value = '';
+    }
+
+    // === DASHBOARD FUNCTIONS ===
+    function trackToolUsage(toolName) {
+      // Get existing usage data
+      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
+      
+      // Update usage count and timestamp
+      if (!toolUsage[toolName]) {
+        toolUsage[toolName] = { count: 0, lastUsed: null, isFavorite: false };
+      }
+      toolUsage[toolName].count++;
+      toolUsage[toolName].lastUsed = new Date().getTime();
+      
+      // Save updated usage
+      localStorage.setItem('toolUsage', JSON.stringify(toolUsage));
+      
+      // Update dashboard
+      updateDashboard();
+    }
+
+    function updateDashboard() {
+      // Get tool usage data
+      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
+      
+      // Get top 3 recently used tools
+      const recentToolsArray = Object.entries(toolUsage)
+        .sort((a, b) => (b[1].lastUsed || 0) - (a[1].lastUsed || 0))
+        .slice(0, 3);
+      
+      // Update Recently Used widget
+      const recentlyUsedList = document.getElementById('recentlyUsedList');
+      if (recentToolsArray.length > 0) {
+        recentlyUsedList.innerHTML = recentToolsArray.map(([toolName, data]) => `
+          <div onclick="openConversion('${toolName}')" style="padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;"
+               onmouseover="this.style.background='var(--accent-color)'; this.style.color='white';"
+               onmouseout="this.style.background='var(--bg-secondary)'; this.style.color='var(--text-primary)';">
+            <span>${toolName}</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">${data.count}x</span>
+          </div>
+        `).join('');
+      } else {
+        recentlyUsedList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No recent tools yet</div>';
+      }
+      
+      // Update stats
+      const totalConversions = Object.values(toolUsage).reduce((sum, data) => sum + data.count, 0);
+      const conversionHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+      const totalFiles = conversionHistory.reduce((sum, conv) => sum + (conv.fileCount || 1), 0);
+      const todayCount = conversionHistory.filter(conv => {
+        const convDate = new Date(conv.timestamp).toDateString();
+        const today = new Date().toDateString();
+        return convDate === today;
+      }).length;
+      
+      document.getElementById('statConversions').innerText = totalConversions;
+      document.getElementById('statFiles').innerText = totalFiles;
+      document.getElementById('statToday').innerText = todayCount;
+      
+      // Update Favorites widget
+      const favorites = Object.entries(toolUsage)
+        .filter(([toolName, data]) => data.isFavorite)
+        .map(([toolName, data]) => toolName);
+      
+      const favoritesList = document.getElementById('favoritesList');
+      if (favorites.length > 0) {
+        favoritesList.innerHTML = favorites.map(toolName => `
+          <div style="padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;"
+               onclick="openConversion('${toolName}')"
+               onmouseover="this.style.background='#FFD700'; this.style.color='#333';"
+               onmouseout="this.style.background='var(--bg-secondary)'; this.style.color='var(--text-primary)';">
+            <span><i class="bi bi-star-fill" style="color: #FFD700; margin-right: 0.5rem;"></i>${toolName}</span>
+            <i class="bi bi-x" style="cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${toolName}');"></i>
+          </div>
+        `).join('');
+      } else {
+        favoritesList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No favorites yet</div>';
+      }
+    }
+
+    function toggleFavorite(toolName) {
+      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
+      if (!toolUsage[toolName]) {
+        toolUsage[toolName] = { count: 0, lastUsed: null, isFavorite: false };
+      }
+      toolUsage[toolName].isFavorite = !toolUsage[toolName].isFavorite;
+      localStorage.setItem('toolUsage', JSON.stringify(toolUsage));
+      updateDashboard();
+    }
+
+    function handleToolSearch(searchTerm) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const toolsGrid = document.getElementById('toolsGrid');
+      const tools = toolsGrid.querySelectorAll('.service-card-item');
+      let visibleCount = 0;
+
+      tools.forEach((tool) => {
+        const toolText = tool.innerText.toLowerCase();
+        const matches = searchLower === '' || toolText.includes(searchLower);
+        
+        if (matches) {
+          tool.style.display = 'block';
+          tool.style.opacity = '1';
+          tool.style.transform = 'scale(1)';
+          visibleCount++;
+        } else {
+          tool.style.opacity = '0';
+          tool.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            if (tool.style.opacity === '0') {
+              tool.style.display = 'none';
+            }
+          }, 150);
+        }
+      });
+
+      // Show "no results" message if needed
+      if (visibleCount === 0 && searchLower !== '') {
+        // Could add a "no results" message here
+      }
     }
 
     function openConversion(toolName) {
+      // Track this tool usage for dashboard
+      trackToolUsage(toolName);
+      
       switchPage('conversion');
       document.getElementById('selectedTool').innerText = toolName;
       document.getElementById('conversionPageTitle').innerText = toolName;
@@ -5176,6 +5367,9 @@
     
     // === CHECK FOR RECENT RESULTS ON PAGE LOAD ===
     function checkAndShowRecentResultsOnLoad() {
+      // Update dashboard on every page load
+      updateDashboard();
+      
       const conversionData = localStorage.getItem('lastConversionResults');
       if (!conversionData) {
         return; // No recent results
@@ -5418,6 +5612,20 @@
         timestamp: Date.now()
       };
       localStorage.setItem('lastConversionResults', JSON.stringify(conversionData));
+      
+      // Track this conversion for dashboard stats
+      let conversionHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+      conversionHistory.unshift({
+        tool: toolName,
+        fileCount: files.length,
+        timestamp: Date.now(),
+        date: new Date().toLocaleString()
+      });
+      conversionHistory = conversionHistory.slice(0, 100); // Keep last 100 conversions
+      localStorage.setItem('conversionHistory', JSON.stringify(conversionHistory));
+      
+      // Update dashboard
+      updateDashboard();
       
       // Show the offcanvas
       const offcanvasElement = document.getElementById('conversionResultsOffcanvas');
