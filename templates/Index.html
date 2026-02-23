@@ -5386,6 +5386,11 @@
               <i class="bi bi-send" style="margin-right: 4px;"></i> Telegram
             </button>
           </div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px;">
+            <button onclick="copyShareMessage()" class="btn" style="padding: 8px; background: #9C27B0; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Copy formatted message to clipboard">
+              <i class="bi bi-clipboard-check" style="margin-right: 4px;"></i> Copy Share Message
+            </button>
+          </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
             <button onclick="shareOnOneDrive()" class="btn" style="padding: 8px; background: #0078d4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to OneDrive">
               <i class="bi bi-cloud" style="margin-right: 3px;"></i> OneDrive
@@ -5486,14 +5491,27 @@
     function shareOnWhatsApp() {
       try {
         // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
         const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
         
-        if (links) {
-          const message = encodeURIComponent(`Hey! I just converted my files using ${toolName}.\\n\\nHere are the download links:\\n${links}`);
-          const whatsappUrl = `https://wa.me/?text=${message}`;
+        if (links.length > 0) {
+          // Format message with proper line breaks and clickable links
+          let message = `Hey! I just converted my files using ${toolName}.\n\n`;
+          
+          if (links.length === 1) {
+            // Single file - include direct link
+            message += `Download: ${links[0]}`;
+          } else {
+            // Multiple files - list them separately for better clickability
+            message += `Files converted:\n`;
+            links.forEach((link, index) => {
+              message += `${index + 1}. ${link}\n`;
+            });
+          }
+          
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
           window.open(whatsappUrl, '_blank', 'width=600,height=700');
-          showToast('Opening WhatsApp...', 'success');
+          showToast('Opening WhatsApp... Paste the message to share', 'success');
         } else {
           showToast('No files to share', 'warning');
         }
@@ -5507,15 +5525,27 @@
     function shareOnTelegram() {
       try {
         // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
         const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
         
-        if (links) {
-          const baseUrl = window.location.origin;
-          const message = encodeURIComponent(`Hey! I just converted my files using ${toolName}.\\n\\nHere are the download links:\\n${links}`);
-          const telegramUrl = `https://t.me/share/url?url=${baseUrl}&text=${message}`;
+        if (links.length > 0) {
+          // Format message with proper line breaks and clickable links
+          let message = `I just converted my files using ${toolName}\n\n`;
+          
+          if (links.length === 1) {
+            // Single file - include direct link
+            message += `Download: ${links[0]}`;
+          } else {
+            // Multiple files - list them separately for better clickability
+            message += `Files ready:\n`;
+            links.forEach((link, index) => {
+              message += `${index + 1}. ${link}\n`;
+            });
+          }
+          
+          const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(links[0])}&text=${encodeURIComponent(message)}`;
           window.open(telegramUrl, '_blank', 'width=600,height=700');
-          showToast('Opening Telegram...', 'success');
+          showToast('Opening Telegram... Share with your contacts', 'success');
         } else {
           showToast('No files to share', 'warning');
         }
@@ -5660,6 +5690,47 @@
       } catch (error) {
         showToast('Failed to upload files', 'error');
         console.error('Upload error:', error);
+      }
+    }
+    
+    // === COPY SHARE MESSAGE ===
+    function copyShareMessage() {
+      try {
+        const toolName = document.querySelector('[data-tool-name]')?.getAttribute('data-tool-name') || 'File Converter';
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
+        
+        if (links.length === 0) {
+          showToast('No download links available', 'warning');
+          return;
+        }
+        
+        let message = `🔄 File Conversion Complete!\n`;
+        message += `✨ I just converted my files using ${toolName}.\n\n`;
+        message += `📥 Download Links:\n`;
+        
+        links.forEach((link, index) => {
+          const fileName = link.split('/').pop() || `File ${index + 1}`;
+          message += `${index + 1}. ${link}\n`;
+        });
+        
+        message += `\n💡 Converted with ${toolName}`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(message).then(() => {
+          showToast('Share message copied! Paste it anywhere.', 'success');
+        }).catch(err => {
+          // Fallback for older browsers
+          const textarea = document.createElement('textarea');
+          textarea.value = message;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          showToast('Share message copied! Paste it anywhere.', 'success');
+        });
+      } catch (error) {
+        showToast('Failed to copy message', 'error');
+        console.error('Copy error:', error);
       }
     }
     
