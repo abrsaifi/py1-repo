@@ -5378,12 +5378,23 @@
               <i class="bi bi-bookmark" style="margin-right: 4px;"></i> Save Config
             </button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
             <button onclick="shareOnWhatsApp()" class="btn" style="padding: 8px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on WhatsApp">
               <i class="bi bi-chat-dots" style="margin-right: 4px;"></i> WhatsApp
             </button>
             <button onclick="shareOnTelegram()" class="btn" style="padding: 8px; background: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on Telegram">
               <i class="bi bi-send" style="margin-right: 4px;"></i> Telegram
+            </button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+            <button onclick="shareOnOneDrive()" class="btn" style="padding: 8px; background: #0078d4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to OneDrive">
+              <i class="bi bi-cloud" style="margin-right: 3px;"></i> OneDrive
+            </button>
+            <button onclick="shareOnGoogleDrive()" class="btn" style="padding: 8px; background: #1f8d70; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to Google Drive">
+              <i class="bi bi-cloud-plus" style="margin-right: 3px;"></i> Google
+            </button>
+            <button onclick="shareOnDropbox()" class="btn" style="padding: 8px; background: #0061ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to Dropbox">
+              <i class="bi bi-box" style="margin-right: 3px;"></i> Dropbox
             </button>
           </div>
         </div>
@@ -5511,6 +5522,72 @@
       } catch (error) {
         showToast('Failed to share on Telegram', 'error');
         console.error('Telegram share error:', error);
+      }
+    }
+    
+    // === SHARE ON ONEDRIVE ===
+    function shareOnOneDrive() {
+      try {
+        // Get all download links
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
+        
+        if (links) {
+          // Open OneDrive in new tab - user can manually upload or use the cloud
+          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
+          const oneDriveUrl = `https://onedrive.live.com/?qt=create`;
+          window.open(oneDriveUrl, '_blank', 'width=800,height=600');
+          showToast('Opening OneDrive... You can upload your converted files here', 'success');
+        } else {
+          showToast('No files to share', 'warning');
+        }
+      } catch (error) {
+        showToast('Failed to open OneDrive', 'error');
+        console.error('OneDrive share error:', error);
+      }
+    }
+    
+    // === SHARE ON GOOGLE DRIVE ===
+    function shareOnGoogleDrive() {
+      try {
+        // Get all download links
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
+        
+        if (links) {
+          // Open Google Drive in new tab - user can upload files
+          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
+          const googleDriveUrl = `https://drive.google.com/drive/my-drive`;
+          window.open(googleDriveUrl, '_blank', 'width=800,height=600');
+          showToast('Opening Google Drive... You can upload your converted files here', 'success');
+        } else {
+          showToast('No files to share', 'warning');
+        }
+      } catch (error) {
+        showToast('Failed to open Google Drive', 'error');
+        console.error('Google Drive share error:', error);
+      }
+    }
+    
+    // === SHARE ON DROPBOX ===
+    function shareOnDropbox() {
+      try {
+        // Get all download links
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
+        
+        if (links) {
+          // Open Dropbox in new tab - user can upload files
+          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
+          const dropboxUrl = `https://www.dropbox.com/home`;
+          window.open(dropboxUrl, '_blank', 'width=800,height=600');
+          showToast('Opening Dropbox... You can upload your converted files here', 'success');
+        } else {
+          showToast('No files to share', 'warning');
+        }
+      } catch (error) {
+        showToast('Failed to open Dropbox', 'error');
+        console.error('Dropbox share error:', error);
       }
     }
     
