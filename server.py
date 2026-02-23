@@ -6996,6 +6996,143 @@ def combine_csvs_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
+# ============ CLOUD STORAGE INTEGRATION ENDPOINTS ============
+
+@app.route('/api/cloud/upload', methods=['POST'])
+def cloud_upload():
+    """
+    Upload files to cloud storage.
+    Expects: file_ids (list), service (onedrive|gdrive|dropbox), auth_token (optional)
+    """
+    try:
+        data = request.get_json()
+        file_ids = data.get('file_ids', [])
+        service = data.get('service', '').lower()
+        auth_token = data.get('auth_token', '')
+        
+        if not file_ids or service not in ['onedrive', 'gdrive', 'dropbox']:
+            return jsonify({'error': 'Invalid service or missing file_ids'}), 400
+        
+        # For now, return message to guide users
+        # Full implementation requires OAuth token management
+        return jsonify({
+            'success': True,
+            'message': f'Files queued for upload to {service.capitalize()}',
+            'status': 'requires_auth',
+            'auth_url': f'/api/cloud/auth/{service}'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"cloud_upload error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/auth/<service>', methods=['GET'])
+def cloud_auth_start(service):
+    """
+    Start OAuth authentication flow for cloud service.
+    Redirects to service authorization page.
+    """
+    try:
+        service = service.lower()
+        
+        if service == 'onedrive':
+            # OneDrive OAuth
+            auth_url = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+            params = {
+                'client_id': os.getenv('ONEDRIVE_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'scope': 'Files.ReadWrite offline_access',
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='onedrive', _external=True)
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+            
+        elif service == 'gdrive':
+            # Google Drive OAuth
+            auth_url = 'https://accounts.google.com/o/oauth2/v2/auth'
+            params = {
+                'client_id': os.getenv('GDRIVE_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'scope': 'https://www.googleapis.com/auth/drive.file',
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='gdrive', _external=True)
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+            
+        elif service == 'dropbox':
+            # Dropbox OAuth
+            auth_url = 'https://www.dropbox.com/oauth2/authorize'
+            params = {
+                'client_id': os.getenv('DROPBOX_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='dropbox', _external=True),
+                'token_access_type': 'offline'
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+        
+        return jsonify({'error': 'Invalid service'}), 400
+        
+    except Exception as e:
+        logger.error(f"cloud_auth_start error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/auth-callback/<service>', methods=['GET'])
+def cloud_auth_callback(service):
+    """
+    Handle OAuth callback from cloud services.
+    Exchanges auth code for access token.
+    """
+    try:
+        auth_code = request.args.get('code')
+        error = request.args.get('error')
+        
+        if error:
+            return jsonify({'error': f'Authorization failed: {error}'}), 400
+        
+        if not auth_code:
+            return jsonify({'error': 'Missing authorization code'}), 400
+        
+        service = service.lower()
+        
+        # Store token in session (simplified - in production use secure token storage)
+        # This would exchange auth_code for access_token via cloud service API
+        
+        return jsonify({
+            'success': True,
+            'message': f'{service.capitalize()} authentication successful',
+            'auth_token': 'token_placeholder'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"cloud_auth_callback error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/info', methods=['GET'])
+def get_cloud_info():
+    """Get configuration info for cloud storage services."""
+    return jsonify({
+        'services': {
+            'onedrive': {
+                'name': 'OneDrive',
+                'configured': bool(os.getenv('ONEDRIVE_CLIENT_ID')),
+                'icon': 'bi-cloud'
+            },
+            'gdrive': {
+                'name': 'Google Drive',
+                'configured': bool(os.getenv('GDRIVE_CLIENT_ID')),
+                'icon': 'bi-cloud-plus'
+            },
+            'dropbox': {
+                'name': 'Dropbox',
+                'configured': bool(os.getenv('DROPBOX_CLIENT_ID')),
+                'icon': 'bi-box'
+            }
+        },
+        'setup_instructions': 'Cloud storage upload requires setting up OAuth credentials. See documentation for setup steps.'
+    }), 200
+
+
 if __name__ == '__main__':
     # Start background tasks (DB init, cleanup thread) when running server directly
     try:

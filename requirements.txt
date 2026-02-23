@@ -41,6 +41,14 @@ pdfkit==1.0.0
 # Image to PDF conversion
 img2pdf==0.5.1
 
+# Cloud Storage Integration
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.105.0
+python-dropbox==11.36.2
+O365==4.10.1
+azure-storage-blob==12.19.0
+
 # Logging & Monitoring
 python-json-logger==2.0.7
 protobuf==5.28.3

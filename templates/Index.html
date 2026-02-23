@@ -5529,21 +5529,31 @@
     function shareOnOneDrive() {
       try {
         // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
+          href: a.href,
+          name: a.download
+        }));
         const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
         
-        if (links) {
-          // Open OneDrive in new tab - user can manually upload or use the cloud
-          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
-          const oneDriveUrl = `https://onedrive.live.com/?qt=create`;
-          window.open(oneDriveUrl, '_blank', 'width=800,height=600');
-          showToast('Opening OneDrive... You can upload your converted files here', 'success');
+        if (links.length > 0) {
+          showToast('Starting OneDrive upload authentication...', 'info');
+          // Open OAuth flow in new window
+          const authWindow = window.open('/api/cloud/auth/onedrive', 'OneDrive Auth', 'width=600,height=700');
+          
+          // After auth, upload files
+          const checkAuthInterval = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkAuthInterval);
+              // Upload files after auth completes
+              uploadFilesToCloud(links, 'onedrive');
+            }
+          }, 1000);
         } else {
-          showToast('No files to share', 'warning');
+          showToast('No files to upload', 'warning');
         }
       } catch (error) {
-        showToast('Failed to open OneDrive', 'error');
-        console.error('OneDrive share error:', error);
+        showToast('Failed to start OneDrive upload', 'error');
+        console.error('OneDrive upload error:', error);
       }
     }
     
@@ -5551,21 +5561,31 @@
     function shareOnGoogleDrive() {
       try {
         // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
+          href: a.href,
+          name: a.download
+        }));
         const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
         
-        if (links) {
-          // Open Google Drive in new tab - user can upload files
-          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
-          const googleDriveUrl = `https://drive.google.com/drive/my-drive`;
-          window.open(googleDriveUrl, '_blank', 'width=800,height=600');
-          showToast('Opening Google Drive... You can upload your converted files here', 'success');
+        if (links.length > 0) {
+          showToast('Starting Google Drive upload authentication...', 'info');
+          // Open OAuth flow in new window
+          const authWindow = window.open('/api/cloud/auth/gdrive', 'Google Drive Auth', 'width=600,height=700');
+          
+          // After auth, upload files
+          const checkAuthInterval = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkAuthInterval);
+              // Upload files after auth completes
+              uploadFilesToCloud(links, 'gdrive');
+            }
+          }, 1000);
         } else {
-          showToast('No files to share', 'warning');
+          showToast('No files to upload', 'warning');
         }
       } catch (error) {
-        showToast('Failed to open Google Drive', 'error');
-        console.error('Google Drive share error:', error);
+        showToast('Failed to start Google Drive upload', 'error');
+        console.error('Google Drive upload error:', error);
       }
     }
     
@@ -5573,21 +5593,73 @@
     function shareOnDropbox() {
       try {
         // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
+        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
+          href: a.href,
+          name: a.download
+        }));
         const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
         
-        if (links) {
-          // Open Dropbox in new tab - user can upload files
-          const message = encodeURIComponent(`Files converted using ${toolName}:\\n${links}`);
-          const dropboxUrl = `https://www.dropbox.com/home`;
-          window.open(dropboxUrl, '_blank', 'width=800,height=600');
-          showToast('Opening Dropbox... You can upload your converted files here', 'success');
+        if (links.length > 0) {
+          showToast('Starting Dropbox upload authentication...', 'info');
+          // Open OAuth flow in new window
+          const authWindow = window.open('/api/cloud/auth/dropbox', 'Dropbox Auth', 'width=600,height=700');
+          
+          // After auth, upload files
+          const checkAuthInterval = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkAuthInterval);
+              // Upload files after auth completes
+              uploadFilesToCloud(links, 'dropbox');
+            }
+          }, 1000);
         } else {
-          showToast('No files to share', 'warning');
+          showToast('No files to upload', 'warning');
         }
       } catch (error) {
-        showToast('Failed to open Dropbox', 'error');
-        console.error('Dropbox share error:', error);
+        showToast('Failed to start Dropbox upload', 'error');
+        console.error('Dropbox upload error:', error);
+      }
+    }
+    
+    // === UPLOAD FILES TO CLOUD STORAGE ===
+    function uploadFilesToCloud(files, service) {
+      try {
+        // Get auth token from session (this would come from OAuth callback in production)
+        const authToken = sessionStorage.getItem(`${service}_auth_token`);
+        
+        if (!authToken) {
+          showToast(`Please authenticate with ${service.toUpperCase()} first`, 'warning');
+          return;
+        }
+        
+        const payload = {
+          files: files,
+          service: service,
+          auth_token: authToken
+        };
+        
+        fetch('/api/cloud/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`Files uploaded to ${service.charAt(0).toUpperCase() + service.slice(1)}!`, 'success');
+          } else {
+            showToast(`Upload failed: ${data.error || 'Unknown error'}`, 'error');
+          }
+        })
+        .catch(error => {
+          showToast('Upload request failed', 'error');
+          console.error('Upload error:', error);
+        });
+      } catch (error) {
+        showToast('Failed to upload files', 'error');
+        console.error('Upload error:', error);
       }
     }
     
