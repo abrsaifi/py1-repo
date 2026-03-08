@@ -92,7 +92,7 @@ const MyComponent = ({ tool }) => {
   "title": "JPG to PNG Online Converter - Free JPG to PNG Conversion",
   "description": "Convert JPG to PNG files online for free...",
   "image": "/tool-icons/jpg-to-png.png",
-  "url": "http://localhost:3000/tools/jpg-to-png",
+  "url": "http://localhost:3000/jpg-to-png",
   "type": "SoftwareApplication",
   "structuredData": {
     "name": "JPG to PNG",
@@ -129,23 +129,23 @@ const MyComponent = ({ tool }) => {
 
 ### Available Routes
 ```
-/tools/jpg-to-png              (Image)
-/tools/png-to-jpg              (Image)
-/tools/webp-to-png             (Image)
-/tools/image-to-pdf            (Image)
-/tools/pdf-to-docx             (Document)
-/tools/docx-to-pdf             (Document)
-/tools/pdf-to-excel            (Document)
-/tools/excel-to-pdf            (Document)
-/tools/pdf-to-pptx             (Document)
-/tools/pptx-to-pdf             (Document)
-/tools/csv-to-excel            (Document)
-/tools/pdf-to-image            (PDF)
-/tools/compress-pdf            (PDF)
-/tools/merge-pdf               (PDF)
-/tools/split-pdf               (PDF)
-/tools/mp3-to-wav              (Audio)
-/tools/mp4-to-webm             (Video)
+/jpg-to-png              (Image)
+/png-to-jpg              (Image)
+/webp-to-png             (Image)
+/image-to-pdf            (Image)
+/pdf-to-docx             (Document)
+/docx-to-pdf             (Document)
+/pdf-to-excel            (Document)
+/excel-to-pdf            (Document)
+/pdf-to-pptx             (Document)
+/pptx-to-pdf             (Document)
+/csv-to-excel            (Document)
+/pdf-to-image            (PDF)
+/compress-pdf            (PDF)
+/merge-pdf               (PDF)
+/split-pdf               (PDF)
+/mp3-to-wav              (Audio)
+/mp4-to-webm             (Video)
 ```
 
 ---
@@ -205,7 +205,7 @@ Sitemap: http://localhost:3000/sitemap.xml
 ### ✅ Verification
 - ✅ Zero compilation errors
 - ✅ All imports correctly resolved
-- ✅ All routes accessible via `/tools/:slug`
+- ✅ All routes accessible via `/:slug`
 - ✅ SEO meta tags applied automatically
 - ✅ Structured data includes full schema
 
@@ -327,7 +327,7 @@ const sitemapEntries = generateToolSitemapEntries()
 ## 10. Testing Checklist
 
 ### Manual Testing
-- [ ] Visit `/tools/jpg-to-png` and check browser title
+- [ ] Visit `/jpg-to-png` and check browser title
 - [ ] View page source and verify meta tags
 - [ ] Check OpenGraph tags with Facebook Share Debugger
 - [ ] Validate with Google Rich Results Test
@@ -341,7 +341,7 @@ const sitemapEntries = generateToolSitemapEntries()
 curl http://localhost:3000/sitemap.xml | xmllint -
 
 # Check SEO headers
-curl -I http://localhost:3000/tools/jpg-to-png
+curl -I http://localhost:3000/jpg-to-png
 
 # Validate JSON-LD schema
 npm run test:seo

@@ -1,7 +1,7 @@
 import json
 from playwright.sync_api import sync_playwright, TimeoutError
 
-URL = 'http://localhost:5173/tools/jpg-to-png'
+URL = 'http://localhost:5173/jpg-to-png'
 
 with sync_playwright() as p:
     browser = p.chromium.launch()

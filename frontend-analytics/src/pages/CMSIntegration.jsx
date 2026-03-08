@@ -1209,7 +1209,7 @@ Example:
                       🗑️
                     </button>
                     <a
-                      href={`/tools/${tool.slug}`}
+                      href={`/${tool.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{padding: '8px 12px', background: '#11998e', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '12px', textDecoration: 'none', textAlign: 'center'}}

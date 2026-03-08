@@ -24,7 +24,7 @@ def sitemap():
 
     for s in slugs:
         urlset.append(
-            f"  <url>\n    <loc>{site_url}/tools/{s}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
+            f"  <url>\n    <loc>{site_url}/{s}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
         )
 
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'

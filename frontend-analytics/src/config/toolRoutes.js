@@ -1,7 +1,7 @@
 /**
  * Tool Routes Configuration
  * Auto-generated routes for all converter tools
- * Access tool pages at: /tools/[tool-slug]
+ * Access tool pages at: /[tool-slug]
  */
 
 export const TOOL_ROUTES = [
@@ -9,28 +9,28 @@ export const TOOL_ROUTES = [
   {
     slug: 'jpg-to-png',
     title: 'JPG to PNG',
-    path: '/tools/jpg-to-png',
+    path: '/jpg-to-png',
     category: 'image',
     icon: '🖼️'
   },
   {
     slug: 'png-to-jpg',
     title: 'PNG to JPG',
-    path: '/tools/png-to-jpg',
+    path: '/png-to-jpg',
     category: 'image',
     icon: '🖼️'
   },
   {
     slug: 'webp-to-png',
     title: 'WebP to PNG',
-    path: '/tools/webp-to-png',
+    path: '/webp-to-png',
     category: 'image',
     icon: '🖼️'
   },
   {
     slug: 'image-to-pdf',
     title: 'Image to PDF',
-    path: '/tools/image-to-pdf',
+    path: '/image-to-pdf',
     category: 'image',
     icon: '📸'
   },
@@ -38,49 +38,49 @@ export const TOOL_ROUTES = [
   {
     slug: 'pdf-to-docx',
     title: 'PDF to DOCX',
-    path: '/tools/pdf-to-docx',
+    path: '/pdf-to-docx',
     category: 'document',
     icon: '📄'
   },
   {
     slug: 'docx-to-pdf',
     title: 'DOCX to PDF',
-    path: '/tools/docx-to-pdf',
+    path: '/docx-to-pdf',
     category: 'document',
     icon: '📄'
   },
   {
     slug: 'pdf-to-excel',
     title: 'PDF to Excel',
-    path: '/tools/pdf-to-excel',
+    path: '/pdf-to-excel',
     category: 'document',
     icon: '📊'
   },
   {
     slug: 'excel-to-pdf',
     title: 'Excel to PDF',
-    path: '/tools/excel-to-pdf',
+    path: '/excel-to-pdf',
     category: 'document',
     icon: '📊'
   },
   {
     slug: 'pdf-to-pptx',
     title: 'PDF to PowerPoint',
-    path: '/tools/pdf-to-pptx',
+    path: '/pdf-to-pptx',
     category: 'document',
     icon: '🎯'
   },
   {
     slug: 'pptx-to-pdf',
     title: 'PowerPoint to PDF',
-    path: '/tools/pptx-to-pdf',
+    path: '/pptx-to-pdf',
     category: 'document',
     icon: '🎯'
   },
   {
     slug: 'csv-to-excel',
     title: 'CSV to Excel',
-    path: '/tools/csv-to-excel',
+    path: '/csv-to-excel',
     category: 'document',
     icon: '📋'
   },
@@ -88,28 +88,28 @@ export const TOOL_ROUTES = [
   {
     slug: 'pdf-to-image',
     title: 'PDF to Image',
-    path: '/tools/pdf-to-image',
+    path: '/pdf-to-image',
     category: 'pdf',
     icon: '📸'
   },
   {
     slug: 'compress-pdf',
     title: 'Compress PDF',
-    path: '/tools/compress-pdf',
+    path: '/compress-pdf',
     category: 'pdf',
     icon: '📦'
   },
   {
     slug: 'merge-pdf',
     title: 'Merge PDF',
-    path: '/tools/merge-pdf',
+    path: '/merge-pdf',
     category: 'pdf',
     icon: '🔗'
   },
   {
     slug: 'split-pdf',
     title: 'Split PDF',
-    path: '/tools/split-pdf',
+    path: '/split-pdf',
     category: 'pdf',
     icon: '✂️'
   },
@@ -117,7 +117,7 @@ export const TOOL_ROUTES = [
   {
     slug: 'mp3-to-wav',
     title: 'MP3 to WAV',
-    path: '/tools/mp3-to-wav',
+    path: '/mp3-to-wav',
     category: 'audio',
     icon: '🔊'
   },
@@ -125,7 +125,7 @@ export const TOOL_ROUTES = [
   {
     slug: 'mp4-to-webm',
     title: 'MP4 to WebM',
-    path: '/tools/mp4-to-webm',
+    path: '/mp4-to-webm',
     category: 'video',
     icon: '🎬'
   }

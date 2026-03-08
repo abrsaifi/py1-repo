@@ -56,7 +56,7 @@ const ToolsPage = ({ onTitleChange }) => {
   })
 
   const handleToolClick = (toolSlug) => {
-    navigate(`/tools/${toolSlug}`)
+    navigate(`/${toolSlug}`)
   }
 
   React.useEffect(() => {

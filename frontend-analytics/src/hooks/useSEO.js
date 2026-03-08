@@ -132,7 +132,7 @@ export const useSEO = (config = {}) => {
  * Generate SEO config for converter tool pages
  */
 export const generateToolSEOConfig = (tool, baseUrl = 'http://localhost:3000') => {
-  const toolUrl = `${baseUrl}/tools/${tool.slug}`
+  const toolUrl = `${baseUrl}/${tool.slug}`
   
   return {
     title: `${tool.title} Online Converter - Free ${tool.from_format} to ${tool.to_format} Conversion`,

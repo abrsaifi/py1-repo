@@ -355,7 +355,7 @@ linear-gradient(135deg, #11998e 0%, #0d7a6f 100%)
 4. Event handlers (drag, drop) manage interactive states
 
 ### With App.jsx
-1. Routes to `/tools/:toolSlug`
+1. Routes to `/:toolSlug`
 2. ToolPage component renders with CSS styles
 3. Responsive design works on all device sizes
 4. Navigation integrates with global routing

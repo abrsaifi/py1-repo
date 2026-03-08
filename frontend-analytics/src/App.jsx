@@ -64,7 +64,7 @@ function AppContent() {
           <Route path="/forgot-password" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />
           <Route path="/convert" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
           <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/tools/:toolSlug" element={<ToolPage />} />
+          <Route path="/:toolSlug" element={<ToolPage />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={auth.isAuthenticated ? <UserDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />

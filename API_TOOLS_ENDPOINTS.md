@@ -439,11 +439,11 @@ Tool metadata endpoints are optimized for speed:
 
 | Endpoint | Avg Response Time | Data Size |
 |----------|-------------------|-----------|
-| GET /tools | ~50ms | 85KB |
-| GET /tools/:slug | ~10ms | 4KB |
-| GET /tools/:slug/related | ~15ms | 6KB |
-| GET /tools/categories | ~5ms | 1KB |
-| POST /tools/search | ~30ms | 20KB |
+| GET /api/tools | ~50ms | 85KB |
+| GET /api/tools/:slug | ~10ms | 4KB |
+| GET /api/tools/:slug/related | ~15ms | 6KB |
+| GET /api/tools/categories | ~5ms | 1KB |
+| POST /api/tools/search | ~30ms | 20KB |
 
 ---
 

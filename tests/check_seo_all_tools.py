@@ -8,7 +8,7 @@ TOOLS = [
     'compress-pdf', 'merge-pdf', 'split-pdf', 'mp3-to-wav', 'mp4-to-webm'
 ]
 
-BASE = 'http://localhost:5173/tools/'
+BASE = 'http://localhost:5176/'
 
 def check(url, page):
     logs = []

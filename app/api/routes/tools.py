@@ -14,7 +14,7 @@ def get_tool(slug):
         'to_format': 'Target Format',
         'description': 'Convert Source Format to Target Format files online for free. Convert your files with ease. No registration required.',
         'icon': f'http://localhost:3000/tool-icons/{slug}.png',
-        'url': f'http://localhost:3000/tools/{slug}',
+        'url': f'http://localhost:3000/{slug}',
         'key_features': ['Fast conversion', 'High quality', 'Secure', 'No registration'],
         'rating': {'value': '4.8', 'count': '2500'},
         'offers': {'price': '0', 'currency': 'USD'}

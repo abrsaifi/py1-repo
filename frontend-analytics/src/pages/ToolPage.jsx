@@ -319,7 +319,7 @@ const ToolPage = () => {
                 <div 
                   key={idx} 
                   className="related-tool-card"
-                  onClick={() => navigate(`/tools/${relTool.slug}`)}
+                  onClick={() => navigate(`/${relTool.slug}`)}
                 >
                   {relTool.icon ? <UniversalIcon icon={relTool.icon} size={32} /> : <UniversalIcon icon="🔄" size={32} />}
                   <h4>{relTool.title || relTool.name}</h4>

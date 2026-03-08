@@ -55,14 +55,12 @@ export const generateRobotsTxt = () => {
   return `# Robots.txt for file converter tools
 User-agent: *
 Allow: /
-Allow: /tools/
 Disallow: /admin/
 Disallow: /api/
 Disallow: /auth/
 
 # Sitemaps
 Sitemap: http://localhost:3000/sitemap.xml
-Sitemap: http://localhost:3000/sitemap-tools.xml
 
 # Crawl delay and rate
 Crawl-delay: 1
