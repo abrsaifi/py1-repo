@@ -37,6 +37,25 @@ def create_app(config=None):
     app.logger = logger
     logger.info('Application initialized with structured logging')
 
+    # Enable CORS for API endpoints in the package app so the frontend can
+    # fetch `/api/*` during development. Prefer `flask_cors` if available.
+    try:
+        from flask_cors import CORS
+        CORS(app, resources={r"/api/*": {"origins": "*"}})
+        app.logger.info('flask_cors enabled for /api/* in package app')
+    except Exception:
+        @app.after_request
+        def _add_cors_headers(response):
+            try:
+                path = getattr(request, 'path', '')
+                if path.startswith('/api/'):
+                    response.headers['Access-Control-Allow-Origin'] = os.environ.get('CORS_ALLOW_ORIGIN', '*')
+                    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key'
+            except Exception:
+                pass
+            return response
+
     # ensure upload directory exists
     try:
         os.makedirs(app.config.get('UPLOAD_CHUNKS_DIR', os.path.join(tempfile.gettempdir(), 'docpro_uploads')), exist_ok=True)
@@ -78,6 +97,11 @@ def create_app(config=None):
     try:
         from .api.routes.analytics import bp as analytics_bp
         app.register_blueprint(analytics_bp, url_prefix='/api')
+    except Exception:
+        pass
+    try:
+        from .api.routes.tools import bp as tools_bp
+        app.register_blueprint(tools_bp, url_prefix='/api')
     except Exception:
         pass
     

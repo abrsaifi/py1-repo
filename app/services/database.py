@@ -3,6 +3,9 @@ from datetime import datetime
 import sqlite3
 import json
 from pathlib import Path
+import shutil
+import os
+import time
 
 # Database path
 DB_PATH = Path(__file__).parent.parent.parent / 'docpro_database.db'
@@ -73,6 +76,52 @@ def init_db():
 
 class DatabaseManager:
     """Manage database operations"""
+    def __init__(self, db_path=None):
+        """Initialize an instance for operations on a specific database file.
+
+        If no path is provided, falls back to the module-level DB_PATH.
+        """
+        if db_path:
+            self.db_path = Path(db_path)
+        else:
+            self.db_path = DB_PATH
+
+    def backup(self, backups_dir='backups'):
+        """Create a timestamped backup of the database file.
+
+        Returns the path to the created backup file.
+        """
+        try:
+            os.makedirs(backups_dir, exist_ok=True)
+            timestamp = time.strftime('%Y%m%d%H%M%S')
+            src = str(self.db_path)
+            if not os.path.exists(src):
+                raise FileNotFoundError(f"Database file not found: {src}")
+            dest = os.path.join(backups_dir, f"{self.db_path.stem}-{timestamp}{self.db_path.suffix}")
+            shutil.copy2(src, dest)
+            return dest
+        except Exception:
+            raise
+
+    def optimize(self):
+        """Run a simple optimization/maintenance on the SQLite database.
+
+        Uses VACUUM and PRAGMA optimize where supported.
+        """
+        conn = sqlite3.connect(str(self.db_path))
+        try:
+            cursor = conn.cursor()
+            try:
+                cursor.execute('VACUUM')
+            except Exception:
+                pass
+            try:
+                cursor.execute('PRAGMA optimize')
+            except Exception:
+                pass
+            conn.commit()
+        finally:
+            conn.close()
     
     @staticmethod
     def add_conversion_record(operation_type, input_file, status='pending', user_id=None, file_size_input=0):

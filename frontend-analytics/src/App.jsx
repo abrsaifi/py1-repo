@@ -12,6 +12,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import MetricsPage from './pages/MetricsPage'
 import ReportsPage from './pages/ReportsPage'
+import ToolsPage from './pages/ToolsPage'
+import ToolPage from './pages/ToolPage'
 import AlertsPage from './pages/AlertsPage'
 import QueryPage from './pages/QueryPage'
 import CustomMetricsPage from './pages/CustomMetricsPage'
@@ -61,6 +63,8 @@ function AppContent() {
           <Route path="/register" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
           <Route path="/forgot-password" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />
           <Route path="/convert" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/tools/:toolSlug" element={<ToolPage />} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={auth.isAuthenticated ? <UserDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />

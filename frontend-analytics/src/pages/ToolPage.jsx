@@ -23,8 +23,8 @@ const ToolPage = () => {
         setLoading(true)
         setError(null)
         
-        // Fetch tool metadata
-        const toolResponse = await fetch(`http://localhost:5000/api/tools/${toolSlug}`)
+        // Fetch tool metadata (use relative path so Vite proxies /api to backend)
+        const toolResponse = await fetch(`/api/tools/${toolSlug}`)
         if (!toolResponse.ok) {
           throw new Error(`Tool not found: ${toolSlug}`)
         }
@@ -33,7 +33,7 @@ const ToolPage = () => {
         
         // Fetch related tools
         try {
-          const relatedResponse = await fetch(`http://localhost:5000/api/tools/${toolSlug}/related?limit=3`)
+          const relatedResponse = await fetch(`/api/tools/${toolSlug}/related?limit=3`)
           if (relatedResponse.ok) {
             const relatedData = await relatedResponse.json()
             setRelatedTools(relatedData.related_tools || [])
@@ -45,21 +45,22 @@ const ToolPage = () => {
       } catch (err) {
         console.error('Error fetching tool data:', err)
         setError(err.message)
-        // Set fallback tool data
+        // Set fallback tool data (include keys expected by SEO generator)
         setTool({
+          slug: toolSlug,
           title: `${toolSlug} Converter`,
           description: 'Convert your files with ease',
           icon: '🔄',
-          fromFormat: 'Source Format',
-          toFormat: 'Target Format',
-          keyFeatures: ['Fast conversion', 'High quality', 'Secure', 'No registration'],
+          from_format: 'Source Format',
+          to_format: 'Target Format',
+          key_features: ['Fast conversion', 'High quality', 'Secure', 'No registration'],
           steps: [
             { num: 1, title: 'Upload', description: 'Select your file' },
             { num: 2, title: 'Process', description: 'Configure settings' },
             { num: 3, title: 'Convert', description: 'Start conversion' },
             { num: 4, title: 'Download', description: 'Get your file' }
           ],
-          relatedTools: [],
+          related_tools: [],
           faq: []
         })
       } finally {
