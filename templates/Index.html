@@ -9,8 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-  <!-- Bootstrap CSS for Offcanvas -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -29,7 +27,6 @@
       --border-color: #f0e2d8;
       --shadow-light: rgba(0, 0, 0, 0.08);
       --shadow-medium: rgba(0, 0, 0, 0.12);
-      --close-btn-filter: none;
     }
 
     body {
@@ -51,7 +48,6 @@
       --border-color: #333;
       --shadow-light: rgba(0, 0, 0, 0.3);
       --shadow-medium: rgba(0, 0, 0, 0.4);
-      --close-btn-filter: invert(1);
     }
 
     .wrapper {
@@ -438,28 +434,6 @@
       }
     }
 
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    @keyframes slideOut {
-      from {
-        opacity: 1;
-        transform: translateX(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-    }
-
     /* Download link button styling */
     #conversion-results a[download] {
       background: linear-gradient(135deg, #4CAF50, #45a049);
@@ -484,41 +458,6 @@
 
     body.dark-mode #conversion-results > div > div {
       background: rgba(42, 42, 42, 0.8) !important;
-    }
-
-    /* === OFFCANVAS STYLES === */
-    .offcanvas {
-      width: 100% !important;
-      max-width: 500px !important;
-      box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15) !important;
-    }
-
-    .offcanvas-header {
-      padding: 1.5rem !important;
-      border-bottom: 1px solid var(--border-color) !important;
-      background: var(--bg-primary) !important;
-    }
-
-    .offcanvas-title {
-      font-weight: 700 !important;
-      color: var(--text-primary) !important;
-      font-size: 1.25rem !important;
-    }
-
-    .offcanvas-body {
-      padding: 1.5rem !important;
-      background: var(--bg-primary) !important;
-      color: var(--text-primary) !important;
-    }
-
-    body.dark-mode .offcanvas {
-      background: var(--bg-primary) !important;
-      color: var(--text-primary) !important;
-    }
-
-    body.dark-mode .offcanvas-header {
-      border-color: var(--border-color) !important;
-      background: var(--bg-primary) !important;
     }
 
     /* --- two-column conversion page (linked from cards) --- */
@@ -2250,71 +2189,6 @@
         <p>50+ professional conversion tools — PDF, images, documents, and data</p>
       </div>
 
-      <!-- QUICK ACCESS DASHBOARD -->
-      <div id="dashboardPanel" style="margin-bottom: 3rem; animation: slideDown 0.5s ease-out;">
-        <!-- Dashboard Grid: Recently Used, Stats, Search -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-          
-          <!-- Recently Used Tools Widget -->
-          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-              <i class="bi bi-clock-history" style="font-size: 1.2rem; margin-right: 0.5rem; color: var(--accent-color);"></i>
-              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Recently Used</h3>
-            </div>
-            <div id="recentlyUsedList" style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No recent tools yet</div>
-            </div>
-          </div>
-
-          <!-- Quick Stats Widget -->
-          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-              <i class="bi bi-graph-up" style="font-size: 1.2rem; margin-right: 0.5rem; color: var(--accent-color);"></i>
-              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Quick Stats</h3>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
-                <span style="color: var(--text-secondary); font-size: 0.85rem;">Conversions:</span>
-                <span id="statConversions" style="font-weight: 600; color: var(--accent-color);">0</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
-                <span style="color: var(--text-secondary); font-size: 0.85rem;">Files Processed:</span>
-                <span id="statFiles" style="font-weight: 600; color: var(--accent-color);">0</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
-                <span style="color: var(--text-secondary); font-size: 0.85rem;">Today:</span>
-                <span id="statToday" style="font-weight: 600; color: var(--accent-color);">0</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Favorites Widget -->
-          <div style="background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-              <i class="bi bi-star" style="font-size: 1.2rem; margin-right: 0.5rem; color: #FFD700;"></i>
-              <h3 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Favorites</h3>
-            </div>
-            <div id="favoritesList" style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No favorites yet</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tool Search Bar -->
-        <div style="margin-bottom: 2rem;">
-          <div style="position: relative;">
-            <input 
-              type="text" 
-              id="toolSearchInput" 
-              placeholder="Search tools... (e.g., PDF, compress, convert)" 
-              style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); font-size: 0.9rem;"
-              onkeyup="handleToolSearch(this.value)"
-            />
-            <i class="bi bi-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
-          </div>
-        </div>
-      </div>
-
       <!-- Category Filter Buttons -->
       <div style="display: flex; gap: 12px; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center; animation: slideDown 0.4s ease-out;">
         <button class="category-filter-btn active" onclick="filterTools('all')" data-category="all">
@@ -2604,17 +2478,6 @@
               <i class="bi bi-eye" style="margin-right: 0.5rem;"></i> live preview
             </button>
             <button class="btn-convert" id="convertBtn" style="flex: 1;">start conversion</button>
-          </div>
-          
-          <!-- Conversion Progress Bar (SPA Async Support) -->
-          <div id="conversionProgressContainer" style="display: none; margin-top: 1rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-size: 0.85rem; color: var(--text-secondary);">Converting files...</span>
-              <span id="conversionProgressPercent" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">0%</span>
-            </div>
-            <div style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden; height: 8px;">
-              <div id="conversionProgressBar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: white;"></div>
-            </div>
           </div>
           
           <!-- Preview Loading & Error States -->
@@ -3716,21 +3579,10 @@
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
       document.getElementById('page-' + pageId).classList.add('active-page');
       
-      // Save current page to localStorage to persist across refreshes
-      localStorage.setItem('currentPage', pageId);
-      
       // Hide settings panel when switching pages (only show when tool is selected)
       const rightSettingsPanel = document.getElementById('rightSettingsPanel');
       if (rightSettingsPanel && pageId !== 'conversion') {
         rightSettingsPanel.classList.remove('visible');
-      }
-      
-      // Check for recent results if switching to conversion page
-      if (pageId === 'conversion') {
-        // Use setTimeout to ensure page is fully rendered
-        setTimeout(() => {
-          checkAndShowRecentResultsOnLoad();
-        }, 100);
       }
       
       closeSidebars();
@@ -3774,142 +3626,13 @@
           }, 150);
         }
       });
-
-      // Reset search input when filtering by category
-      document.getElementById('toolSearchInput').value = '';
-    }
-
-    // === DASHBOARD FUNCTIONS ===
-    function trackToolUsage(toolName) {
-      // Get existing usage data
-      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
-      
-      // Update usage count and timestamp
-      if (!toolUsage[toolName]) {
-        toolUsage[toolName] = { count: 0, lastUsed: null, isFavorite: false };
-      }
-      toolUsage[toolName].count++;
-      toolUsage[toolName].lastUsed = new Date().getTime();
-      
-      // Save updated usage
-      localStorage.setItem('toolUsage', JSON.stringify(toolUsage));
-      
-      // Update dashboard
-      updateDashboard();
-    }
-
-    function updateDashboard() {
-      // Get tool usage data
-      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
-      
-      // Get top 3 recently used tools
-      const recentToolsArray = Object.entries(toolUsage)
-        .sort((a, b) => (b[1].lastUsed || 0) - (a[1].lastUsed || 0))
-        .slice(0, 3);
-      
-      // Update Recently Used widget
-      const recentlyUsedList = document.getElementById('recentlyUsedList');
-      if (recentToolsArray.length > 0) {
-        recentlyUsedList.innerHTML = recentToolsArray.map(([toolName, data]) => `
-          <div onclick="openConversion('${toolName}')" style="padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;"
-               onmouseover="this.style.background='var(--accent-color)'; this.style.color='white';"
-               onmouseout="this.style.background='var(--bg-secondary)'; this.style.color='var(--text-primary)';">
-            <span>${toolName}</span>
-            <span style="font-size: 0.75rem; opacity: 0.7;">${data.count}x</span>
-          </div>
-        `).join('');
-      } else {
-        recentlyUsedList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No recent tools yet</div>';
-      }
-      
-      // Update stats
-      const totalConversions = Object.values(toolUsage).reduce((sum, data) => sum + data.count, 0);
-      const conversionHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
-      const totalFiles = conversionHistory.reduce((sum, conv) => sum + (conv.fileCount || 1), 0);
-      const todayCount = conversionHistory.filter(conv => {
-        const convDate = new Date(conv.timestamp).toDateString();
-        const today = new Date().toDateString();
-        return convDate === today;
-      }).length;
-      
-      document.getElementById('statConversions').innerText = totalConversions;
-      document.getElementById('statFiles').innerText = totalFiles;
-      document.getElementById('statToday').innerText = todayCount;
-      
-      // Update Favorites widget
-      const favorites = Object.entries(toolUsage)
-        .filter(([toolName, data]) => data.isFavorite)
-        .map(([toolName, data]) => toolName);
-      
-      const favoritesList = document.getElementById('favoritesList');
-      if (favorites.length > 0) {
-        favoritesList.innerHTML = favorites.map(toolName => `
-          <div style="padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center;"
-               onclick="openConversion('${toolName}')"
-               onmouseover="this.style.background='#FFD700'; this.style.color='#333';"
-               onmouseout="this.style.background='var(--bg-secondary)'; this.style.color='var(--text-primary)';">
-            <span><i class="bi bi-star-fill" style="color: #FFD700; margin-right: 0.5rem;"></i>${toolName}</span>
-            <i class="bi bi-x" style="cursor: pointer;" onclick="event.stopPropagation(); toggleFavorite('${toolName}');"></i>
-          </div>
-        `).join('');
-      } else {
-        favoritesList.innerHTML = '<div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">No favorites yet</div>';
-      }
-    }
-
-    function toggleFavorite(toolName) {
-      let toolUsage = JSON.parse(localStorage.getItem('toolUsage') || '{}');
-      if (!toolUsage[toolName]) {
-        toolUsage[toolName] = { count: 0, lastUsed: null, isFavorite: false };
-      }
-      toolUsage[toolName].isFavorite = !toolUsage[toolName].isFavorite;
-      localStorage.setItem('toolUsage', JSON.stringify(toolUsage));
-      updateDashboard();
-    }
-
-    function handleToolSearch(searchTerm) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      const toolsGrid = document.getElementById('toolsGrid');
-      const tools = toolsGrid.querySelectorAll('.service-card-item');
-      let visibleCount = 0;
-
-      tools.forEach((tool) => {
-        const toolText = tool.innerText.toLowerCase();
-        const matches = searchLower === '' || toolText.includes(searchLower);
-        
-        if (matches) {
-          tool.style.display = 'block';
-          tool.style.opacity = '1';
-          tool.style.transform = 'scale(1)';
-          visibleCount++;
-        } else {
-          tool.style.opacity = '0';
-          tool.style.transform = 'scale(0.95)';
-          setTimeout(() => {
-            if (tool.style.opacity === '0') {
-              tool.style.display = 'none';
-            }
-          }, 150);
-        }
-      });
-
-      // Show "no results" message if needed
-      if (visibleCount === 0 && searchLower !== '') {
-        // Could add a "no results" message here
-      }
     }
 
     function openConversion(toolName) {
-      // Track this tool usage for dashboard
-      trackToolUsage(toolName);
-      
       switchPage('conversion');
       document.getElementById('selectedTool').innerText = toolName;
       document.getElementById('conversionPageTitle').innerText = toolName;
       document.getElementById('settingToolName').innerText = toolName;
-      
-      // Save selected tool name to localStorage to persist across refreshes
-      localStorage.setItem('selectedTool', toolName);
       
       // Settings panel will show only after file upload, not on tool selection
       
@@ -4552,12 +4275,6 @@
     function handleFiles(files) {
       if (files.length === 0) return;
       
-      // Remove recent results banner when new file is selected (clearing old results context)
-      const recentResultsBanner = document.getElementById('recentResultsBanner');
-      if (recentResultsBanner) {
-        recentResultsBanner.remove();
-      }
-      
       // Store current file in the input
       const file = files[0];
       const fileCardArea = document.getElementById('fileCardArea');
@@ -4621,12 +4338,6 @@
     function removeFile() {
       const fileCardArea = document.getElementById('fileCardArea');
       const studioFileInput = document.getElementById('studioFileInput');
-      
-      // Remove recent results banner
-      const recentResultsBanner = document.getElementById('recentResultsBanner');
-      if (recentResultsBanner) {
-        recentResultsBanner.remove();
-      }
       
       // Reset file input
       studioFileInput.value = '';
@@ -5043,25 +4754,8 @@
         return;
       }
       
-      // CLIENT-SIDE FILE SIZE VALIDATION (100MB limit)
-      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-      let totalSize = 0;
-      for (const file of fileInput.files) {
-        totalSize += file.size;
-      }
-      
-      if (totalSize > MAX_FILE_SIZE) {
-        const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
-        showToast(`Total file size exceeds ${maxMB}MB. Please upload smaller files.`, 'error');
-        return;
-      }
-      
-      // Warn if files are large (but allowed)
-      if (totalSize > 50 * 1024 * 1024) {
-        showToast('Warning: Large files may take longer to convert', 'warning');
-      }
-      
       let tool = document.getElementById('selectedTool').innerText;
+      
       
       // Resolve alias to full service name if it's a shortcut
       if (ALIAS_TO_FULL_NAME[tool]) {
@@ -5071,7 +4765,7 @@
       const format = document.getElementById('outputFormat').value;
       const quality = document.getElementById('quality').value;
       
-      showToast(`Starting conversion for ${tool}...`, 'info');
+      showToast(`Converting with ${tool}...`, 'info');
       
       // Create FormData with files and conversion parameters
       const formData = new FormData();
@@ -5111,177 +4805,88 @@
         });
       }
       
+      // All parameters are now handled by the service-specific settings above
+      // Legacy fallbacks removed - parameters are collected from service config
+      
       try {
-        // Show progress bar
-        let progressContainer = document.getElementById('conversionProgressContainer');
-        if (progressContainer) {
-          progressContainer.style.display = 'block';
-        }
-        
-        // Disable convert button during conversion
-        const convertBtn = document.getElementById('convertBtn');
-        if (convertBtn) {
-          convertBtn.disabled = true;
-        }
-        
-        // STEP 1: Start the conversion job (async)
-        const startResponse = await fetch('/api/convert/start', {
+        const response = await fetch('/api/convert', {
           method: 'POST',
           body: formData
         });
         
-        if (!startResponse.ok) {
-          const errorData = await startResponse.json();
-          if (startResponse.status === 429) {
-            showToast('Rate limit exceeded. Please wait before starting another conversion.', 'error');
-          } else {
-            showToast(`Failed to start conversion: ${errorData.error || 'Unknown error'}`, 'error');
-          }
-          return;
-        }
+        const data = await response.json();
         
-        const startData = await startResponse.json();
-        
-        if (!startData.success) {
-          showToast(`Conversion failed: ${startData.error || 'Unknown error'}`, 'error');
-          return;
-        }
-        
-        const jobId = startData.job_id;
-        console.log('[Conversion] Job started:', jobId);
-        showToast(`Job ${jobId.substring(0, 8)}... started. Monitoring progress...`, 'info');
-        
-        // STEP 2: Poll for job status
-        let jobComplete = false;
-        let pollAttempts = 0;
-        const maxPollAttempts = 1800; // 30 minutes at 1 second intervals
-        
-        const pollInterval = setInterval(async () => {
-          pollAttempts++;
+        if (data.success) {
+          // Log successful conversion to history
+          const historyEntry = {
+            tool: tool,
+            files: fileInput.files.length,
+            timestamp: new Date().toLocaleTimeString(),
+            status: 'success'
+          };
           
-          if (pollAttempts > maxPollAttempts) {
-            clearInterval(pollInterval);
-            showToast('Conversion timeout: Job took too long to complete', 'error');
-            jobComplete = true;
+          let history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+          history.unshift(historyEntry);
+          history = history.slice(0, 20);
+          localStorage.setItem('conversionHistory', JSON.stringify(history));
+          
+          showToast('Conversion complete!', 'success');
+          
+          // Show download links in a prominent modal-like box
+          if (data.files && data.files.length > 0) {
+            // Remove old results if any
+            const oldResults = document.getElementById('conversion-results');
+            if (oldResults) oldResults.remove();
             
-            // Hide progress and re-enable button
-            progressContainer = document.getElementById('conversionProgressContainer');
-            if (progressContainer) {
-              progressContainer.style.display = 'none';
+            let downloadHtml = `
+              <div style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(56, 142, 60, 0.08)); border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; margin-top: 20px;">
+                <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 15px;">
+                  <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; color: #4CAF50;"></i>
+                  <h3 style="margin: 0; color: #2e7d32; font-size: 1.1rem; font-weight: 600;">Conversion successful!</h3>
+                </div>
+                <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">Your files are ready to download</div>
+            `;
+            
+            data.files.forEach(file => {
+              const sizeKB = (file.size / 1024).toFixed(2);
+              downloadHtml += `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 4px;">${file.name}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">${sizeKB} KB</div>
+                  </div>
+                  <a href="${file.download_url}" download="${file.name}" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.3s; border: none;">
+                    <i class="bi bi-download" style="font-size: 1rem;"></i> Download
+                  </a>
+                </div>
+              `;
+            });
+            
+            downloadHtml += `
+              </div>
+            `;
+            
+            // Create a container to show downloads
+            const resultsDiv = document.createElement('div');
+            resultsDiv.id = 'conversion-results';
+            resultsDiv.innerHTML = downloadHtml;
+            
+            // Insert after the conversion-studio div (in the wrapper), not inside settings
+            const conversionStudio = document.querySelector('.conversion-studio');
+            if (conversionStudio && conversionStudio.parentNode) {
+              conversionStudio.parentNode.insertBefore(resultsDiv, conversionStudio.nextSibling);
             }
-            document.querySelectorAll('.btn-convert').forEach(btn => btn.disabled = false);
-            return;
           }
           
-          try {
-            const statusResponse = await fetch(`/api/convert/status/${jobId}`);
-            const statusData = await statusResponse.json();
-            
-            if (!statusData.success) {
-              console.error('Status check failed:', statusData.error);
-              return;
-            }
-            
-            console.log(`[Job ${jobId.substring(0, 8)}] Status:`, statusData.status, `Progress: ${statusData.progress}%`);
-            
-            // Update progress bar
-            const progressBar = document.getElementById('conversionProgressBar');
-            if (progressBar) {
-              progressBar.style.width = statusData.progress + '%';
-              progressBar.textContent = statusData.progress + '%';
-            }
-            
-            if (statusData.status === 'processing') {
-              // Still processing, update UI with progress
-              document.querySelectorAll('.btn-convert').forEach(btn => btn.disabled = true);
-            } else if (statusData.status === 'complete') {
-              // Conversion complete!
-              clearInterval(pollInterval);
-              jobComplete = true;
-              
-              // Re-enable buttons and hide progress
-              document.querySelectorAll('.btn-convert').forEach(btn => btn.disabled = false);
-              const progressContainer = document.getElementById('conversionProgressContainer');
-              if (progressContainer) {
-                progressContainer.style.display = 'none';
-              }
-
-              
-              // Log successful conversion to history
-              const historyEntry = {
-                tool: tool,
-                files: fileInput.files.length,
-                timestamp: new Date().toLocaleTimeString(),
-                status: 'success'
-              };
-              
-              let history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
-              history.unshift(historyEntry);
-              history = history.slice(0, 20);
-              localStorage.setItem('conversionHistory', JSON.stringify(history));
-              
-              showToast('Conversion complete!', 'success');
-              
-              // Show download links in offcanvas panel
-              if (statusData.files && statusData.files.length > 0) {
-                showConversionResultsOffcanvas(statusData.files);
-              }
-              
-              // Keep file visible on the page - DO NOT clear it!
-              // This keeps the conversion page stable showing what was just converted
-              // User can still interact with settings or the "Convert Another File" button
-              
-              // Hide progress bar and reset for next conversion
-              progressContainer = document.getElementById('conversionProgressContainer');
-              if (progressContainer) {
-                progressContainer.style.display = 'none';
-              }
-              const progressBar = document.getElementById('conversionProgressBar');
-              if (progressBar) {
-                progressBar.style.width = '0%';
-              }
-            } else if (statusData.status === 'error') {
-              // Error occurred
-              clearInterval(pollInterval);
-              jobComplete = true;
-              
-              // Re-enable buttons and hide progress
-              document.querySelectorAll('.btn-convert').forEach(btn => btn.disabled = false);
-              progressContainer = document.getElementById('conversionProgressContainer');
-              if (progressContainer) {
-                progressContainer.style.display = 'none';
-              }
-              
-              showToast(`Conversion error: ${statusData.error || 'Unknown error'}`, 'error');
-              
-              // Log failed conversion
-              const historyEntry = {
-                tool: tool,
-                files: fileInput.files.length,
-                timestamp: new Date().toLocaleTimeString(),
-                status: 'error'
-              };
-              
-              let history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
-              history.unshift(historyEntry);
-              history = history.slice(0, 20);
-              localStorage.setItem('conversionHistory', JSON.stringify(history));
-            }
-          } catch (pollError) {
-            console.error('[Job Status] Poll error:', pollError);
-          }
-        }, 1000); // Poll every 1 second
-        
+          // Clear file and reset UI
+          fileInput.value = '';
+          removeFile();
+        } else {
+          showToast(`Conversion failed: ${data.error || 'Unknown error'}`, 'error');
+        }
       } catch (error) {
         showToast(`Error: ${error.message}`, 'error');
         console.error('Conversion error:', error);
-        
-        // Hide progress bar and re-enable button on error
-        progressContainer = document.getElementById('conversionProgressContainer');
-        if (progressContainer) {
-          progressContainer.style.display = 'none';
-        }
-        document.querySelectorAll('.btn-convert').forEach(btn => btn.disabled = false);
       }
     });
 
@@ -5347,734 +4952,15 @@
     });
 
     // === INIT ===
-    // Restore the page the user was on from localStorage
-    const savedPage = localStorage.getItem('currentPage') || 'home';
-    if (savedPage !== 'home') {
-      switchPage(savedPage);
-      // Restore selected tool name if on conversion page
-      const savedTool = localStorage.getItem('selectedTool');
-      if (savedTool && savedPage === 'conversion') {
-        document.getElementById('selectedTool').innerText = savedTool;
-        document.getElementById('conversionPageTitle').innerText = savedTool;
-        document.getElementById('settingToolName').innerText = savedTool;
-      }
-    }
-    
-    // Check for recent conversion results on page load (with delay to ensure DOM is ready)
-    setTimeout(() => {
-      checkAndShowRecentResultsOnLoad();
-    }, 200);
-    
-    // === CHECK FOR RECENT RESULTS ON PAGE LOAD ===
-    function checkAndShowRecentResultsOnLoad() {
-      // Update dashboard on every page load
-      updateDashboard();
-      
-      const conversionData = localStorage.getItem('lastConversionResults');
-      if (!conversionData) {
-        return; // No recent results
-      }
-      
-      try {
-        const data = JSON.parse(conversionData);
-        
-        // Check if results are still fresh (not older than 24 hours)
-        const now = Date.now();
-        const timeDiff = now - data.timestamp;
-        const hoursOld = timeDiff / (1000 * 60 * 60);
-        
-        if (hoursOld > 24) {
-          // Results expired, remove them
-          localStorage.removeItem('lastConversionResults');
-          return;
-        }
-        
-        // Results are still valid - show the banner notification
-        showRecentResultsBanner();
-      } catch (error) {
-        console.error('Error checking recent results:', error);
-      }
-    }
-    
-    // === SHOW RECENT RESULTS AS BANNER ===
-    function showRecentResultsBanner() {
-      // Check if we're on conversion page
-      const conversionPage = document.getElementById('page-conversion');
-      if (!conversionPage || !conversionPage.classList.contains('active-page')) {
-        return; // Not on conversion page
-      }
-      
-      // Check if banner already exists
-      if (document.getElementById('recentResultsBanner')) {
-        return; // Already showing
-      }
-      
-      // Create banner at the top of the left-preview area
-      const leftPreview = document.querySelector('.left-preview');
-      if (!leftPreview) return;
-      
-      const banner = document.createElement('div');
-      banner.id = 'recentResultsBanner';
-      banner.style.cssText = `
-        background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(66, 165, 245, 0.15));
-        border: 2px solid #2196F3;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        animation: slideDown 0.4s ease;
-      `;
-      
-      banner.innerHTML = `
-        <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
-          <i class="bi bi-clock-history" style="font-size: 1.3rem; color: #2196F3; min-width: 24px;"></i>
-          <div style="flex: 1;">
-            <div style="color: var(--text-primary); font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">Recent Results Available</div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem;">Your last conversion is still accessible</div>
-          </div>
-        </div>
-        <button onclick="reopenConversionResults(); document.getElementById('recentResultsBanner').remove();" style="
-          background: #2196F3;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          padding: 8px 16px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 0.85rem;
-          white-space: nowrap;
-        ">
-          <i class="bi bi-arrow-up-right-circle" style="margin-right: 6px;"></i>View Results
-        </button>
-        <button onclick="document.getElementById('recentResultsBanner').remove();" style="
-          background: transparent;
-          color: var(--text-secondary);
-          border: none;
-          cursor: pointer;
-          font-size: 1.2rem;
-          padding: 0;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <i class="bi bi-x" style="font-size: 1rem;"></i>
-        </button>
-      `;
-      
-      leftPreview.insertBefore(banner, leftPreview.firstChild);
-    }
-    
-    // === OFFCANVAS RESULTS PANEL FUNCTION ===
-    function showConversionResultsOffcanvas(files) {
-      // Get conversion details from the page
-      const conversionTime = new Date().toLocaleTimeString();
-      const toolName = document.getElementById('selectedTool').innerText || 'Unknown Tool';
-      
-      // Build results HTML with enhanced features
-      let resultsHtml = '';
-      let totalSize = 0;
-      
-      files.forEach(file => {
-        totalSize += file.size;
-        const sizeKB = (file.size / 1024).toFixed(2);
-        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        const displaySize = sizeKB > 1024 ? fileSizeMB + ' MB' : sizeKB + ' KB';
-        
-        resultsHtml += `
-          <div style="display: flex; flex-direction: column; gap: 10px; margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #4CAF50;">
-            <div style="display: flex; align-items: start; justify-content: space-between; gap: 12px;">
-              <div style="flex: 1; min-width: 0;">
-                <div style="color: var(--text-primary); font-weight: 600; word-break: break-word; margin-bottom: 6px; font-size: 0.95rem;">${file.name}</div>
-                <div style="color: var(--text-secondary); font-size: 0.85rem;">📦 ${displaySize}</div>
-              </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-              <button onclick="window.open('${file.download_url}', '_blank')" class="btn btn-sm" style="background: #2196F3; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Open/Preview file">
-                <i class="bi bi-eye" style="margin-right: 3px;"></i> Preview
-              </button>
-              <button onclick="copyToClipboard('${file.download_url}')" class="btn btn-sm" style="background: #FF9800; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Copy download link">
-                <i class="bi bi-link-45deg" style="margin-right: 3px;"></i> Copy
-              </button>
-              <button onclick="sendEmailWithLink('${file.name}', '${file.download_url}')" class="btn btn-sm" style="background: #9C27B0; color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Send via email">
-                <i class="bi bi-envelope" style="margin-right: 3px;"></i> Email
-              </button>
-              <a href="${file.download_url}" download="${file.name}" class="btn btn-sm" style="background: #4CAF50; color: white; text-decoration: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 3px; border: none;">
-                <i class="bi bi-download" style="font-size: 0.85rem;"></i> Download
-              </a>
-            </div>
-          </div>
-        `;
-      });
-      
-      // Build action buttons section
-      const totalSizeKB = (totalSize / 1024).toFixed(2);
-      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
-      const displayTotalSize = totalSizeKB > 1024 ? totalSizeMB + ' MB' : totalSizeKB + ' KB';
-      
-      let actionButtons = '';
-      if (files.length > 1) {
-        actionButtons += `
-          <button onclick="downloadAllAsZip()" class="btn" style="width: 100%; padding: 10px; background: #FF6F00; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;">
-            <i class="bi bi-archive" style="margin-right: 6px;"></i> Download All as ZIP
-          </button>
-        `;
-      }
-      
-      actionButtons += `
-        <button onclick="closeOffcanvas('conversionResultsOffcanvas'); document.getElementById('studioFileInput').value = ''; document.getElementById('studioFileInput').click();" class="btn" style="width: 100%; padding: 10px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
-          <i class="bi bi-plus-lg" style="margin-right: 6px;"></i> Convert Another File
-        </button>
-      `;
-      
-      // Update offcanvas body
-      const offcanvasBody = document.getElementById('conversionResultsBody');
-      offcanvasBody.innerHTML = `
-        <!-- Success Header -->
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4CAF50, #45a049); display: flex; align-items: center; justify-content: center;">
-            <i class="bi bi-check-circle-fill" style="font-size: 1.8rem; color: white;"></i>
-          </div>
-          <div>
-            <h5 style="margin: 0; color: var(--text-primary); font-size: 1.2rem; font-weight: 700;">Conversion Complete!</h5>
-            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${files.length} file(s) ready • ${displayTotalSize}</p>
-          </div>
-        </div>
-        
-        <!-- Conversion Details -->
-        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span style="color: var(--text-secondary);">Tool Used:</span>
-            <span style="color: var(--text-primary); font-weight: 600;">${toolName}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-secondary);">Time:</span>
-            <span style="color: var(--text-primary); font-weight: 600;">${conversionTime}</span>
-          </div>
-        </div>
-        
-        <!-- Files List -->
-        <div style="margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
-          ${resultsHtml}
-        </div>
-        
-        <!-- Sharing & Quick Actions -->
-        <div style="padding: 12px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
-          <p style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">Share & Quick Actions:</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-            <button onclick="copyAllDownloadLinks()" class="btn" style="padding: 8px; background: #00BCD4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-              <i class="bi bi-files" style="margin-right: 4px;"></i> Copy All Links
-            </button>
-            <button onclick="saveConversionConfig()" class="btn" style="padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
-              <i class="bi bi-bookmark" style="margin-right: 4px;"></i> Save Config
-            </button>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-            <button onclick="shareOnWhatsApp()" class="btn" style="padding: 8px; background: #25D366; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on WhatsApp">
-              <i class="bi bi-chat-dots" style="margin-right: 4px;"></i> WhatsApp
-            </button>
-            <button onclick="shareOnTelegram()" class="btn" style="padding: 8px; background: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Share on Telegram">
-              <i class="bi bi-send" style="margin-right: 4px;"></i> Telegram
-            </button>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px;">
-            <button onclick="copyShareMessage()" class="btn" style="padding: 8px; background: #9C27B0; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;" title="Copy formatted message to clipboard">
-              <i class="bi bi-clipboard-check" style="margin-right: 4px;"></i> Copy Share Message
-            </button>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-            <button onclick="shareOnOneDrive()" class="btn" style="padding: 8px; background: #0078d4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to OneDrive">
-              <i class="bi bi-cloud" style="margin-right: 3px;"></i> OneDrive
-            </button>
-            <button onclick="shareOnGoogleDrive()" class="btn" style="padding: 8px; background: #1f8d70; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to Google Drive">
-              <i class="bi bi-cloud-plus" style="margin-right: 3px;"></i> Google
-            </button>
-            <button onclick="shareOnDropbox()" class="btn" style="padding: 8px; background: #0061ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem;" title="Save to Dropbox">
-              <i class="bi bi-box" style="margin-right: 3px;"></i> Dropbox
-            </button>
-          </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div style="padding-top: 12px;">
-          ${actionButtons}
-        </div>
-      `;
-      
-      // Store conversion results in localStorage for recovery
-      const conversionData = {
-        files: files,
-        toolName: toolName,
-        conversionTime: conversionTime,
-        timestamp: Date.now()
-      };
-      localStorage.setItem('lastConversionResults', JSON.stringify(conversionData));
-      
-      // Track this conversion for dashboard stats
-      let conversionHistory = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
-      conversionHistory.unshift({
-        tool: toolName,
-        fileCount: files.length,
-        timestamp: Date.now(),
-        date: new Date().toLocaleString()
-      });
-      conversionHistory = conversionHistory.slice(0, 100); // Keep last 100 conversions
-      localStorage.setItem('conversionHistory', JSON.stringify(conversionHistory));
-      
-      // Update dashboard
-      updateDashboard();
-      
-      // Show the offcanvas
-      const offcanvasElement = document.getElementById('conversionResultsOffcanvas');
-      const offcanvas = new bootstrap.Offcanvas(offcanvasElement);
-      
-      // Add event listener for offcanvas close to show recovery UI
-      offcanvasElement.addEventListener('hide.bs.offcanvas', handleOffcanvasClose, { once: true });
-      
-      offcanvas.show();
-    }
-    
-    // === NEW FEATURE: Download All Files as ZIP ===
-    function downloadAllAsZip() {
-      showToast('ZIP download feature coming soon! For now, download files individually.', 'info');
-      // TODO: Implement server-side ZIP generation
-    }
-    
-    // === NEW FEATURE: Copy All Download Links ===
-    function copyAllDownloadLinks() {
-      // This would be called with files data - for now show placeholder
-      const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href).join('\\n');
-      if (links) {
-        navigator.clipboard.writeText(links).then(() => {
-          showToast('All download links copied to clipboard!', 'success');
-        }).catch(() => {
-          showToast('Failed to copy links', 'error');
-        });
-      } else {
-        showToast('No files to copy', 'warning');
-      }
-    }
-    
-    // === NEW FEATURE: Send Email with Download Link ===
-    function sendEmailWithLink(fileName, downloadUrl) {
-      const subject = encodeURIComponent(`Your converted file: ${fileName}`);
-      const body = encodeURIComponent(`Your file has been converted!\\n\\nFile: ${fileName}\\nDownload: ${downloadUrl}\\n\\nThis link is valid for a limited time.`);
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
-      showToast('Opening email client...', 'info');
-    }
-    
-    // === NEW FEATURE: Save Conversion Config as Preset ===
-    function saveConversionConfig() {
-      const toolName = document.getElementById('selectedTool').innerText;
-      const presetName = prompt('Save this conversion preset as:', 'My Preset');
-      
-      if (presetName) {
-        const config = {
-          tool: toolName,
-          timestamp: new Date().toISOString(),
-          // Add more config as needed
-        };
-        
-        let presets = JSON.parse(localStorage.getItem('conversionPresets') || '[]');
-        presets.push({ name: presetName, config: config });
-        localStorage.setItem('conversionPresets', JSON.stringify(presets));
-        
-        showToast(`Preset "${presetName}" saved!`, 'success');
-      }
-    }
-    
-    // === COPY TO CLIPBOARD FUNCTION ===
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('Download link copied to clipboard!', 'success');
-      }).catch(() => {
-        showToast('Failed to copy link', 'error');
-      });
-    }
-    
-    // === SHARE ON WHATSAPP ===
-    function shareOnWhatsApp() {
-      try {
-        // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
-        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
-        
-        if (links.length > 0) {
-          // Format message with proper line breaks and clickable links
-          let message = `Hey! I just converted my files using ${toolName}.\n\n`;
-          
-          if (links.length === 1) {
-            // Single file - include direct link
-            message += `Download: ${links[0]}`;
-          } else {
-            // Multiple files - list them separately for better clickability
-            message += `Files converted:\n`;
-            links.forEach((link, index) => {
-              message += `${index + 1}. ${link}\n`;
-            });
-          }
-          
-          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-          window.open(whatsappUrl, '_blank', 'width=600,height=700');
-          showToast('Opening WhatsApp... Paste the message to share', 'success');
-        } else {
-          showToast('No files to share', 'warning');
-        }
-      } catch (error) {
-        showToast('Failed to share on WhatsApp', 'error');
-        console.error('WhatsApp share error:', error);
-      }
-    }
-    
-    // === SHARE ON TELEGRAM ===
-    function shareOnTelegram() {
-      try {
-        // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
-        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
-        
-        if (links.length > 0) {
-          // Format message with proper line breaks and clickable links
-          let message = `I just converted my files using ${toolName}\n\n`;
-          
-          if (links.length === 1) {
-            // Single file - include direct link
-            message += `Download: ${links[0]}`;
-          } else {
-            // Multiple files - list them separately for better clickability
-            message += `Files ready:\n`;
-            links.forEach((link, index) => {
-              message += `${index + 1}. ${link}\n`;
-            });
-          }
-          
-          const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(links[0])}&text=${encodeURIComponent(message)}`;
-          window.open(telegramUrl, '_blank', 'width=600,height=700');
-          showToast('Opening Telegram... Share with your contacts', 'success');
-        } else {
-          showToast('No files to share', 'warning');
-        }
-      } catch (error) {
-        showToast('Failed to share on Telegram', 'error');
-        console.error('Telegram share error:', error);
-      }
-    }
-    
-    // === SHARE ON ONEDRIVE ===
-    function shareOnOneDrive() {
-      try {
-        // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
-          href: a.href,
-          name: a.download
-        }));
-        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
-        
-        if (links.length > 0) {
-          showToast('Starting OneDrive upload authentication...', 'info');
-          // Open OAuth flow in new window
-          const authWindow = window.open('/api/cloud/auth/onedrive', 'OneDrive Auth', 'width=600,height=700');
-          
-          // After auth, upload files
-          const checkAuthInterval = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkAuthInterval);
-              // Upload files after auth completes
-              uploadFilesToCloud(links, 'onedrive');
-            }
-          }, 1000);
-        } else {
-          showToast('No files to upload', 'warning');
-        }
-      } catch (error) {
-        showToast('Failed to start OneDrive upload', 'error');
-        console.error('OneDrive upload error:', error);
-      }
-    }
-    
-    // === SHARE ON GOOGLE DRIVE ===
-    function shareOnGoogleDrive() {
-      try {
-        // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
-          href: a.href,
-          name: a.download
-        }));
-        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
-        
-        if (links.length > 0) {
-          showToast('Starting Google Drive upload authentication...', 'info');
-          // Open OAuth flow in new window
-          const authWindow = window.open('/api/cloud/auth/gdrive', 'Google Drive Auth', 'width=600,height=700');
-          
-          // After auth, upload files
-          const checkAuthInterval = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkAuthInterval);
-              // Upload files after auth completes
-              uploadFilesToCloud(links, 'gdrive');
-            }
-          }, 1000);
-        } else {
-          showToast('No files to upload', 'warning');
-        }
-      } catch (error) {
-        showToast('Failed to start Google Drive upload', 'error');
-        console.error('Google Drive upload error:', error);
-      }
-    }
-    
-    // === SHARE ON DROPBOX ===
-    function shareOnDropbox() {
-      try {
-        // Get all download links
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => ({
-          href: a.href,
-          name: a.download
-        }));
-        const toolName = document.getElementById('selectedTool').innerText || 'Conversion Studio';
-        
-        if (links.length > 0) {
-          showToast('Starting Dropbox upload authentication...', 'info');
-          // Open OAuth flow in new window
-          const authWindow = window.open('/api/cloud/auth/dropbox', 'Dropbox Auth', 'width=600,height=700');
-          
-          // After auth, upload files
-          const checkAuthInterval = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkAuthInterval);
-              // Upload files after auth completes
-              uploadFilesToCloud(links, 'dropbox');
-            }
-          }, 1000);
-        } else {
-          showToast('No files to upload', 'warning');
-        }
-      } catch (error) {
-        showToast('Failed to start Dropbox upload', 'error');
-        console.error('Dropbox upload error:', error);
-      }
-    }
-    
-    // === UPLOAD FILES TO CLOUD STORAGE ===
-    function uploadFilesToCloud(files, service) {
-      try {
-        // Get auth token from session (this would come from OAuth callback in production)
-        const authToken = sessionStorage.getItem(`${service}_auth_token`);
-        
-        if (!authToken) {
-          showToast(`Please authenticate with ${service.toUpperCase()} first`, 'warning');
-          return;
-        }
-        
-        const payload = {
-          files: files,
-          service: service,
-          auth_token: authToken
-        };
-        
-        fetch('/api/cloud/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showToast(`Files uploaded to ${service.charAt(0).toUpperCase() + service.slice(1)}!`, 'success');
-          } else {
-            showToast(`Upload failed: ${data.error || 'Unknown error'}`, 'error');
-          }
-        })
-        .catch(error => {
-          showToast('Upload request failed', 'error');
-          console.error('Upload error:', error);
-        });
-      } catch (error) {
-        showToast('Failed to upload files', 'error');
-        console.error('Upload error:', error);
-      }
-    }
-    
-    // === COPY SHARE MESSAGE ===
-    function copyShareMessage() {
-      try {
-        const toolName = document.querySelector('[data-tool-name]')?.getAttribute('data-tool-name') || 'File Converter';
-        const links = Array.from(document.querySelectorAll('a[download]')).map(a => a.href);
-        
-        if (links.length === 0) {
-          showToast('No download links available', 'warning');
-          return;
-        }
-        
-        let message = `🔄 File Conversion Complete!\n`;
-        message += `✨ I just converted my files using ${toolName}.\n\n`;
-        message += `📥 Download Links:\n`;
-        
-        links.forEach((link, index) => {
-          const fileName = link.split('/').pop() || `File ${index + 1}`;
-          message += `${index + 1}. ${link}\n`;
-        });
-        
-        message += `\n💡 Converted with ${toolName}`;
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(message).then(() => {
-          showToast('Share message copied! Paste it anywhere.', 'success');
-        }).catch(err => {
-          // Fallback for older browsers
-          const textarea = document.createElement('textarea');
-          textarea.value = message;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-          showToast('Share message copied! Paste it anywhere.', 'success');
-        });
-      } catch (error) {
-        showToast('Failed to copy message', 'error');
-        console.error('Copy error:', error);
-      }
-    }
-    
-    // === CLOSE OFFCANVAS FUNCTION ===
-    function closeOffcanvas(offcanvasId) {
-      const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById(offcanvasId));
-      if (offcanvas) {
-        offcanvas.hide();
-      }
-    }
-    
-    // === HANDLE OFFCANVAS CLOSE - Show Toast + Recent Results Button ===
-    function handleOffcanvasClose() {
-      // Show toast with reopen option
-      const toastContainer = document.getElementById('toastContainer');
-      const toastId = 'conversionCloseToast_' + Date.now();
-      
-      const toastHTML = `
-        <div id="${toastId}" style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; color: var(--text-primary); animation: slideIn 0.3s ease;">
-          <i class="bi bi-info-circle" style="font-size: 1.2rem; color: #2196F3; flex-shrink: 0;"></i>
-          <div style="flex: 1;">
-            <strong>Results saved!</strong>
-            <span style="color: var(--text-secondary); font-size: 0.9rem; display: block;">You can reopen them anytime using the Recent Results button.</span>
-          </div>
-          <button onclick="reopenConversionResults(); document.getElementById('${toastId}').remove();" style="background: #2196F3; color: white; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 0.85rem; white-space: nowrap;" title="Reopen results">
-            Reopen
-          </button>
-          <button onclick="document.getElementById('${toastId}').remove();" style="background: transparent; color: var(--text-secondary); border: none; cursor: pointer; font-size: 1.2rem; padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-            <i class="bi bi-x" style="font-size: 1rem;"></i>
-          </button>
-        </div>
-      `;
-      
-      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-      
-      // Remove toast after 6 seconds
-      setTimeout(() => {
-        const toast = document.getElementById(toastId);
-        if (toast) {
-          toast.style.animation = 'slideOut 0.3s ease';
-          setTimeout(() => toast.remove(), 300);
-        }
-      }, 6000);
-    }
-    
-    // === SHOW RECENT RESULTS BUTTON ===
-    function showRecentResultsButton() {
-      // Check if button already exists
-      let recentBtn = document.getElementById('recentResultsBtn');
-      if (!recentBtn) {
-        // Create the Recent Results button
-        const fileCardArea = document.getElementById('fileCardArea');
-        const recentBtnContainer = document.createElement('div');
-        recentBtnContainer.id = 'recentResultsContainer';
-        recentBtnContainer.style.cssText = `
-          margin-top: 12px;
-          padding: 12px;
-          background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(66, 165, 245, 0.1));
-          border: 1px solid #2196F3;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        `;
-        
-        recentBtnContainer.innerHTML = `
-          <i class="bi bi-clock-history" style="font-size: 1rem; color: #2196F3;"></i>
-          <button id="recentResultsBtn" onclick="reopenConversionResults()" style="
-            background: transparent;
-            border: none;
-            color: #2196F3;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-align: left;
-            flex: 1;
-            padding: 0;
-          " title="Reopen your recent conversion results">
-            <span>Recent Results Available</span>
-            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;"><i class="bi bi-arrow-up-right-circle" style="margin-right: 4px;"></i>Click to view</span>
-          </button>
-        `;
-        
-        fileCardArea.appendChild(recentBtnContainer);
-      }
-    }
-    
-    // === REOPEN CONVERSION RESULTS FROM STORAGE ===
-    function reopenConversionResults() {
-      const conversionData = localStorage.getItem('lastConversionResults');
-      
-      if (!conversionData) {
-        showToast('No recent results found', 'warning');
-        return;
-      }
-      
-      try {
-        const data = JSON.parse(conversionData);
-        // Check if data is still fresh (less than 24 hours old)
-        const now = Date.now();
-        const timeDiff = now - data.timestamp;
-        const hoursOld = timeDiff / (1000 * 60 * 60);
-        
-        if (hoursOld > 24) {
-          showToast('Recent results expired (older than 24 hours)', 'warning');
-          localStorage.removeItem('lastConversionResults');
-          return;
-        }
-        
-        // Reopen the offcanvas with stored data
-        showConversionResultsOffcanvas(data.files);
-        showToast('Recent results restored!', 'success');
-      } catch (error) {
-        showToast('Failed to restore results', 'error');
-        console.error('Error restoring results:', error);
-      }
+    // Auto-redirect to home page on refresh if user is on conversion page
+    // This ensures users don't stay on conversion page after page refresh in SPA
+    if (document.getElementById('page-conversion')?.classList.contains('active-page')) {
+      switchPage('home');
     }
     
     initDarkMode();
     updateRecentList();
     loadSettings();
   </script>
-  
-  <!-- === CONVERSION RESULTS OFFCANVAS PANEL === -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="conversionResultsOffcanvas" aria-labelledby="conversionResultsLabel" style="width: 100%; max-width: 500px;">
-    <div class="offcanvas-header" style="border-bottom: 1px solid var(--border-color); background: var(--bg-primary);">
-      <h5 class="offcanvas-title" id="conversionResultsLabel" style="margin: 0; font-weight: 700; color: var(--text-primary);">Download Results</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" style="filter: var(--close-btn-filter);"></button>
-    </div>
-    <div class="offcanvas-body" id="conversionResultsBody" style="padding: 24px; background: var(--bg-primary); color: var(--text-primary);">
-      <!-- Content will be populated by showConversionResultsOffcanvas() -->
-    </div>
-  </div>
-
-  <!-- Bootstrap JS for Offcanvas -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>
