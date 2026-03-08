@@ -192,12 +192,6 @@ export const generateToolBreadcrumb = (toolSlug, baseUrl = 'http://localhost:300
       {
         '@type': 'ListItem',
         position: 2,
-        name: 'Tools',
-        item: `${baseUrl}/tools`
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
         name: tool.title,
         item: `${baseUrl}${tool.path}`
       }

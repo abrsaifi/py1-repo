@@ -8,11 +8,10 @@ import { generateToolSitemapEntries } from './toolRoutes'
 /**
  * Generate XML sitemap content
  */
-export const generateSitemapXML = (baseUrl = 'http://localhost:3000') => {
+export const generateSitemapXML = (baseUrl = (import.meta && import.meta.env && import.meta.env.VITE_BASE_URL) || 'http://localhost:3000') => {
   const toolEntries = generateToolSitemapEntries(baseUrl)
   const staticPages = [
     { url: baseUrl, lastmod: new Date().toISOString(), changefreq: 'daily', priority: 1.0 },
-    { url: `${baseUrl}/tools`, lastmod: new Date().toISOString(), changefreq: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/pricing`, lastmod: new Date().toISOString(), changefreq: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/about`, lastmod: new Date().toISOString(), changefreq: 'monthly', priority: 0.7 }
   ]
@@ -51,7 +50,7 @@ const escapeXml = (str) => {
 /**
  * Generate robots.txt content
  */
-export const generateRobotsTxt = () => {
+export const generateRobotsTxt = (baseUrl = (import.meta && import.meta.env && import.meta.env.VITE_BASE_URL) || 'http://localhost:3000') => {
   return `# Robots.txt for file converter tools
 User-agent: *
 Allow: /
@@ -60,7 +59,7 @@ Disallow: /api/
 Disallow: /auth/
 
 # Sitemaps
-Sitemap: http://localhost:3000/sitemap.xml
+Sitemap: ${baseUrl}/sitemap.xml
 
 # Crawl delay and rate
 Crawl-delay: 1
@@ -129,7 +128,7 @@ export const applyGlobalSEOTags = () => {
 /**
  * Create JSON-LD Organization schema
  */
-export const createOrganizationSchema = (baseUrl = 'http://localhost:3000') => {
+export const createOrganizationSchema = (baseUrl = (import.meta && import.meta.env && import.meta.env.VITE_BASE_URL) || 'http://localhost:3000') => {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
