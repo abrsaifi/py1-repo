@@ -1,0 +1,1391 @@
+{% extends "base.html" %}
+
+{% block title %}Convert - lumina · professional conversion hub{% endblock %}
+
+{% block extra_styles %}
+  <style>
+    /* Page-specific overrides if needed */
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="wrapper">
+  <!-- Hero with Tool Name -->
+  <div class="hero">
+    <button onclick="goBack()" style="background: none; border: none; cursor: pointer; padding: 0.5rem; color: var(--accent-primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(182, 139, 127, 0.1)'" onmouseout="this.style.backgroundColor='transparent'" title="Go Back">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <div style="flex: 1;">
+      <h1 id="toolName">Converting...</h1>
+      <p>Drag your files here or browse to start converting</p>
+    </div>
+  </div>
+
+    <!-- Conversion Studio -->
+    <div class="conversion-studio">
+      <!-- Left: Preview & Upload -->
+      <div class="left-preview">
+        <!-- Drag & Drop Zone -->
+        <div class="drag-area-enhanced" id="dropZone" style="cursor: pointer;">
+          <i class="bi bi-hand-index-thumb" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--accent-primary);"></i>
+          <h3>Drag your file here</h3>
+          <p style="margin-bottom: 1.5rem;">or click below to browse</p>
+          <button class="btn-outline-light" id="browseBtn" style="padding:0.9rem 2.4rem; font-weight: 600; font-size: 1rem;">
+            <i class="bi bi-folder-open" style="margin-right: 0.6rem;"></i> Browse Files
+          </button>
+          <input type="file" id="fileInput" class="hidden-input">
+        </div>
+
+        <!-- File Card (hidden initially) -->
+        <div id="fileCardArea" style="display: none;">
+          <div class="file-badge-card" id="fileCard">
+            <div class="file-badge-info">
+              <div class="file-badge-icon">
+                <i id="fileIcon" class="bi bi-file"></i>
+              </div>
+              <div class="file-badge-details">
+                <div class="file-badge-name" id="fileCardName">file.pdf</div>
+                <div class="file-badge-meta" id="fileCardMeta">0 KB</div>
+              </div>
+            </div>
+            <div class="file-badge-actions">
+              <button class="file-badge-btn-add" id="addMoreFilesBtn" title="Add more files">
+                <i class="bi bi-plus"></i>
+              </button>
+              <button class="file-badge-btn-remove" id="removeFileBtn" title="Remove file">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Area -->
+          <div class="preview-area">
+            <div class="preview-placeholder">
+              <i class="bi bi-image"></i>
+              <span>Preview will appear here when you upload a file</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Settings -->
+      <div class="right-settings">
+        <h3>Settings for <span id="settingToolName">tool</span></h3>
+        
+        <div class="form-group">
+          <label>Output Format</label>
+          <select id="outputFormat">
+            <option value="auto">Auto-detect</option>
+            <option value="pdf">PDF</option>
+            <option value="docx">DOCX</option>
+            <option value="jpg">JPG</option>
+            <option value="png">PNG</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Quality</label>
+          <select id="quality">
+            <option value="90">High (slower)</option>
+            <option value="75" selected>Medium (balanced)</option>
+            <option value="50">Low (faster)</option>
+          </select>
+        </div>
+
+        <!-- Parameter Tabs -->
+        <div class="param-tabs-container">
+          <button class="param-tab-btn active" data-tab="basic" onclick="switchParamTab('basic')">
+            <i class="bi bi-sliders" style="margin-right: 0.4rem;"></i> Basic
+          </button>
+          <button class="param-tab-btn" data-tab="advanced" onclick="switchParamTab('advanced')">
+            <i class="bi bi-sliders" style="margin-right: 0.4rem;"></i> Advanced
+          </button>
+          <button class="param-tab-btn" data-tab="presets" onclick="switchParamTab('presets')">
+            <i class="bi bi-wand2" style="margin-right: 0.4rem;"></i> Presets
+          </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="param-tab-content active" id="tab-basic">
+          <div id="basicParamsContainer">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="param-tab-content" id="tab-advanced">
+          <div class="param-search-box">
+            <i class="bi bi-search" style="color: var(--text-secondary);"></i>
+            <input type="text" id="parameterSearch" placeholder="Search parameters..." onkeyup="searchParameters(this.value)">
+            <span class="search-results" id="searchResults">All parameters</span>
+          </div>
+          <div id="advancedParamsContainer">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="param-tab-content" id="tab-presets">
+          <div id="presetsContainer" class="presets-grid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Settings Toolbar for Advanced Tab -->
+        <div class="settings-toolbar" id="settingsToolbar" style="display: none; margin-top: 1rem;">
+          <button onclick="resetSettings()" class="btn-danger">
+            <i class="bi bi-arrow-clockwise"></i> Reset
+          </button>
+          <button onclick="saveAsPreset()" class="btn-success">
+            <i class="bi bi-save"></i> Save
+          </button>
+          <button onclick="exportSettings()">
+            <i class="bi bi-download"></i> Export
+          </button>
+          <button onclick="importSettings()">
+            <i class="bi bi-upload"></i> Import
+          </button>
+        </div>
+
+        <!-- File Type Warning -->
+        <div id="fileTypeWarning" style="display: none; background: rgba(255, 152, 0, 0.1); border: 1px solid #ff9800; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem;">
+          <i class="bi bi-exclamation-circle" style="color: #ff9800; margin-right: 0.5rem;"></i>
+          <span id="fileTypeWarningText"></span>
+        </div>
+
+        <!-- Active Parameters Indicator -->
+        <div id="activeParametersIndicator" style="display: none; margin-top: 1rem; padding: 0.8rem; background: rgba(182, 139, 127, 0.1); border-radius: 8px; border-left: 3px solid var(--accent-primary); font-size: 0.85rem;">
+          <div style="color: var(--text-secondary); margin-bottom: 0.4rem;"><strong>🎨 Active Parameters:</strong></div>
+          <div id="activeParametersText" style="color: var(--accent-primary); font-family: monospace; word-break: break-word; line-height: 1.4;"></div>
+        </div>
+
+        <!-- Preview & Convert Buttons -->
+        <div style="display: flex; gap: 0.8rem; margin-top: 1.5rem;">
+          <button class="btn-outline-light" id="previewBtn" style="flex: 1; padding: 0.8rem; border: 1px solid var(--border-color);">
+            <i class="bi bi-eye" style="margin-right: 0.5rem;"></i> Live Preview
+          </button>
+          <button class="btn-convert" id="convertBtn" style="flex: 1;">
+            <i class="bi bi-download" style="margin-right: 0.5rem;"></i> Start Conversion
+          </button>
+        </div>
+
+        <!-- Conversion Progress Bar -->
+        <div id="conversionProgressContainer" style="display: none; margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Converting files...</span>
+            <span id="conversionProgressPercent" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">0%</span>
+          </div>
+          <div style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden; height: 8px;">
+            <div id="conversionProgressBar" style="background: linear-gradient(90deg, #4CAF50, #45a049); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Preview Status -->
+        <div id="previewStatus" style="display: none; margin-top: 1rem; padding: 0.8rem; border-radius: 8px; font-size: 0.9rem;">
+          <div id="previewLoading" style="display: none; color: var(--text-secondary);"><i class="bi bi-hourglass-split" style="animation: spin 1s linear infinite;"></i> Generating preview...</div>
+          <div id="previewError" style="display: none; color: #d32f2f; background: rgba(211, 47, 47, 0.1); padding: 0.8rem; border-radius: 6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Save Custom Preset -->
+    <div class="modal" id="savePresetModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <i class="bi bi-bookmark"></i> Save as Custom Preset
+        </div>
+        <div class="modal-body">
+          <input type="text" id="presetName" placeholder="Enter preset name..." autocomplete="off">
+          <textarea id="presetDesc" placeholder="Add optional description..." style="width: 100%; margin-top: 0.8rem; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; color: var(--text-primary); background: var(--bg-secondary); resize: vertical; min-height: 60px;" rows="3"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeSavePresetModal()">Cancel</button>
+          <button class="btn-primary" onclick="confirmSavePreset()">Save Preset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Import Settings -->
+    <div class="modal" id="importModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <i class="bi bi-file-arrow-down"></i> Import Settings
+        </div>
+        <div class="modal-body">
+          <input type="file" id="importFile" accept=".json" style="padding: 0.8rem; width: 100%; box-sizing: border-box;">
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeImportModal()">Cancel</button>
+          <button class="btn-primary" onclick="confirmImport()">Import</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script>
+    // ===== SERVICE_PARAMETERS (Complete List) =====
+    const SERVICE_PARAMETERS = {
+      'To PDF': {
+        label: 'Convert to PDF - Advanced Settings',
+        outputFormat: 'pdf',
+        description: 'Convert documents, images, and spreadsheets to PDF with full control over layout and formatting.',
+        params: [
+          { name: 'orientation', label: 'Orientation', type: 'select', values: ['portrait', 'landscape'], default: 'portrait', help: 'Page orientation' },
+          { name: 'paper_size', label: 'Paper Size', type: 'select', values: ['A4', 'A3', 'Letter', 'Legal', 'A5', 'A6'], default: 'A4', help: 'Page format' },
+          { name: 'margin_top', label: 'Top Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Top page margin' },
+          { name: 'margin_bottom', label: 'Bottom Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Bottom page margin' },
+          { name: 'margin_left', label: 'Left Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Left page margin' },
+          { name: 'margin_right', label: 'Right Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Right page margin' },
+          { name: 'fit_mode', label: 'Fit Content', type: 'select', values: ['fit-page', 'fit-width', 'fit-height', 'no-fit'], default: 'fit-page', help: 'How to scale content (for spreadsheets: fit-page=all in one, fit-width=all columns, fit-height=all rows)' },
+          { name: 'include_headers', label: 'Include Headers (Spreadsheet)', type: 'checkbox', default: true, help: 'Print column/row headers' },
+          { name: 'gridlines', label: 'Show Gridlines', type: 'checkbox', default: false, help: 'Display cell borders' },
+          { name: 'scale_factor', label: 'Scale (%)', type: 'number', default: 100, min: 50, max: 200, step: 10, help: 'Zoom level (50-200%)' },
+          { name: 'image_quality', label: 'Image Quality', type: 'range', min: 30, max: 100, default: 85, step: 5, help: 'Compression quality (30=smaller file, 100=best quality)' },
+          { name: 'page_numbers', label: 'Add Page Numbers', type: 'checkbox', default: false, help: 'Print page numbers at bottom' },
+          { name: 'compression', label: 'Compression Level', type: 'select', values: ['none', 'low', 'medium', 'high'], default: 'medium', help: 'PDF file size optimization' },
+          { name: 'preserve_colors', label: 'Preserve Colors', type: 'checkbox', default: true, help: 'Keep original document colors' },
+          { name: 'embed_fonts', label: 'Embed Fonts', type: 'checkbox', default: true, help: 'Include fonts for correct display' },
+          { name: 'background', label: 'Include Background', type: 'checkbox', default: true, help: 'Print background colors and images' }
+        ],
+        presets: {
+          'Standard Portrait': { orientation: 'portrait', paper_size: 'A4', margin_top: 20, margin_bottom: 20, margin_left: 20, margin_right: 20, fit_mode: 'fit-page', include_headers: true, gridlines: false, scale_factor: 100, image_quality: 85, page_numbers: false, compression: 'medium', preserve_colors: true, embed_fonts: true, background: true },
+          'Landscape Wide': { orientation: 'landscape', paper_size: 'A4', margin_top: 15, margin_bottom: 15, margin_left: 15, margin_right: 15, fit_mode: 'fit-width', include_headers: true, gridlines: true, scale_factor: 100, image_quality: 85, page_numbers: false, compression: 'medium', preserve_colors: true, embed_fonts: true, background: true },
+          'Fit All (Spreadsheet)': { orientation: 'landscape', paper_size: 'A4', margin_top: 10, margin_bottom: 10, margin_left: 10, margin_right: 10, fit_mode: 'fit-page', include_headers: true, gridlines: true, scale_factor: 80, image_quality: 75, page_numbers: true, compression: 'high', preserve_colors: false, embed_fonts: true, background: true },
+          'Narrow Margins': { orientation: 'portrait', paper_size: 'A4', margin_top: 10, margin_bottom: 10, margin_left: 10, margin_right: 10, fit_mode: 'fit-width', include_headers: true, gridlines: false, scale_factor: 100, image_quality: 85, page_numbers: false, compression: 'low', preserve_colors: true, embed_fonts: true, background: true },
+          'Wide Margins': { orientation: 'portrait', paper_size: 'A4', margin_top: 25, margin_bottom: 25, margin_left: 25, margin_right: 25, fit_mode: 'no-fit', include_headers: true, gridlines: false, scale_factor: 100, image_quality: 90, page_numbers: true, compression: 'none', preserve_colors: true, embed_fonts: true, background: true },
+          'Legal Document': { orientation: 'portrait', paper_size: 'Letter', margin_top: 25, margin_bottom: 25, margin_left: 25, margin_right: 25, fit_mode: 'fit-width', include_headers: false, gridlines: false, scale_factor: 100, image_quality: 90, page_numbers: true, compression: 'low', preserve_colors: true, embed_fonts: true, background: false },
+          'Compact (All Columns)': { orientation: 'landscape', paper_size: 'A3', margin_top: 10, margin_bottom: 10, margin_left: 10, margin_right: 10, fit_mode: 'fit-width', include_headers: true, gridlines: true, scale_factor: 75, image_quality: 70, page_numbers: true, compression: 'high', preserve_colors: true, embed_fonts: true, background: true },
+          'High Quality (Large File)': { orientation: 'portrait', paper_size: 'A4', margin_top: 20, margin_bottom: 20, margin_left: 20, margin_right: 20, fit_mode: 'fit-page', include_headers: true, gridlines: false, scale_factor: 100, image_quality: 100, page_numbers: false, compression: 'none', preserve_colors: true, embed_fonts: true, background: true },
+          'Web Optimized (Small File)': { orientation: 'portrait', paper_size: 'A4', margin_top: 15, margin_bottom: 15, margin_left: 15, margin_right: 15, fit_mode: 'fit-width', include_headers: false, gridlines: false, scale_factor: 90, image_quality: 60, page_numbers: false, compression: 'high', preserve_colors: true, embed_fonts: false, background: false }
+        }
+      },
+      'PDF to B&W': {
+        label: 'PDF to Black & White',
+        outputFormat: 'pdf',
+        supportedFormats: ['pdf'],
+        description: 'Convert PDF files to black and white with adjustable threshold and contrast.',
+        params: [
+          { name: 'dpi', label: 'DPI (Resolution)', type: 'number', default: 300, min: 150, max: 600, step: 50, help: 'Higher DPI = better quality but slower' },
+          { name: 'threshold', label: 'Threshold', type: 'range', min: 100, max: 255, default: 250, step: 5, help: 'Contrast threshold (100-255)' },
+          { name: 'contrast', label: 'Contrast', type: 'range', min: 1, max: 5, default: 3, step: 0.5, help: 'Contrast enhancement (1-5)' },
+          { name: 'brightness', label: 'Brightness', type: 'range', min: -50, max: 50, default: 0, step: 5, help: 'Adjust brightness (-50 to +50)' },
+          { name: 'gamma', label: 'Gamma Correction', type: 'range', min: 0.5, max: 2.5, default: 1.0, step: 0.1, help: 'Tone adjustment (0.5-2.5)' },
+          { name: 'sharpness', label: 'Sharpness', type: 'range', min: 0, max: 2, default: 1, step: 0.2, help: 'Sharpen text edges (0-2)' },
+          { name: 'blur', label: 'Anti-Alias Blur', type: 'range', min: 0, max: 2, default: 0, step: 0.2, help: 'Smooth edges (0-2)' },
+          { name: 'invert', label: 'Invert Colors', type: 'checkbox', default: false, help: 'Reverse black and white' }
+        ],
+        presets: {
+          'Document': { dpi: 300, threshold: 250, contrast: 3, brightness: 0, gamma: 1.0, sharpness: 1, blur: 0, invert: false },
+          'Photo': { dpi: 200, threshold: 200, contrast: 2.5, brightness: 10, gamma: 1.1, sharpness: 0.8, blur: 0.5, invert: false },
+          'Technical': { dpi: 400, threshold: 200, contrast: 4, brightness: -5, gamma: 0.9, sharpness: 1.5, blur: 0, invert: false },
+          'High Contrast': { dpi: 300, threshold: 220, contrast: 5, brightness: 0, gamma: 1.0, sharpness: 2, blur: 0, invert: false }
+        }
+      },
+      'Image Resize': {
+        label: 'Image Resize',
+        params: [
+          { name: 'width', label: 'Width (px)', type: 'number', default: 800, min: 50, max: 4000, help: 'Target width in pixels' },
+          { name: 'height', label: 'Height (px)', type: 'number', default: 600, min: 50, max: 4000, help: 'Target height in pixels' },
+          { name: 'keep_aspect', label: 'Keep Aspect Ratio', type: 'checkbox', default: true, help: 'Maintain original proportions' }
+        ],
+        presets: {
+          'Thumbnail': { width: 200, height: 200, keep_aspect: true },
+          'Social Media': { width: 1200, height: 675, keep_aspect: false },
+          'Web': { width: 1024, height: 768, keep_aspect: true }
+        }
+      },
+      'Image Compress': {
+        label: 'Image Compress',
+        outputFormat: 'variable',
+        params: [
+          { name: 'quality', label: 'Quality', type: 'range', min: 10, max: 100, default: 85, step: 5, help: 'Compression quality (10-100)' },
+          { name: 'format', label: 'Output Format', type: 'select', values: ['jpg', 'png', 'webp'], default: 'jpg', help: 'Choose output format' }
+        ],
+        presets: {
+          'Maximum Quality': { quality: 95, format: 'png' },
+          'Balanced': { quality: 85, format: 'jpg' },
+          'Small Size': { quality: 60, format: 'jpg' }
+        }
+      },
+      'Add Watermark': {
+        label: 'Add Watermark',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'watermark_text', label: 'Watermark Text', type: 'text', default: 'WATERMARK', help: 'Text to display as watermark' },
+          { name: 'position', label: 'Position', type: 'select', values: ['diagonal', 'top', 'bottom', 'center', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], default: 'diagonal', help: 'Watermark position' },
+          { name: 'opacity', label: 'Opacity', type: 'range', min: 0.1, max: 1, default: 0.3, step: 0.1, help: 'Watermark transparency (0.1-1)' }
+        ],
+        presets: {
+          'Subtle': { watermark_text: 'DRAFT', position: 'diagonal', opacity: 0.2 },
+          'Visible': { watermark_text: 'CONFIDENTIAL', position: 'center', opacity: 0.5 },
+          'Strong': { watermark_text: 'WATERMARK', position: 'diagonal', opacity: 0.7 }
+        }
+      },
+      'Encrypt PDF': {
+        label: 'Encrypt PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'password', label: 'Password', type: 'password', default: 'password123', help: 'Set password protection' },
+          { name: 'encryption_level', label: 'Encryption', type: 'select', values: ['128-bit', '256-bit'], default: '128-bit', help: 'Choose encryption strength' }
+        ],
+        presets: null
+      },
+      'Extract Pages': {
+        label: 'Extract Pages',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'pages', label: 'Pages (e.g. 1, 3, 5-8)', type: 'text', default: '1', help: 'Enter page numbers/ranges to extract' }
+        ],
+        presets: {
+          'First Page': { pages: '1' },
+          'First 5': { pages: '1-5' },
+          'Every Other': { pages: '1, 3, 5, 7, 9' }
+        }
+      },
+      'Remove Pages': {
+        label: 'Remove Pages',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'pages_to_remove', label: 'Pages to Remove (e.g. 2, 4-6)', type: 'text', default: '', help: 'Enter page numbers to remove' }
+        ],
+        presets: null
+      },
+      'Excel to CSV': {
+        label: 'Export to CSV',
+        outputFormat: 'csv',
+        params: [
+          { name: 'delimiter', label: 'Delimiter', type: 'select', values: ['comma', 'semicolon', 'tab'], default: 'comma', help: 'Field separator' }
+        ],
+        presets: {
+          'Comma': { delimiter: 'comma' },
+          'Semicolon': { delimiter: 'semicolon' },
+          'Tab': { delimiter: 'tab' }
+        }
+      },
+      'Remove Colors': {
+        label: 'Convert to Grayscale',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'color_mode', label: 'Color Mode', type: 'select', values: ['grayscale', 'blackwhite', 'sepia'], default: 'grayscale', help: 'How to process colors' }
+        ],
+        presets: {
+          'Grayscale': { color_mode: 'grayscale' },
+          'Black & White': { color_mode: 'blackwhite' },
+          'Sepia': { color_mode: 'sepia' }
+        }
+      },
+      'Compress PDF': {
+        label: 'Compress PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'image_quality', label: 'Image Quality', type: 'range', min: 1, max: 10, default: 8, step: 1, help: 'Image compression (1=smallest, 10=best)' },
+          { name: 'remove_metadata', label: 'Remove Metadata', type: 'checkbox', default: true, help: 'Strip document information' }
+        ],
+        presets: {
+          'Maximum Compression': { image_quality: 3, remove_metadata: true },
+          'Balanced': { image_quality: 6, remove_metadata: true },
+          'Minimal': { image_quality: 9, remove_metadata: false }
+        }
+      },
+      'PDF to PPT': {
+        label: 'Convert to Presentation',
+        outputFormat: 'pptx',
+        params: [
+          { name: 'imagesPerSlide', label: 'Images per Slide', type: 'number', default: 1, min: 1, max: 4, step: 1, help: 'PDF pages per slide' }
+        ],
+        presets: {
+          'One Per Slide': { imagesPerSlide: 1 },
+          'Two Per Slide': { imagesPerSlide: 2 },
+          'Four Per Slide': { imagesPerSlide: 4 }
+        }
+      },
+      'Split PDF': {
+        label: 'Split PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'split_mode', label: 'Split Mode', type: 'select', values: ['individual', 'ranges'], default: 'individual', help: 'Create individual files per page or by ranges' }
+        ],
+        presets: null
+      },
+      'Merge PDF': {
+        label: 'Merge PDFs',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'keepOrder', label: 'Keep Upload Order', type: 'checkbox', default: true, help: 'Merge in the order files were uploaded' }
+        ],
+        presets: null
+      },
+      'OCR Text': {
+        label: 'Extract Text (OCR)',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'language', label: 'Language', type: 'select', values: ['English', 'Spanish', 'French', 'German'], default: 'English', help: 'Document language for OCR' },
+          { name: 'confidence', label: 'Confidence Threshold', type: 'range', min: 0.5, max: 0.99, default: 0.7, step: 0.05, help: 'Minimum confidence (0.5-0.99)' }
+        ],
+        presets: null
+      },
+      'Clean PDF': {
+        label: 'Clean PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'remove_annotations', label: 'Remove Annotations', type: 'checkbox', default: true },
+          { name: 'remove_metadata', label: 'Remove Metadata', type: 'checkbox', default: true },
+          { name: 'optimize', label: 'Optimize', type: 'checkbox', default: true }
+        ],
+        presets: {
+          'Full Clean': { remove_annotations: true, remove_metadata: true, optimize: true }
+        }
+      },
+      'HTML to PDF': {
+        label: 'HTML to PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'margin_top', label: 'Top Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Top page margin' },
+          { name: 'margin_bottom', label: 'Bottom Margin (mm)', type: 'number', default: 20, min: 0, max: 50, help: 'Bottom page margin' },
+          { name: 'paperSize', label: 'Paper Size', type: 'select', values: ['A4', 'Letter', 'Legal', 'A3'], default: 'A4', help: 'Page format' },
+          { name: 'landscape', label: 'Landscape', type: 'checkbox', default: false, help: 'Use landscape orientation' }
+        ],
+        presets: {
+          'Standard': { margin_top: 20, margin_bottom: 20, paperSize: 'A4', landscape: false },
+          'Narrow Margins': { margin_top: 10, margin_bottom: 10, paperSize: 'A4', landscape: false },
+          'Landscape': { margin_top: 20, margin_bottom: 20, paperSize: 'A4', landscape: true }
+        }
+      },
+      'Text to PDF': {
+        label: 'Text to PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'fontSize', label: 'Font Size', type: 'number', default: 12, min: 8, max: 28, step: 1, help: 'Text size in points' },
+          { name: 'fontFamily', label: 'Font', type: 'select', values: ['Arial', 'Times', 'Courier', 'Helvetica'], default: 'Arial', help: 'Font style' },
+          { name: 'pageSize', label: 'Page Size', type: 'select', values: ['A4', 'Letter'], default: 'A4', help: 'Document page format' },
+          { name: 'lineSpacing', label: 'Line Spacing', type: 'range', min: 1, max: 2.5, default: 1.5, step: 0.25, help: 'Space between lines' }
+        ],
+        presets: {
+          'Compact': { fontSize: 10, fontFamily: 'Courier', pageSize: 'A4', lineSpacing: 1.0 },
+          'Standard': { fontSize: 12, fontFamily: 'Arial', pageSize: 'A4', lineSpacing: 1.5 },
+          'Large Print': { fontSize: 16, fontFamily: 'Arial', pageSize: 'A4', lineSpacing: 2.0 }
+        }
+      },
+      'Image Convert': {
+        label: 'Convert Image Format',
+        outputFormat: 'variable',
+        params: [
+          { name: 'output_format', label: 'Target Format', type: 'select', values: ['jpg', 'png', 'bmp', 'webp', 'gif'], default: 'jpg', help: 'Desired image format' },
+          { name: 'quality', label: 'Quality', type: 'range', min: 50, max: 100, default: 85, step: 5, help: 'Compression quality' },
+          { name: 'removeMetadata', label: 'Remove Metadata', type: 'checkbox', default: false, help: 'Strip EXIF data' }
+        ],
+        presets: {
+          'Web PNG': { output_format: 'png', quality: 75, removeMetadata: true },
+          'Web JPG': { output_format: 'jpg', quality: 80, removeMetadata: true },
+          'Maximum Quality': { output_format: 'png', quality: 100, removeMetadata: false }
+        }
+      },
+      'Excel to PDF': {
+        label: 'Export Excel to PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'include_headers', label: 'Include Headers', type: 'checkbox', default: true, help: 'Print headers on each page' },
+          { name: 'fit_to_width', label: 'Fit to Width', type: 'checkbox', default: true, help: 'Auto-fit columns to page width' },
+          { name: 'orientation', label: 'Orientation', type: 'select', values: ['portrait', 'landscape'], default: 'portrait', help: 'Page orientation' },
+          { name: 'gridlines', label: 'Show Gridlines', type: 'checkbox', default: false, help: 'Display cell gridlines' }
+        ],
+        presets: {
+          'Simple Report': { include_headers: true, fit_to_width: true, orientation: 'portrait', gridlines: false },
+          'Detailed Report': { include_headers: true, fit_to_width: true, orientation: 'landscape', gridlines: true },
+          'Form Export': { include_headers: false, fit_to_width: true, orientation: 'portrait', gridlines: false }
+        }
+      },
+      'Decrypt PDF': {
+        label: 'Decrypt PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'password', label: 'Password', type: 'password', default: '', help: 'Enter PDF password' }
+        ],
+        presets: null
+      },
+      'Redact Content': {
+        label: 'Redact Content',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'search_terms', label: 'Text to Redact', type: 'text', default: '', help: 'Words/phrases to redact (comma separated)' },
+          { name: 'redaction_color', label: 'Redaction Color', type: 'select', values: ['black', 'white', 'gray'], default: 'black', help: 'Color to cover redacted text' },
+          { name: 'case_sensitive', label: 'Case Sensitive', type: 'checkbox', default: true, help: 'Match letter case exactly' }
+        ],
+        presets: null
+      },
+      'PDF to HTML': {
+        label: 'Convert PDF to HTML',
+        outputFormat: 'html',
+        params: [
+          { name: 'include_images', label: 'Include Images', type: 'checkbox', default: true, help: 'Embed images in HTML' },
+          { name: 'css_optimization', label: 'CSS Optimization', type: 'select', values: ['minimal', 'standard', 'full'], default: 'standard', help: 'CSS styling level' },
+          { name: 'preserve_layout', label: 'Preserve Layout', type: 'checkbox', default: true, help: 'Keep original page layout' }
+        ],
+        presets: {
+          'Web Export': { include_images: true, css_optimization: 'standard', preserve_layout: true },
+          'Lightweight': { include_images: false, css_optimization: 'minimal', preserve_layout: false },
+          'Archive': { include_images: true, css_optimization: 'full', preserve_layout: true }
+        }
+      },
+      'Page Reorder': {
+        label: 'Page Reorder',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'new_order', label: 'New Order (e.g. 3,1,2,4-6)', type: 'text', default: '', help: 'Specify new page sequence' },
+          { name: 'reverse_order', label: 'Reverse Order', type: 'checkbox', default: false, help: 'Reverse all pages' }
+        ],
+        presets: {
+          'Reverse All': { new_order: '', reverse_order: true }
+        }
+      },
+      'Remove Background': {
+        label: 'Remove Background',
+        outputFormat: 'variable',
+        params: [
+          { name: 'tolerance', label: 'Tolerance', type: 'range', min: 10, max: 100, default: 50, step: 5, help: 'Color detection tolerance (higher = more removal)' },
+          { name: 'preserve_edges', label: 'Preserve Edges', type: 'checkbox', default: true, help: 'Keep edge detail' },
+          { name: 'output_format', label: 'Output Format', type: 'select', values: ['png', 'webp'], default: 'png', help: 'Format supporting transparency' }
+        ],
+        presets: {
+          'Soft': { tolerance: 30, preserve_edges: true, output_format: 'png' },
+          'Standard': { tolerance: 50, preserve_edges: true, output_format: 'png' },
+          'Aggressive': { tolerance: 75, preserve_edges: false, output_format: 'webp' }
+        }
+      },
+      'PPT to PDF': {
+        label: 'PPT to PDF',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'page_size', label: 'Page Size', type: 'select', values: ['A4', 'Letter', 'A3'], default: 'A4', help: 'Output page format' },
+          { name: 'include_notes', label: 'Include Speaker Notes', type: 'checkbox', default: true, help: 'Add presenter notes to PDF' },
+          { name: 'orientation', label: 'Orientation', type: 'select', values: ['portrait', 'landscape'], default: 'landscape', help: 'Page orientation' }
+        ],
+        presets: {
+          'Standard': { page_size: 'A4', include_notes: false, orientation: 'landscape' },
+          'With Notes': { page_size: 'A4', include_notes: true, orientation: 'portrait' },
+          'Large Format': { page_size: 'A3', include_notes: false, orientation: 'landscape' }
+        }
+      },
+      'Smart Crop': {
+        label: 'Auto-Crop Image',
+        outputFormat: 'variable',
+        params: [
+          { name: 'crop_mode', label: 'Crop Mode', type: 'select', values: ['auto', 'content', 'borders'], default: 'auto', help: 'How to detect edges' },
+          { name: 'crop_margin', label: 'Margin (px)', type: 'number', default: 0, min: 0, max: 50, help: 'Space to keep around content' },
+          { name: 'crop_tolerance', label: 'Edge Tolerance', type: 'range', min: 5, max: 50, default: 20, step: 5, help: 'Sensitivity to edge detection' }
+        ],
+        presets: {
+          'Tight': { crop_mode: 'content', crop_margin: 0, crop_tolerance: 5 },
+          'Normal': { crop_mode: 'auto', crop_margin: 5, crop_tolerance: 20 },
+          'Loose': { crop_mode: 'borders', crop_margin: 10, crop_tolerance: 40 }
+        }
+      },
+      'Thumbnail Generator': {
+        label: 'Create Thumbnails',
+        outputFormat: 'variable',
+        params: [
+          { name: 'size', label: 'Thumbnail Size', type: 'number', default: 128, min: 32, max: 512, step: 32, help: 'Output thumbnail dimension in pixels' },
+          { name: 'format', label: 'Format', type: 'select', values: ['jpg', 'png', 'webp'], default: 'jpg', help: 'Thumbnail file format' },
+          { name: 'quality', label: 'Quality', type: 'range', min: 50, max: 100, default: 85, step: 5, help: 'Compression quality' }
+        ],
+        presets: {
+          'Small': { size: 64, format: 'jpg', quality: 80 },
+          'Standard': { size: 128, format: 'jpg', quality: 85 },
+          'Large HD': { size: 512, format: 'png', quality: 95 }
+        }
+      },
+      'Batch Rename': {
+        label: 'Rename Files in Batch',
+        outputFormat: 'auto',
+        params: [
+          { name: 'pattern', label: 'Name Pattern', type: 'text', default: 'file_{number}', help: 'e.g., file_{number}, document_{date}, photo_{index}' },
+          { name: 'startNumber', label: 'Start Number', type: 'number', default: 1, min: 0, max: 9999, help: 'First number in sequence' },
+          { name: 'preserveExtension', label: 'Keep Extension', type: 'checkbox', default: true, help: 'Maintain original file extension' }
+        ],
+        presets: {
+          'Simple': { pattern: 'file_{number}', startNumber: 1, preserveExtension: true },
+          'Dated': { pattern: 'document_{date}_{number}', startNumber: 1, preserveExtension: true },
+          'Archive': { pattern: 'archive_{number:04d}', startNumber: 0, preserveExtension: true }
+        }
+      },
+      'Formulas to Values': {
+        label: 'Convert Formulas to Values',
+        outputFormat: 'auto',
+        params: [
+          { name: 'convertFilters', label: 'Include Filters', type: 'checkbox', default: true, help: 'Convert filter formulas' },
+          { name: 'keepFormatting', label: 'Keep Formatting', type: 'checkbox', default: true, help: 'Preserve cell styles' }
+        ],
+        presets: null
+      },
+      'Clean Charts': {
+        label: 'Clean Chart Data',
+        outputFormat: 'auto',
+        params: [
+          { name: 'removeStats', label: 'Remove Statistics', type: 'checkbox', default: true, help: 'Strip statistical markup' },
+          { name: 'simplifyLabels', label: 'Simplify Labels', type: 'checkbox', default: false, help: 'Use short labels' },
+          { name: 'resetColors', label: 'Reset Colors', type: 'checkbox', default: false, help: 'Use default color scheme' }
+        ],
+        presets: {
+          'Full Clean': { removeStats: true, simplifyLabels: true, resetColors: true }
+        }
+      },
+      'Normalize Data': {
+        label: 'Normalize Data',
+        outputFormat: 'auto',
+        params: [
+          { name: 'method', label: 'Normalization', type: 'select', values: ['min-max', 'z-score', 'decimal'], default: 'min-max', help: 'Scaling method' },
+          { name: 'handle_missing', label: 'Handle Missing Values', type: 'select', values: ['skip', 'mean', 'median', 'zero'], default: 'mean', help: 'How to treat empty cells' },
+          { name: 'round_decimals', label: 'Round to Decimals', type: 'number', default: 4, min: 0, max: 10, help: 'Decimal places for output' }
+        ],
+        presets: {
+          'Standard': { method: 'min-max', handle_missing: 'mean', round_decimals: 4 },
+          'Statistics': { method: 'z-score', handle_missing: 'median', round_decimals: 2 },
+          'Simplified': { method: 'decimal', handle_missing: 'zero', round_decimals: 2 }
+        }
+      },
+      'Split Sheets': {
+        label: 'Split Excel Sheets',
+        outputFormat: 'variable',
+        params: [
+          { name: 'output_format', label: 'Output Format', type: 'select', values: ['xlsx', 'csv', 'separate-files'], default: 'separate-files', help: 'How to save split data' },
+          { name: 'include_headers', label: 'Include Headers', type: 'checkbox', default: true, help: 'Repeat headers in each sheet' }
+        ],
+        presets: {
+          'Separate Files': { output_format: 'separate-files', include_headers: true }
+        }
+      },
+      'Data Validator': {
+        label: 'Validate Data Files',
+        outputFormat: 'variable',
+        params: [
+          { name: 'validate_format', label: 'Check Format', type: 'checkbox', default: true, help: 'Verify file structure' },
+          { name: 'validate_content', label: 'Check Content', type: 'checkbox', default: true, help: 'Validate data values' },
+          { name: 'report_format', label: 'Report Format', type: 'select', values: ['summary', 'detailed', 'json'], default: 'detailed', help: 'Validation report style' }
+        ],
+        presets: {
+          'Full Validation': { validate_format: true, validate_content: true, report_format: 'detailed' }
+        }
+      },
+      'Form Fill': {
+        label: 'Fill PDF Form Fields',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'auto_detect', label: 'Auto-Detect Fields', type: 'checkbox', default: true, help: 'Find form fields automatically' },
+          { name: 'flatten', label: 'Flatten Form', type: 'checkbox', default: false, help: 'Merge fields with document' }
+        ],
+        presets: null
+      },
+      'Extract Metadata': {
+        label: 'Extract PDF Metadata',
+        outputFormat: 'variable',
+        params: [
+          { name: 'output_format', label: 'Export Format', type: 'select', values: ['txt', 'json', 'csv'], default: 'txt', help: 'Metadata output format' },
+          { name: 'include_images', label: 'Include Image Info', type: 'checkbox', default: true, help: 'Extract image metadata' }
+        ],
+        presets: null
+      },
+      'Smart Extract': {
+        label: 'Smart Extract Pages',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'extract_mode', label: 'Extract Mode', type: 'select', values: ['manual', 'even', 'odd', 'every-n'], default: 'manual', help: 'Extraction pattern' },
+          { name: 'interval', label: 'Interval (for every-n)', type: 'number', default: 2, min: 2, max: 20, help: 'Extract every N pages' },
+          { name: 'create_separate', label: 'Separate Files', type: 'checkbox', default: false, help: 'Create individual files' }
+        ],
+        presets: {
+          'Even Pages': { extract_mode: 'even', interval: 2, create_separate: false },
+          'Odd Pages': { extract_mode: 'odd', interval: 2, create_separate: false },
+          'Every Other': { extract_mode: 'every-n', interval: 2, create_separate: true }
+        }
+      },
+      'Batch Compress': {
+        label: 'Compress Multiple PDFs',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'quality', label: 'Compression Quality', type: 'range', min: 1, max: 10, default: 8, step: 1, help: 'How much to compress (1=smallest, 10=best)' },
+          { name: 'remove_images', label: 'Remove Images', type: 'checkbox', default: false, help: 'Strip all images to save space' },
+          { name: 'reduce_quality', label: 'Reduce Quality', type: 'checkbox', default: true, help: 'Lower image quality for smaller size' }
+        ],
+        presets: {
+          'Balanced': { quality: 6, remove_images: false, reduce_quality: true },
+          'Maximum': { quality: 3, remove_images: true, reduce_quality: true },
+          'Minimal': { quality: 9, remove_images: false, reduce_quality: false }
+        }
+      },
+      'PDF to B&W Pro': {
+        label: 'Advanced B&W Conversion',
+        outputFormat: 'pdf',
+        supportedFormats: ['pdf'],
+        description: 'Advanced black and white conversion for PDF files with edge enhancement.',
+        params: [
+          { name: 'dpi', label: 'DPI', type: 'number', default: 300, min: 150, max: 600, step: 50, help: 'Output resolution in DPI' },
+          { name: 'threshold', label: 'Threshold', type: 'range', min: 100, max: 255, default: 250, step: 5, help: 'B&W conversion point' },
+          { name: 'contrast', label: 'Contrast', type: 'range', min: 1, max: 10, default: 5, step: 0.5, help: 'Image contrast boost' },
+          { name: 'brightness', label: 'Brightness', type: 'range', min: -50, max: 50, default: 0, step: 5, help: 'Adjust brightness (-50 to +50)' },
+          { name: 'gamma', label: 'Gamma Correction', type: 'range', min: 0.5, max: 2.5, default: 1.0, step: 0.1, help: 'Tone adjustment (0.5-2.5)' },
+          { name: 'sharpness', label: 'Sharpness', type: 'range', min: 0, max: 3, default: 1.5, step: 0.2, help: 'Text edge sharpening (0-3)' },
+          { name: 'blur', label: 'Anti-Alias Blur', type: 'range', min: 0, max: 2, default: 0, step: 0.2, help: 'Smooth edges (0-2)' },
+          { name: 'edgeEnhance', label: 'Edge Enhancement', type: 'checkbox', default: true, help: 'Sharpen text and line edges' },
+          { name: 'invert', label: 'Invert Colors', type: 'checkbox', default: false, help: 'Reverse black and white' },
+          { name: 'denoise', label: 'Denoise (remove speckles)', type: 'range', min: 0, max: 5, default: 0, step: 0.5, help: 'Clean up noise (0-5)' }
+        ],
+        presets: {
+          'Crisp Document': { dpi: 300, threshold: 250, contrast: 4, brightness: 0, gamma: 1.0, sharpness: 2, blur: 0, edgeEnhance: true, invert: false, denoise: 0 },
+          'High Quality Photo': { dpi: 200, threshold: 200, contrast: 3, brightness: 10, gamma: 1.1, sharpness: 1, blur: 0.5, edgeEnhance: false, invert: false, denoise: 1 },
+          'Technical Drawing': { dpi: 600, threshold: 150, contrast: 6, brightness: -5, gamma: 0.9, sharpness: 2.5, blur: 0, edgeEnhance: true, invert: false, denoise: 0 },
+          'Newspaper Scan': { dpi: 250, threshold: 210, contrast: 5, brightness: 5, gamma: 1.1, sharpness: 1.5, blur: 0.3, edgeEnhance: true, invert: false, denoise: 2 }
+        }
+      },
+      'Pro Merge': {
+        label: 'Advanced PDF Merge',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'page_size', label: 'Output Page Size', type: 'select', values: ['auto', 'A4', 'Letter', 'A3'], default: 'auto', help: 'Standardize page sizes' },
+          { name: 'remove_blank_pages', label: 'Remove Blank Pages', type: 'checkbox', default: false, help: 'Strip empty pages' },
+          { name: 'add_bookmarks', label: 'Add Bookmarks', type: 'checkbox', default: true, help: 'Create navigation bookmarks' }
+        ],
+        presets: {
+          'Standard': { page_size: 'A4', remove_blank_pages: false, add_bookmarks: true },
+          'Optimized': { page_size: 'auto', remove_blank_pages: true, add_bookmarks: true }
+        }
+      },
+      'Secure Encrypt': {
+        label: 'Advanced Encryption',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'password', label: 'Master Password', type: 'password', default: '', help: 'Opens and modifies document' },
+          { name: 'owner_password', label: 'Owner Password', type: 'password', default: '', help: 'Restricts printing/copying' },
+          { name: 'allow_printing', label: 'Allow Printing', type: 'checkbox', default: true, help: 'Users can print' },
+          { name: 'allow_copying', label: 'Allow Copying', type: 'checkbox', default: false, help: 'Users can copy text' }
+        ],
+        presets: null
+      },
+      'Advanced OCR': {
+        label: 'OCR - Make Searchable',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'language', label: 'Language', type: 'select', values: ['English', 'Spanish', 'French', 'German', 'Chinese', 'Arabic'], default: 'English', help: 'Document language' },
+          { name: 'preserve_images', label: 'Keep Images', type: 'checkbox', default: true, help: 'Maintain image quality' },
+          { name: 'output_pdf', label: 'Output PDF', type: 'select', values: ['searchable', 'pdf-a', 'standard'], default: 'searchable', help: 'PDF format' }
+        ],
+        presets: {
+          'Standard': { language: 'English', preserve_images: true, output_pdf: 'searchable' },
+          'Archival': { language: 'English', preserve_images: true, output_pdf: 'pdf-a' }
+        }
+      },
+      'Batch Watermark': {
+        label: 'Watermark Multiple Files',
+        outputFormat: 'pdf',
+        params: [
+          { name: 'watermark_text', label: 'Watermark Text', type: 'text', default: 'WATERMARK', help: 'Text to display' },
+          { name: 'position', label: 'Position', type: 'select', values: ['diagonal', 'top', 'bottom', 'center'], default: 'diagonal', help: 'Watermark placement' },
+          { name: 'opacity', label: 'Opacity', type: 'range', min: 0.1, max: 1, default: 0.3, step: 0.1, help: 'Transparency level' },
+          { name: 'font_size', label: 'Font Size', type: 'number', default: 60, min: 12, max: 120, step: 6, help: 'Text size in points' }
+        ],
+        presets: {
+          'Subtle': { watermark_text: 'DRAFT', position: 'diagonal', opacity: 0.2, font_size: 24 },
+          'Standard': { watermark_text: 'CONFIDENTIAL', position: 'top', opacity: 0.5, font_size: 60 },
+          'Strong': { watermark_text: 'WATERMARK', position: 'center', opacity: 0.8, font_size: 90 }
+        }
+      },
+      'Bulk Convert': {
+        label: 'Bulk Convert Files',
+        outputFormat: 'variable',
+        params: [
+          { name: 'output_format', label: 'Target Format', type: 'select', values: ['pdf', 'docx', 'jpg', 'png', 'html'], default: 'pdf', help: 'Convert all files to this format' },
+          { name: 'preserve_name', label: 'Keep Filename', type: 'checkbox', default: true, help: 'Use original name with new extension' }
+        ],
+        presets: {
+          'To PDF': { output_format: 'pdf', preserve_name: true },
+          'To DOCX': { output_format: 'docx', preserve_name: true },
+          'To JPG': { output_format: 'jpg', preserve_name: true }
+        }
+      },
+      'Reporting': {
+        label: 'Generate Report',
+        outputFormat: 'variable',
+        params: [
+          { name: 'reportType', label: 'Report Type', type: 'select', values: ['summary', 'detailed', 'statistical'], default: 'summary', help: 'Report style' },
+          { name: 'format', label: 'Export Format', type: 'select', values: ['pdf', 'txt', 'html'], default: 'pdf', help: 'Output format' },
+          { name: 'includeChart', label: 'Include Charts', type: 'checkbox', default: true, help: 'Add visual data' }
+        ],
+        presets: {
+          'Quick': { reportType: 'summary', format: 'pdf', includeChart: true },
+          'Detailed': { reportType: 'detailed', format: 'html', includeChart: true }
+        }
+      },
+      'Database': {
+        label: 'Database Operations',
+        outputFormat: 'variable',
+        params: [
+          { name: 'operation', label: 'Operation', type: 'select', values: ['import', 'export', 'validate', 'backup'], default: 'export', help: 'Database action' },
+          { name: 'format', label: 'Format', type: 'select', values: ['csv', 'json', 'xml', 'sql'], default: 'csv', help: 'Data format' }
+        ],
+        presets: {
+          'Export CSV': { operation: 'export', format: 'csv' },
+          'Export JSON': { operation: 'export', format: 'json' }
+        }
+      },
+      'Convert History': {
+        label: 'Access Conversion History',
+        outputFormat: 'auto',
+        params: [
+          { name: 'filterType', label: 'Filter By', type: 'select', values: ['all', 'today', 'week', 'month'], default: 'all', help: 'Time period' },
+          { name: 'exportHistory', label: 'Export History', type: 'checkbox', default: false, help: 'Download as file' }
+        ],
+        presets: null
+      },
+      'Duplicate Remover': {
+        label: 'Remove Duplicate Images',
+        outputFormat: 'auto',
+        params: [
+          { name: 'fuzzyMatch', label: 'Fuzzy Matching', type: 'checkbox', default: true, help: 'Find similar images too' },
+          { name: 'threshold', label: 'Similarity Threshold', type: 'range', min: 0.5, max: 1, default: 0.95, step: 0.05, help: 'How similar to consider duplicates' },
+          { name: 'keepLarger', label: 'Keep Larger', type: 'checkbox', default: true, help: 'Preserve highest quality' }
+        ],
+        presets: {
+          'Strict': { fuzzyMatch: false, threshold: 1.0, keepLarger: true },
+          'Standard': { fuzzyMatch: true, threshold: 0.95, keepLarger: true },
+          'Lenient': { fuzzyMatch: true, threshold: 0.8, keepLarger: true }
+        }
+      },
+    };
+
+    // Add UI name aliases after full definition
+    SERVICE_PARAMETERS['Extract'] = SERVICE_PARAMETERS['Extract Pages'];
+    SERVICE_PARAMETERS['Redact'] = SERVICE_PARAMETERS['Redact Content'];
+    SERVICE_PARAMETERS['Metadata'] = SERVICE_PARAMETERS['Extract Metadata'];
+    SERVICE_PARAMETERS['Encrypt'] = SERVICE_PARAMETERS['Encrypt PDF'];
+    SERVICE_PARAMETERS['Decrypt'] = SERVICE_PARAMETERS['Decrypt PDF'];
+    SERVICE_PARAMETERS['Clean'] = SERVICE_PARAMETERS['Clean PDF'];
+    SERVICE_PARAMETERS['PDF Compress'] = SERVICE_PARAMETERS['Compress PDF'];
+    SERVICE_PARAMETERS['Watermark'] = SERVICE_PARAMETERS['Add Watermark'];
+    SERVICE_PARAMETERS['OCR'] = SERVICE_PARAMETERS['OCR Text'];
+    SERVICE_PARAMETERS['No Colors'] = SERVICE_PARAMETERS['Remove Colors'];
+    SERVICE_PARAMETERS['Formulas→Values'] = SERVICE_PARAMETERS['Formulas to Values'];
+    SERVICE_PARAMETERS['Normalize'] = SERVICE_PARAMETERS['Normalize Data'];
+    SERVICE_PARAMETERS['Remove BG'] = SERVICE_PARAMETERS['Remove Background'];
+    SERVICE_PARAMETERS['PDF→PPT'] = SERVICE_PARAMETERS['PDF to PPT'];
+    SERVICE_PARAMETERS['PPT→PDF'] = SERVICE_PARAMETERS['PPT to PDF'];
+    SERVICE_PARAMETERS['PDF→HTML'] = SERVICE_PARAMETERS['PDF to HTML'];
+    SERVICE_PARAMETERS['HTML→PDF'] = SERVICE_PARAMETERS['HTML to PDF'];
+    SERVICE_PARAMETERS['Excel→PDF'] = SERVICE_PARAMETERS['Excel to PDF'];
+    SERVICE_PARAMETERS['Excel→CSV'] = SERVICE_PARAMETERS['Excel to CSV'];
+    SERVICE_PARAMETERS['Text→PDF'] = SERVICE_PARAMETERS['Text to PDF'];
+    SERVICE_PARAMETERS['PDF Export'] = SERVICE_PARAMETERS['To PDF'];
+    SERVICE_PARAMETERS['PDF to B&W (pro)'] = SERVICE_PARAMETERS['PDF to B&W Pro'];
+    SERVICE_PARAMETERS['To PDF (advanced)'] = SERVICE_PARAMETERS['To PDF'];
+    SERVICE_PARAMETERS['Extract (extended)'] = SERVICE_PARAMETERS['Smart Extract'];
+    SERVICE_PARAMETERS['Split PDF (batch)'] = SERVICE_PARAMETERS['Split PDF'];
+    SERVICE_PARAMETERS['Merge PDF (smart)'] = SERVICE_PARAMETERS['Pro Merge'];
+    SERVICE_PARAMETERS['Remove Pages (range)'] = SERVICE_PARAMETERS['Remove Pages'];
+    SERVICE_PARAMETERS['OCR (searchable)'] = SERVICE_PARAMETERS['Advanced OCR'];
+    SERVICE_PARAMETERS['Watermark (image/text)'] = SERVICE_PARAMETERS['Batch Watermark'];
+    SERVICE_PARAMETERS['Clean (deskew)'] = SERVICE_PARAMETERS['Clean PDF'];
+    SERVICE_PARAMETERS['PDF Compress (lossless)'] = SERVICE_PARAMETERS['Batch Compress'];
+    SERVICE_PARAMETERS['Encrypt (AES-256)'] = SERVICE_PARAMETERS['Secure Encrypt'];
+    SERVICE_PARAMETERS['Decrypt (remove)'] = SERVICE_PARAMETERS['Decrypt PDF'];
+    SERVICE_PARAMETERS['Redact (permanent)'] = SERVICE_PARAMETERS['Redact Content'];
+    SERVICE_PARAMETERS['Metadata (clean)'] = SERVICE_PARAMETERS['Extract Metadata'];
+
+    // Navigate to conversion page with specific tool
+    function openConversion(toolName) {
+      window.location.href = '/conversion?tool=' + encodeURIComponent(toolName);
+    }
+
+    // Get tool name from URL parameter
+    function getToolFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('tool') || 'Tool Conversion';
+    }
+
+
+
+    // Helper function to create parameter elements
+    function createParamElement(param) {
+      const div = document.createElement('div');
+      div.className = 'form-group';
+      
+      let input;
+      if (param.type === 'checkbox') {
+        input = document.createElement('label');
+        input.style.cssText = 'display: flex; align-items: center; gap: 0.8rem; cursor: pointer;';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = param.name;
+        checkbox.checked = param.default;
+        input.appendChild(checkbox);
+        input.appendChild(document.createTextNode(param.label));
+      } else if (param.type === 'range') {
+        input = document.createElement('div');
+        input.style.cssText = 'display: flex; flex-direction: column; gap: 0.5rem;';
+        
+        const label = document.createElement('label');
+        label.htmlFor = param.name;
+        label.textContent = param.label;
+        label.style.cssText = 'font-weight: 500; color: var(--text-primary);';
+        
+        const rangeInput = document.createElement('input');
+        rangeInput.type = 'range';
+        rangeInput.id = param.name;
+        rangeInput.min = param.min;
+        rangeInput.max = param.max;
+        rangeInput.step = param.step || 1;
+        rangeInput.value = param.default;
+        rangeInput.style.cssText = 'cursor: pointer;';
+        
+        const display = document.createElement('span');
+        display.id = param.name + '_display';
+        display.textContent = param.default;
+        display.style.cssText = 'font-weight: 600; color: var(--accent-primary); font-size: 0.9rem;';
+        
+        rangeInput.addEventListener('input', (e) => {
+          display.textContent = e.target.value;
+        });
+        
+        input.appendChild(label);
+        input.appendChild(rangeInput);
+        input.appendChild(display);
+      } else if (param.type === 'select') {
+        input = document.createElement('div');
+        input.style.cssText = 'display: flex; flex-direction: column; gap: 0.5rem;';
+        
+        const label = document.createElement('label');
+        label.htmlFor = param.name;
+        label.textContent = param.label;
+        label.style.cssText = 'font-weight: 500; color: var(--text-primary);';
+        
+        const select = document.createElement('select');
+        select.id = param.name;
+        select.style.cssText = 'padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);';
+        
+        param.values.forEach(value => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value;
+          if (value === param.default) option.selected = true;
+          select.appendChild(option);
+        });
+        
+        input.appendChild(label);
+        input.appendChild(select);
+      } else {
+        input = document.createElement('div');
+        input.style.cssText = 'display: flex; flex-direction: column; gap: 0.5rem;';
+        
+        const label = document.createElement('label');
+        label.htmlFor = param.name;
+        label.textContent = param.label;
+        label.style.cssText = 'font-weight: 500; color: var(--text-primary);';
+        
+        const inpt = document.createElement('input');
+        inpt.type = param.type;
+        inpt.id = param.name;
+        inpt.value = param.default;
+        inpt.min = param.min || '';
+        inpt.max = param.max || '';
+        inpt.step = param.step || '';
+        inpt.style.cssText = 'padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary);';
+        
+        input.appendChild(label);
+        input.appendChild(inpt);
+      }
+      
+      if (param.type !== 'checkbox') {
+        div.appendChild(input);
+      } else {
+        div.appendChild(input);
+      }
+      
+      return div;
+    }
+
+    // Populate tool settings on page load
+    function populateToolSettings(toolName) {
+      const serviceConfig = SERVICE_PARAMETERS[toolName];
+      
+      if (!serviceConfig) {
+        document.getElementById('basicParamsContainer').innerHTML = '<p style="color: var(--text-secondary);">Standard settings</p>';
+        document.getElementById('advancedParamsContainer').innerHTML = '<p style="color: var(--text-secondary);">Additional options</p>';
+        return;
+      }
+
+      // Populate Basic Parameters Tab
+      const basicContainer = document.getElementById('basicParamsContainer');
+      basicContainer.innerHTML = '';
+      
+      const basicParams = (serviceConfig.params || []).slice(0, 3);
+      basicParams.forEach(param => {
+        basicContainer.appendChild(createParamElement(param));
+      });
+
+      // Populate Advanced Parameters Tab
+      const advancedContainer = document.getElementById('advancedParamsContainer');
+      advancedContainer.innerHTML = '';
+      
+      (serviceConfig.params || []).forEach(param => {
+        advancedContainer.appendChild(createParamElement(param));
+      });
+
+      // Populate Presets Tab
+      const presetsContainer = document.getElementById('presetsContainer');
+      presetsContainer.innerHTML = '';
+      
+      if (serviceConfig.presets) {
+        Object.entries(serviceConfig.presets).forEach(([presetName, presetValues]) => {
+          const button = document.createElement('button');
+          button.className = 'preset-btn';
+          button.textContent = presetName;
+          button.type = 'button';
+          button.addEventListener('click', () => applyPreset(presetName, presetValues));
+          presetsContainer.appendChild(button);
+        });
+      } else {
+        presetsContainer.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1 / -1; text-align: center;">No presets available for this tool</p>';
+      }
+    }
+
+    function applyPreset(presetName, presetValues) {
+      if (!presetValues) return;
+      Object.entries(presetValues).forEach(([paramName, value]) => {
+        const input = document.getElementById(paramName);
+        if (input) {
+          if (input.type === 'checkbox') {
+            input.checked = value;
+          } else {
+            input.value = value;
+            const display = document.getElementById(paramName + '_display');
+            if (display) display.textContent = value;
+          }
+        }
+      });
+    }
+
+    function searchParameters(query) {
+      const container = document.getElementById('advancedParamsContainer');
+      const formGroups = container.querySelectorAll('.form-group');
+      let visibleCount = 0;
+
+      formGroups.forEach(group => {
+        const label = group.querySelector('label');
+        if (label && label.textContent) {
+          if (label.textContent.toLowerCase().includes(query.toLowerCase())) {
+            group.style.display = '';
+            visibleCount++;
+          } else {
+            group.style.display = 'none';
+          }
+        }
+      });
+
+      const searchResults = document.getElementById('searchResults');
+      if (searchResults) {
+        searchResults.textContent = query ? `${visibleCount} match${visibleCount !== 1 ? 'es' : ''}` : 'All parameters';
+      }
+    }
+
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      const toolName = getToolFromURL();
+      document.getElementById('toolName').textContent = toolName;
+      document.getElementById('settingToolName').textContent = toolName;
+
+      // Populate tool-specific settings
+      populateToolSettings(toolName);
+
+      // Setup file handling
+      setupFileHandling();
+
+      // Load theme
+      if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle && themeToggle.querySelector('i')) {
+          themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+        }
+      }
+    });
+
+    // File Handling
+    function setupFileHandling() {
+      const dropZone = document.getElementById('dropZone');
+      const browseBtn = document.getElementById('browseBtn');
+      const fileInput = document.getElementById('fileInput');
+      const fileCardArea = document.getElementById('fileCardArea');
+      const removeFileBtn = document.getElementById('removeFileBtn');
+
+      browseBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', handleFileSelect);
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--accent-primary)';
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'var(--border-color)';
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--border-color)';
+        const files = e.dataTransfer.files;
+        if (files.length) {
+          fileInput.files = files;
+          handleFileSelect();
+        }
+      });
+
+      removeFileBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        fileCardArea.style.display = 'none';
+        dropZone.style.display = 'flex';
+        
+        // Hide right settings panel
+        const rightSettings = document.querySelector('.right-settings');
+        if (rightSettings) {
+          rightSettings.classList.remove('visible');
+        }
+      });
+    }
+
+    function handleFileSelect() {
+      const fileInput = document.getElementById('fileInput');
+      const dropZone = document.getElementById('dropZone');
+      const fileCardArea = document.getElementById('fileCardArea');
+      const rightSettings = document.querySelector('.right-settings');
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const fileSizeKB = (file.size / 1024).toFixed(2);
+
+        document.getElementById('fileCardName').textContent = file.name;
+        document.getElementById('fileCardMeta').textContent = `${fileSizeKB} KB`;
+
+        dropZone.style.display = 'none';
+        fileCardArea.style.display = 'block';
+        
+        // Show right settings panel
+        if (rightSettings) {
+          rightSettings.classList.add('visible');
+        }
+      }
+    }
+
+    // Parameter Tab Switching
+    function switchParamTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.param-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      // Remove active state from all buttons
+      document.querySelectorAll('.param-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Show selected tab content
+      const selectedTab = document.getElementById('tab-' + tabName);
+      if (selectedTab) {
+        selectedTab.classList.add('active');
+      }
+      
+      // Mark button as active
+      const buttons = document.querySelectorAll('.param-tab-btn');
+      buttons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Show/hide settings toolbar based on tab
+      const toolbar = document.getElementById('settingsToolbar');
+      if (toolbar) {
+        toolbar.style.display = (tabName === 'advanced') ? 'flex' : 'none';
+      }
+
+      // Show parameter search only on advanced tab
+      const searchBox = document.getElementById('parameterSearch');
+      if (searchBox) {
+        searchBox.style.display = (tabName === 'advanced') ? 'block' : 'none';
+      }
+    }
+
+    // Go Back
+    function goBack() {
+      window.location.href = '/';
+    }
+
+    // Modal Functions
+    function openSavePresetModal() {
+      document.getElementById('savePresetModal').classList.add('active');
+    }
+
+    function closeSavePresetModal() {
+      document.getElementById('savePresetModal').classList.remove('active');
+      document.getElementById('presetName').value = '';
+      document.getElementById('presetDesc').value = '';
+    }
+
+    function confirmSavePreset() {
+      const name = document.getElementById('presetName').value.trim();
+      if (!name) {
+        alert('Please enter a preset name');
+        return;
+      }
+      console.log('Preset saved: ' + name);
+      alert('Preset "' + name + '" saved successfully!');
+      closeSavePresetModal();
+    }
+
+    function openImportModal() {
+      document.getElementById('importModal').classList.add('active');
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').classList.remove('active');
+      document.getElementById('importFile').value = '';
+    }
+
+    function confirmImport() {
+      const file = document.getElementById('importFile').files[0];
+      if (!file) {
+        alert('Please select a file');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const settings = JSON.parse(e.target.result);
+          console.log('Settings imported:', settings);
+          alert('Settings imported successfully!');
+          closeImportModal();
+        } catch (error) {
+          alert('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Settings Management
+    function resetSettings() {
+      if (confirm('Reset all settings to default?')) {
+        console.log('Settings reset');
+        alert('Settings reset to default');
+      }
+    }
+
+    function saveAsPreset() {
+      openSavePresetModal();
+    }
+
+    function exportSettings() {
+      const settings = {
+        outputFormat: document.getElementById('outputFormat')?.value,
+        quality: document.getElementById('quality')?.value,
+        timestamp: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'conversion_settings.json';
+      a.click();
+    }
+
+    function importSettings() {
+      openImportModal();
+    }
+
+    // Preview Functions
+    function handlePreviewClick() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files.length) {
+        alert('Please upload a file first');
+        return;
+      }
+      document.getElementById('previewStatus').style.display = 'block';
+      document.getElementById('previewLoading').style.display = 'block';
+      document.getElementById('previewError').style.display = 'none';
+      
+      setTimeout(() => {
+        document.getElementById('previewLoading').style.display = 'none';
+        alert('Live preview generated!');
+      }, 1500);
+    }
+
+    // Conversion Functions
+    function handleConvertClick() {
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files.length) {
+        alert('Please upload a file first');
+        return;
+      }
+
+      document.getElementById('conversionProgressContainer').style.display = 'block';
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          document.getElementById('conversionProgressBar').style.width = '100%';
+          document.getElementById('conversionProgressPercent').textContent = '100%';
+          setTimeout(() => {
+            alert('Conversion complete! Download starting...');
+            document.getElementById('conversionProgressContainer').style.display = 'none';
+          }, 500);
+        } else {
+          document.getElementById('conversionProgressBar').style.width = progress + '%';
+          document.getElementById('conversionProgressPercent').textContent = Math.floor(progress) + '%';
+        }
+      }, 300);
+    }
+
+    // Parameter Search
+    function searchParameters(term) {
+      // Implementation for parameter search
+      const results = term ? 'Found parameters' : 'All parameters';
+      document.getElementById('searchResults').textContent = results;
+    }
+
+    // Event Listeners Setup
+    document.addEventListener('DOMContentLoaded', () => {
+      const previewBtn = document.getElementById('previewBtn');
+      const convertBtn = document.getElementById('convertBtn');
+      
+      if (previewBtn) previewBtn.addEventListener('click', handlePreviewClick);
+      if (convertBtn) convertBtn.addEventListener('click', handleConvertClick);
+
+      // Modal backdrop click handlers - close when clicking outside modal-content
+      const savePresetModal = document.getElementById('savePresetModal');
+      const importModal = document.getElementById('importModal');
+
+      if (savePresetModal) {
+        savePresetModal.addEventListener('click', (e) => {
+          if (e.target === savePresetModal) {
+            closeSavePresetModal();
+          }
+        });
+      }
+
+      if (importModal) {
+        importModal.addEventListener('click', (e) => {
+          if (e.target === importModal) {
+            closeImportModal();
+          }
+        });
+      }
+
+      // Initialize settings toolbar as hidden (shown only on Advanced tab)
+      const toolbar = document.getElementById('settingsToolbar');
+      if (toolbar) toolbar.style.display = 'none';
+
+      // Initialize parameter search as hidden
+      const searchBox = document.getElementById('parameterSearch');
+      if (searchBox) searchBox.style.display = 'none';
+    });
+  </script>
+{% endblock %}

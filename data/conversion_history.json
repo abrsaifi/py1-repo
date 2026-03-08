@@ -1,0 +1,23 @@
+[
+  {
+    "tool": "PDF\u2192Image",
+    "file_count": 2,
+    "date": "2026-02-23T06:40:52.454840",
+    "input_format": "pdf",
+    "output_format": "png"
+  },
+  {
+    "tool": "Image\u2192WebP",
+    "file_count": 1,
+    "date": "2026-02-23T06:40:59.664026",
+    "input_format": "various",
+    "output_format": "webp"
+  },
+  {
+    "tool": "Image\u2192WebP",
+    "file_count": 1,
+    "date": "2026-02-23T06:41:27.400010",
+    "input_format": "various",
+    "output_format": "webp"
+  }
+]
