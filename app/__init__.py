@@ -104,6 +104,12 @@ def create_app(config=None):
         app.register_blueprint(tools_bp, url_prefix='/api')
     except Exception:
         pass
+    # sitemap & robots (served at root)
+    try:
+        from .api.routes.seo import bp as seo_bp
+        app.register_blueprint(seo_bp)
+    except Exception:
+        pass
     
     # INTEGRATION: Register error handlers
     register_error_handlers(app)
