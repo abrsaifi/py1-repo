@@ -72,7 +72,9 @@ const ToolPage = () => {
   }, [toolSlug])
 
   // Apply SEO configuration when tool data is loaded
-  const seoConfig = tool ? generateToolSEOConfig(tool) : {}
+  // Use current window location as base URL (removes /slug path)
+  const baseUrl = window.location.protocol + '//' + window.location.host
+  const seoConfig = tool ? generateToolSEOConfig(tool, baseUrl) : {}
   useSEO(seoConfig)
 
   // Drag handlers

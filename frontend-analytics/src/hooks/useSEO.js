@@ -131,7 +131,7 @@ export const useSEO = (config = {}) => {
 /**
  * Generate SEO config for converter tool pages
  */
-export const generateToolSEOConfig = (tool, baseUrl = 'http://localhost:3000') => {
+export const generateToolSEOConfig = (tool, baseUrl = (import.meta && import.meta.env && import.meta.env.VITE_BASE_URL) || 'http://localhost:3000') => {
   const toolUrl = `${baseUrl}/${tool.slug}`
   
   return {
