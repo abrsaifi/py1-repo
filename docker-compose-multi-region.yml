@@ -1,0 +1,396 @@
+version: '3.9'
+
+# Phase 3 Task 10: Multi-Region Deployment
+# This docker-compose file sets up a 3-region DocPro deployment with:
+# - US region (primary)  
+# - EU region (secondary replica)
+# - APAC region (tertiary replica)
+# - Cloudflare CDN integration
+# - Cross-region health monitoring and failover
+
+services:
+  # ========================================
+  # US REGION (PRIMARY)
+  # ========================================
+  
+  postgres-us:
+    image: postgres:14-alpine
+    container_name: postgres-us-primary
+    environment:
+      POSTGRES_DB: docpro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-docpro123}
+      POSTGRES_INITDB_ARGS: "-c max_wal_senders=10 -c wal_keep_size=1GB -c wal_level=replica"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_us_data:/var/lib/postgresql/data
+      - postgres_us_wal_archive:/var/lib/postgresql/wal_archive
+      - ./postgresql-replication.conf:/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "us"
+      role: "primary"
+
+  redis-us:
+    image: redis:7-alpine
+    container_name: redis-us-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_us_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "us"
+
+  flask-us:
+    build: .
+    container_name: flask-us-primary
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-us:5432/docpro
+      REDIS_URL: redis://redis-us:6379/0
+      REGION_CODE: us
+      REGION_ENDPOINT: http://flask-us:5000
+      CDN_ENDPOINT: https://docpro-us.your-domain.com
+      CELERY_BROKER_URL: redis://redis-us:6379/1
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres-us:
+        condition: service_healthy
+      redis-us:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "us"
+      role: "primary"
+
+  # ========================================
+  # EU REGION (SECONDARY REPLICA)
+  # ========================================
+  
+  postgres-eu:
+    image: postgres:14-alpine
+    container_name: postgres-eu-replica
+    environment:
+      POSTGRES_DB: docpro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-docpro123}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_eu_data:/var/lib/postgresql/data
+      - postgres_eu_wal_archive:/var/lib/postgresql/wal_archive
+      - ./recovery.conf.standby:/var/lib/postgresql/recovery.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docpro-multi-region
+    depends_on:
+      postgres-us:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      region: "eu"
+      role: "replica"
+    entrypoint: |
+      sh -c 'until pg_basebackup -h postgres-us -D /var/lib/postgresql/data -U replication -v -P -W; do
+        echo "Waiting for primary to be available..."
+        sleep 5
+      done
+      postgres'
+
+  redis-eu:
+    image: redis:7-alpine
+    container_name: redis-eu-cache
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_eu_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "eu"
+
+  flask-eu:
+    build: .
+    container_name: flask-eu-replica
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-eu:5432/docpro
+      REDIS_URL: redis://redis-eu:6379/0
+      REGION_CODE: eu
+      REGION_ENDPOINT: http://flask-eu:5000
+      CDN_ENDPOINT: https://docpro-eu.your-domain.com
+      CELERY_BROKER_URL: redis://redis-eu:6379/1
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres-eu:
+        condition: service_healthy
+      redis-eu:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "eu"
+      role: "replica"
+
+  # ========================================
+  # APAC REGION (TERTIARY REPLICA)
+  # ========================================
+  
+  postgres-apac:
+    image: postgres:14-alpine
+    container_name: postgres-apac-replica
+    environment:
+      POSTGRES_DB: docpro
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-docpro123}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_apac_data:/var/lib/postgresql/data
+      - postgres_apac_wal_archive:/var/lib/postgresql/wal_archive
+      - ./recovery.conf.standby:/var/lib/postgresql/recovery.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - docpro-multi-region
+    depends_on:
+      postgres-us:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      region: "apac"
+      role: "replica"
+    entrypoint: |
+      sh -c 'until pg_basebackup -h postgres-us -D /var/lib/postgresql/data -U replication -v -P -W; do
+        echo "Waiting for primary to be available..."
+        sleep 5
+      done
+      postgres'
+
+  redis-apac:
+    image: redis:7-alpine
+    container_name: redis-apac-cache
+    ports:
+      - "6381:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_apac_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "apac"
+
+  flask-apac:
+    build: .
+    container_name: flask-apac-replica
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-apac:5432/docpro
+      REDIS_URL: redis://redis-apac:6379/0
+      REGION_CODE: apac
+      REGION_ENDPOINT: http://flask-apac:5000
+      CDN_ENDPOINT: https://docpro-apac.your-domain.com
+      CELERY_BROKER_URL: redis://redis-apac:6379/1
+    ports:
+      - "5002:5000"
+    depends_on:
+      postgres-apac:
+        condition: service_healthy
+      redis-apac:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "apac"
+      role: "replica"
+
+  # ========================================
+  # GLOBAL SERVICES
+  # ========================================
+  
+  # Celery Worker (US region)
+  celery-worker-us:
+    build: .
+    container_name: celery-worker-us
+    command: celery -A app.celery_config worker -l info -Q critical,conversions,emails,maintenance
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-us:5432/docpro
+      REDIS_URL: redis://redis-us:6379/0
+      CELERY_BROKER_URL: redis://redis-us:6379/1
+      REGION_CODE: us
+    depends_on:
+      - flask-us
+    volumes:
+      - ./app:/app/app
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "us"
+
+  # Celery Beat (Scheduler - US region)
+  celery-beat-us:
+    build: .
+    container_name: celery-beat-us
+    command: celery -A app.celery_config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-us:5432/docpro
+      REDIS_URL: redis://redis-us:6379/0
+      CELERY_BROKER_URL: redis://redis-us:6379/1
+      REGION_CODE: us
+    depends_on:
+      - flask-us
+      - celery-worker-us
+    volumes:
+      - ./app:/app/app
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      region: "us"
+
+  # Multi-Region Health Monitor
+  health-monitor:
+    build: .
+    container_name: health-monitor
+    command: |
+      sh -c 'while true; do
+        curl -X POST http://flask-us:5000/api/multi-region/health/check-all \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${ADMIN_JWT:-dummy}" || true
+        sleep 60
+      done'
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-us:5432/docpro
+      ADMIN_JWT: ${ADMIN_JWT:-dummy}
+    depends_on:
+      - flask-us
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      service: "health-monitor"
+
+  # Nginx Load Balancer (Global Router)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx-global-router
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-multi-region.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - uploads:/var/www/uploads:ro
+    depends_on:
+      - flask-us
+      - flask-eu
+      - flask-apac
+    networks:
+      - docpro-multi-region
+    restart: unless-stopped
+    labels:
+      service: "global-router"
+
+volumes:
+  # US Region
+  postgres_us_data:
+    driver: local
+  postgres_us_wal_archive:
+    driver: local
+  redis_us_data:
+    driver: local
+
+  # EU Region
+  postgres_eu_data:
+    driver: local
+  postgres_eu_wal_archive:
+    driver: local
+  redis_eu_data:
+    driver: local
+
+  # APAC Region
+  postgres_apac_data:
+    driver: local
+  postgres_apac_wal_archive:
+    driver: local
+  redis_apac_data:
+    driver: local
+
+  # Shared
+  uploads:
+    driver: local
+
+networks:
+  docpro-multi-region:
+    driver: bridge

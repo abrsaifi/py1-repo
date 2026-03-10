@@ -886,6 +886,7 @@ body.dark-mode .right-settings {
   color: var(--accent-primary);
   font-weight: 700;
 }
+}
 
 /* --- SIDEBARS --- */
 .sidebar {

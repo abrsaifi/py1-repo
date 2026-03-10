@@ -1,0 +1,205 @@
+# PostgreSQL Standby Recovery Configuration Template
+# Part of Phase 3 Task 9: Disaster Recovery
+# Location: scripts/recovery.conf.standby
+# Description: Template configuration for PostgreSQL standby servers
+#
+# This file provides the recovery configuration needed for setting up
+# a hot standby replica with continuous streaming replication.
+#
+# Copy this file to $PGDATA/recovery.conf on the standby server.
+# Update the variables below according to your environment.
+
+# ==================================================================
+# PRIMARY SERVER CONNECTION PARAMETERS
+# ==================================================================
+# Configure how the standby connects to the primary server for replication
+
+standby_mode = 'on'
+
+# Primary server connection string
+# host: IP or hostname of primary PostgreSQL server
+# port: PostgreSQL port on primary (default 5432)
+# user: Replication user on primary
+# password: Password for replication user (or use .pgpass for security)
+# dbname: Database to connect to for replication
+primary_conninfo = 'host=192.168.1.100 port=5432 user=replication password=YOUR_REPLICATION_PASSWORD dbname=docpro'
+
+# Replication slot on primary server
+# This reserves WAL files on the primary so they don't get deleted before standby receives them
+# If the slot doesn't exist, PostgreSQL will create it automatically
+primary_slot_name = 'standby_slot_1'
+
+# ==================================================================
+# HOT STANDBY SETTINGS
+# ==================================================================
+# Settings to enable the standby to accept read-only queries while in recovery
+
+# Enable hot standby mode - allows read queries on standby
+hot_standby = 'on'
+
+# Send feedback to primary about standby's execution state
+# This helps the primary avoid unnecessarily retaining WAL files
+hot_standby_feedback = 'on'
+
+# Maximum standby delay before canceling read queries (in milliseconds)
+# Set to 0 to disable standby delay
+hot_standby_feedback_interval = '30s'
+
+# ==================================================================
+# RECOVERY TARGET AND TIMELINE SETTINGS
+# ==================================================================
+
+# Recovery target timeline
+# 'latest':     Recover to the latest timeline (default, recommended for standby)
+# 'current':    Recover to current timeline
+# <specific>:   Recover to specific timeline ID
+recovery_target_timeline = 'latest'
+
+# ==================================================================
+# WAL RETRIEVAL SETTINGS
+# ==================================================================
+
+# Maximum time to wait between WAL retrieval attempts before retry
+wal_retrieve_retry_interval = '5s'
+
+# Timeout for recovery (0 = no timeout)
+recovery_timeout = '30s'
+
+# ==================================================================
+# WAL ARCHIVE RECOVERY SETTINGS
+# ==================================================================
+# These settings are used if WAL archiving is enabled on the primary
+# They allow recovery to retrieve WAL files from the archive if streaming fails
+
+# Command to restore WAL files from archive
+# If streaming replication fails, PostgreSQL will use this command to fetch WAL files
+# Placeholders: %p = path to output file, %f = WAL filename
+# Example for NFS mount: 'cp /nfs/wal_archive/%f "%p"'
+restore_command = 'cp /mnt/backups/wal_archive/%f "%p"'
+
+# Command to clean up old WAL files from archive
+# % = WAL file size in bytes, %r = requested filename
+archive_cleanup_command = 'pg_archivecleanup /mnt/backups/wal_archive "%%" %r'
+
+# ==================================================================
+# PERFORMANCE TUNING
+# ==================================================================
+# These settings should match the primary server for consistency
+
+# Shared buffer pool size (25% of system RAM recommended)
+shared_buffers = 256MB
+
+# Effective cache size for query planner (50-75% of system RAM)
+effective_cache_size = 1GB
+
+# Work memory per operation
+work_mem = 32MB
+
+# Maintenance work memory for CREATE INDEX, VACUUM, etc.
+maintenance_work_mem = 64MB
+
+# ==================================================================
+# CONNECTION SETTINGS
+# ==================================================================
+
+# Maximum number of connections for standby
+max_connections = 200
+
+# Maximum prepared transactions
+max_prepared_transactions = 100
+
+# ==================================================================
+# LOGGING SETTINGS
+# ==================================================================
+
+# Log incoming connections
+log_connections = on
+log_disconnections = on
+
+# Log replication commands
+log_replication_commands = on
+
+# Slow query logging
+log_statement = 'all'
+log_min_duration_statement = 1000  # Log queries taking > 1 second
+
+# Detailed logging for debugging
+log_line_prefix = '[%t] %u@%d [%p] [%a] '
+
+# ==================================================================
+# MONITORING AND HEALTH CHECK SETTINGS
+# ==================================================================
+
+# TCP keepalive for detecting dead primary connections
+tcp_keepalives_idle = 30
+tcp_keepalives_interval = 10
+tcp_keepalives_count = 5
+
+# ==================================================================
+# RECOVERY BEHAVIOR
+# ==================================================================
+
+# Pause recovery at a specific point (useful for testing/maintenance)
+# recovery_pause_at_point = 'immediate'
+
+# ==================================================================
+# DEPLOYMENT CHECKLIST
+# ==================================================================
+# Before using this configuration:
+#
+# [ ] Update primary_conninfo with correct primary server details
+# [ ] Create/verify replication user on primary:
+#     CREATE ROLE replication WITH LOGIN REPLICATION ENCRYPTED PASSWORD 'password';
+#     ALTER ROLE replication VALID UNTIL infinity;
+#
+# [ ] Ensure pg_hba.conf on primary allows replication user:
+#     host    all             replication     0.0.0.0/0               md5
+#
+# [ ] Run pg_basebackup from standby to initialize data directory
+#
+# [ ] Place this file in $PGDATA directory on standby
+#
+# [ ] On PostgreSQL 12+, also create standby.signal file:
+#     touch $PGDATA/standby.signal
+#
+# [ ] Verify directory permissions:
+#     chown -R postgres:postgres $PGDATA
+#     chmod 700 $PGDATA
+#
+# [ ] Start PostgreSQL standby service
+#
+# [ ] Verify replication on primary:
+#     SELECT * FROM pg_stat_replication;
+#
+# [ ] Check standby replication status:
+#     SELECT pg_is_in_recovery();  -- Should return 't' (true)
+#
+# [ ] Monitor standby lag:
+#     SELECT now() - pg_last_wal_receive_lsn() as replication_lag;
+#
+# ==================================================================
+# TROUBLESHOOTING
+# ==================================================================
+#
+# Connection refused to primary:
+#   - Check primary is running and accepting connections
+#   - Verify pg_hba.conf allows replication user
+#   - Check network connectivity: psql -h primary-host -U replication
+#
+# Standby won't start:
+#   - Check PostgreSQL logs: tail -f $PGDATA/log/postgresql.log
+#   - Verify standby.signal file exists (PostgreSQL 12+)
+#   - Check permissions: chmod 700 $PGDATA
+#
+# High replication lag:
+#   - Check network bandwidth
+#   - Monitor primary I/O and CPU
+#   - Increase primary server capacity if needed
+#   - Reduce workload on standby if running read queries
+#
+# WAL files not being archived:
+#   - Check archive_command on primary is correct
+#   - Verify archive destination has space
+#   - Check PostgreSQL logs for archive errors
+#
+# ==================================================================

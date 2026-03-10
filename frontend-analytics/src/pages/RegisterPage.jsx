@@ -8,8 +8,7 @@ import '../styles/auth.css'
 const RegisterPage = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -29,8 +28,8 @@ const RegisterPage = () => {
   }
 
   const validateForm = () => {
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError('Please enter your first and last name')
+    if (!formData.username.trim()) {
+      setError('Please enter a username')
       return false
     }
 
@@ -39,8 +38,8 @@ const RegisterPage = () => {
       return false
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
       return false
     }
 
@@ -73,8 +72,7 @@ const RegisterPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+          username: formData.username,
           email: formData.email,
           password: formData.password
         })
@@ -93,13 +91,12 @@ const RegisterPage = () => {
       // Fallback - allow demo registration
       const newUser = {
         id: Date.now().toString(),
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        username: formData.username,
         email: formData.email,
         plan: 'Free',
         avatar: 'https://i.pravatar.cc/150?img=' + Math.floor(Math.random() * 70)
       }
-      localStorage.setItem('authToken', 'demo_token_' + Date.now())
+      localStorage.setItem('token', 'demo_token_' + Date.now())
       localStorage.setItem('user', JSON.stringify(newUser))
       navigate('/dashboard')
     } finally {
@@ -152,33 +149,18 @@ const RegisterPage = () => {
                 </div>
               )}
 
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label htmlFor="firstName">First Name</label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="John"
-                    className="form-input"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="lastName">Last Name</label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Doe"
-                    className="form-input"
-                    disabled={loading}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="username">Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Choose a username"
+                  className="form-input"
+                  disabled={loading}
+                />
               </div>
 
               <div className="form-group">
@@ -217,7 +199,7 @@ const RegisterPage = () => {
                     {showPassword ? <UniversalIcon icon="👁️" size={18} /> : <UniversalIcon icon="👁️‍🗨️" size={18} />}
                   </button>
                 </div>
-                <small className="form-hint">At least 8 characters</small>
+                <small className="form-hint">At least 6 characters</small>
               </div>
 
               <div className="form-group">

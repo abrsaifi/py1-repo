@@ -7,7 +7,7 @@ import '../styles/admin-auth.css'
 
 const AdminLoginPage = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,27 +21,24 @@ const AdminLoginPage = () => {
     setLoading(true)
 
     try {
-      if (!email || !password) {
+      if (!username || !password) {
         setError('Please fill in all fields')
         setLoading(false)
         return
       }
 
-      if (!email.includes('@')) {
-        setError('Please enter a valid email address')
-        setLoading(false)
-        return
-      }
-
       // API call to authenticate admin
-      const response = await fetch('http://localhost:5000/api/auth/admin/login', {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       })
 
       if (response.ok) {
         const data = await response.json()
+        
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
         
         // Check if 2FA/TOTP is required
         if (data.requiresTOTP) {
@@ -50,25 +47,26 @@ const AdminLoginPage = () => {
           return
         }
 
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('user', JSON.stringify(data.user))
-        navigate('/admin')
+        // Reload page to ensure useAuth hook properly initializes with admin role
+        setTimeout(() => window.location.href = '/admin', 100)
       } else {
         setError('Invalid email or password')
       }
     } catch (err) {
       // Fallback - allow demo admin login
-      const adminEmail = 'admin@fastconvert.com'
-      if (email === adminEmail && password === 'admin123') {
+      const adminUsername = 'admin'
+      if (username === adminUsername && password === 'demo123') {
         localStorage.setItem('token', 'admin_token_' + Date.now())
         localStorage.setItem('user', JSON.stringify({
           id: 'admin_001',
           name: 'Administrator',
-          email: adminEmail,
+          username: adminUsername,
+          email: 'admin@example.com',
           role: 'admin',
           avatar: '👨‍💼'
         }))
-        navigate('/admin')
+        // Reload page so useAuth hook re-initializes with admin role
+        setTimeout(() => window.location.href = '/admin', 100)
       } else {
         setError('Admin login failed. Invalid credentials.')
       }
@@ -83,17 +81,18 @@ const AdminLoginPage = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/admin/verify-totp', {
+      const response = await fetch('http://localhost:5000/api/auth/verify-totp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, totpCode })
+        body: JSON.stringify({ username, totpCode })
       })
 
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
-        navigate('/admin')
+        // Reload page to ensure useAuth hook properly initializes with admin role
+        setTimeout(() => window.location.href = '/admin', 100)
       } else {
         setError('Invalid TOTP code')
       }
@@ -104,10 +103,13 @@ const AdminLoginPage = () => {
         localStorage.setItem('user', JSON.stringify({
           id: 'admin_001',
           name: 'Administrator',
-          email: email,
-          role: 'admin'
+          username: username,
+          email: 'admin@example.com',
+          role: 'admin',
+          avatar: '👨‍💼'
         }))
-        navigate('/admin')
+        // Reload page so useAuth hook re-initializes with admin role
+        setTimeout(() => window.location.href = '/admin', 100)
       } else {
         setError('Invalid TOTP code')
       }
@@ -163,13 +165,13 @@ const AdminLoginPage = () => {
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="email">Admin Email</label>
+                  <label htmlFor="username">Admin Username</label>
                   <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@fastconvert.com"
+                    type="text"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter admin username"
                     className="form-input"
                     disabled={loading}
                   />

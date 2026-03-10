@@ -6,7 +6,7 @@ import '../styles/auth.css'
 
 const LoginPage = ({ onLogin, onTestLogin }) => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -16,13 +16,8 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
     e.preventDefault()
     setError('')
     
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Please fill in all fields')
-      return
-    }
-
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address')
       return
     }
 
@@ -33,7 +28,7 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       })
 
       if (response.ok) {
@@ -49,26 +44,29 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
           navigate('/dashboard')
         }
       } else {
-        setError('Invalid email or password')
+        setError('Invalid username or password')
       }
     } catch (err) {
       // Fallback - allow demo login (for development only)
-      if (email && password.length >= 6) {
-        // Determine role based on email
-        const isAdmin = email === 'admin@fastconvert.com'
+      const demoAdmin = username === 'admin' && password === 'demo123'
+      const demoSubscriber = username === 'subscriber' && password === 'demo123'
+      
+      if (demoAdmin || demoSubscriber) {
         const userData = {
-          id: 'user_' + Date.now(),
-          email,
-          name: email.split('@')[0],
-          role: isAdmin ? 'admin' : 'subscriber'
+          id: username === 'admin' ? 'admin_001' : 'subscriber_001',
+          username,
+          email: (username === 'admin' ? 'admin' : 'subscriber') + '@example.com',
+          name: username === 'admin' ? 'Administrator' : 'Demo Subscriber',
+          role: username === 'admin' ? 'admin' : 'subscriber',
+          avatar: username === 'admin' ? '👨‍💼' : '👤'
         }
-        localStorage.setItem('token', 'user_token_' + Date.now())
+        localStorage.setItem('token', 'demo_token_' + Date.now())
         localStorage.setItem('user', JSON.stringify(userData))
         
         // Redirect based on role
-        navigate(isAdmin ? '/admin' : '/dashboard')
+        navigate(username === 'admin' ? '/admin' : '/dashboard')
       } else {
-        setError('Login failed. Please try again.')
+        setError('Invalid username or password')
       }
     } finally {
       setLoading(false)
@@ -121,13 +119,13 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
 
             <form onSubmit={handleLogin} className="auth-form">
               <div className="form-group">
-                <label htmlFor="email">Email Address</label>
+                <label htmlFor="username">Username</label>
                 <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
                   className="form-input"
                   disabled={loading}
                 />

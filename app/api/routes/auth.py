@@ -97,12 +97,26 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/auth/logout', methods=['POST'])
-@login_required
 def logout():
-    """Logout user"""
+    """Logout user - clears session and logs the action"""
     user_id = session.get('user_id')
-    AuditLogger.log_action(user_id, 'logout', 'auth', 'success')
+    
+    # If no session, try to get user_id from Bearer token (for compatibility)
+    if not user_id:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            # Could verify token and extract user_id here if needed
+            # For now, just accept the logout request
+            pass
+    
+    # Log the action if we have a user_id
+    if user_id:
+        AuditLogger.log_action(user_id, 'logout', 'auth', 'success')
+    
+    # Clear the session
     session.clear()
+    
     return jsonify({'success': True, 'message': 'Logout successful'}), 200
 
 @bp.route('/auth/me', methods=['GET'])
@@ -119,9 +133,9 @@ def me():
         'user_id': user[0],
         'username': user[1],
         'email': user[2],
-        'api_key': user[4],
-        'created_at': user[5],
-        'is_active': user[6]
+        'api_key': user[3],
+        'created_at': user[4],
+        'is_active': user[5]
     }), 200
 
 @bp.route('/auth/reset-api-key', methods=['POST'])

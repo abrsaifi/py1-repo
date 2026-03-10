@@ -7,8 +7,10 @@ from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 from functools import wraps
 import logging
+import os
 from typing import Tuple, Dict, Any
 import traceback
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -132,7 +134,6 @@ def register_error_handlers(app):
         )
         
         # Don't expose internal error details in production
-        import os
         message = str(error) if os.getenv('FLASK_ENV') != 'production' else 'Internal server error'
         
         return jsonify({

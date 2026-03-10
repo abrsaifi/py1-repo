@@ -33,6 +33,21 @@ function AppContent() {
     auth.logout()
   }
 
+  // DEV MODE: On dev server (localhost:5173), always show admin dashboard
+  const isDevServer = window.location.hostname === 'localhost' && window.location.port === '5173'
+  
+  if (isDevServer) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/" element={<AdminDashboard onTitleChange={setPageTitle} />} />
+          <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
+          <Route path="*" element={<Navigate to="/admin" />} />
+        </Routes>
+      </Router>
+    )
+  }
+
   // If admin is authenticated, show admin dashboard without MainLayout
   if (auth.isAuthenticated && auth.user?.role === 'admin') {
     return (
@@ -58,7 +73,7 @@ function AppContent() {
       >
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={auth.isAuthenticated ? <Navigate to={auth.user?.role === 'admin' ? '/admin' : '/dashboard'} /> : <LandingPage />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
           <Route path="/register" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
           <Route path="/forgot-password" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />

@@ -1,0 +1,251 @@
+version: '3.8'
+
+services:
+  # Primary PostgreSQL Server
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: docpro-postgres-primary
+    environment:
+      POSTGRES_USER: docpro
+      POSTGRES_PASSWORD: secure_password_primary
+      POSTGRES_DB: docpro
+      POSTGRES_INITDB_ARGS: -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=1GB
+    volumes:
+      # Data persistence
+      - postgres_primary_data:/var/lib/postgresql/data
+      # WAL archive for PITR
+      - postgres_wal_archive:/var/lib/postgresql/wal_archive
+      # Replication configuration
+      - ./postgresql-replication.conf:/etc/postgresql/postgresql.conf
+      # Backup scripts
+      - ./scripts/backup-primary.sh:/docker-entrypoint-initdb.d/01-backup.sh
+    ports:
+      - "5432:5432"
+    networks:
+      - docpro_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Standby PostgreSQL Server (Hot Standby)
+  postgres-standby:
+    image: postgres:16-alpine
+    container_name: docpro-postgres-standby
+    environment:
+      PGUSER: docpro
+      PGPASSWORD: secure_password_primary
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    volumes:
+      # Data persistence (will be synced from primary)
+      - postgres_standby_data:/var/lib/postgresql/data
+      # WAL archive for standby
+      - postgres_wal_archive_standby:/var/lib/postgresql/wal_archive
+      # Recovery configuration
+      - ./scripts/recovery.conf.standby:/tmp/recovery.conf
+      # Standby setup scripts
+      - ./scripts/setup-standby.sh:/docker-entrypoint-initdb.d/01-standby-setup.sh
+    ports:
+      - "5433:5432"
+    networks:
+      - docpro_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docpro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "sh"
+      - "-c"
+      - |
+        # Base backup from primary
+        pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U docpro -v -P -Xs -R
+        
+        # Start PostgreSQL in standby mode
+        postgres
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  # Backup Service (runs backup jobs)
+  backup-service:
+    image: docpro:latest
+    container_name: docpro-backup
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://docpro:secure_password_primary@postgres-primary:5432/docpro
+      BACKUP_DIR: /backups
+      FLASK_ENV: production
+    volumes:
+      # Backup storage
+      - postgres_backups:/backups
+      # Shared scripts
+      - ./scripts:/app/scripts
+    networks:
+      - docpro_network
+    command:
+      - python
+      - -c
+      - |
+        import time
+        from app.disaster_recovery_manager import BackupManager
+        
+        db_config = {
+            'host': 'postgres-primary',
+            'port': 5432,
+            'user': 'docpro',
+            'password': 'secure_password_primary',
+            'database': 'docpro',
+        }
+        
+        manager = BackupManager(db_config, '/backups')
+        
+        while True:
+            # Perform backup every 6 hours
+            success, backup_file, error = manager.create_full_backup()
+            if success:
+                print(f"Backup created: {backup_file}")
+                # Verify backup
+                valid, info = manager.verify_backup(backup_file)
+                print(f"Backup valid: {valid}")
+            else:
+                print(f"Backup failed: {error}")
+            
+            # Sleep for 6 hours
+            time.sleep(21600)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Replication Monitor (monitors replication health)
+  replication-monitor:
+    image: docpro:latest
+    container_name: docpro-replication-monitor
+    depends_on:
+      - postgres-primary
+      - postgres-standby
+    environment:
+      DATABASE_URL: postgresql://docpro:secure_password_primary@postgres-primary:5432/docpro
+      FLASK_ENV: production
+    networks:
+      - docpro_network
+    command:
+      - python
+      - -c
+      - |
+        import time
+        import json
+        from app.disaster_recovery_manager import ReplicationMonitor
+        
+        primary_config = {
+            'host': 'postgres-primary',
+            'port': 5432,
+            'user': 'docpro',
+            'password': 'secure_password_primary',
+            'database': 'docpro',
+        }
+        
+        standby_config = {
+            'host': 'postgres-standby',
+            'port': 5432,
+            'user': 'docpro',
+            'password': 'secure_password_primary',
+            'database': 'docpro',
+        }
+        
+        monitor = ReplicationMonitor(primary_config, standby_config)
+        
+        while True:
+            status = monitor.check_replication_status()
+            print(json.dumps(status, indent=2))
+            
+            # Check every 5 minutes
+            time.sleep(300)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Recovery Planner (simulates recovery scenarios)
+  recovery-planner:
+    image: docpro:latest
+    container_name: docpro-recovery-planner
+    depends_on:
+      - postgres-primary
+    environment:
+      DATABASE_URL: postgresql://docpro:secure_password_primary@postgres-primary:5432/docpro
+      FLASK_ENV: production
+    volumes:
+      - postgres_backups:/backups
+    networks:
+      - docpro_network
+    command:
+      - python
+      - -c
+      - |
+        import time
+        import json
+        from app.disaster_recovery_manager import BackupManager, RecoveryPlanner
+        
+        db_config = {
+            'host': 'postgres-primary',
+            'port': 5432,
+            'user': 'docpro',
+            'password': 'secure_password_primary',
+            'database': 'docpro',
+        }
+        
+        backup_manager = BackupManager(db_config, '/backups')
+        recovery_planner = RecoveryPlanner(db_config, backup_manager)
+        
+        while True:
+            # Every 12 hours, test recovery plan
+            options = recovery_planner.get_recovery_options()
+            rto_rpo = recovery_planner.estimate_rto_rpo()
+            
+            print("Recovery Options:")
+            print(json.dumps(options, indent=2))
+            print("\nRTO/RPO Estimates:")
+            print(json.dumps(rto_rpo, indent=2))
+            
+            time.sleep(43200)  # Sleep 12 hours
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+volumes:
+  postgres_primary_data:
+    driver: local
+  postgres_standby_data:
+    driver: local
+  postgres_wal_archive:
+    driver: local
+  postgres_wal_archive_standby:
+    driver: local
+  postgres_backups:
+    driver: local
+
+networks:
+  docpro_network:
+    driver: bridge

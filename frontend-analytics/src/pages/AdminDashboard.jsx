@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { UniversalIcon } from '../utils/UniversalIcon'
 import { Line, Pie, Bar } from 'react-chartjs-2'
 import {
@@ -55,6 +56,7 @@ ChartJS.register(
 
 const AdminDashboard = () => {
   const [searchParams] = useSearchParams()
+  const auth = useAuth()
   const tabFromUrl = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'overview')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -220,7 +222,7 @@ const AdminDashboard = () => {
                 <button className="dropdown-item"><UniversalIcon icon="🔐" size={16} /> Security</button>
                 <button className="dropdown-item" onClick={toggleTheme}><UniversalIcon icon="🌓" size={16} /> Toggle Dark/Light</button>
                 <div className="dropdown-divider"></div>
-                <button className="dropdown-item logout"><UniversalIcon icon="🔒" size={16} /> Logout</button>
+                <button className="dropdown-item logout" onClick={auth.logout}><UniversalIcon icon="🔒" size={16} /> Logout</button>
               </div>
             )}
           </div>

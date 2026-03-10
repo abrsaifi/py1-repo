@@ -18,6 +18,8 @@ class Config:
     
     # Database
     DATABASE_PATH = os.environ.get('DATABASE_PATH') or os.path.join(os.getcwd(), 'docpro_database.db')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{DATABASE_PATH}'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Logging
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
