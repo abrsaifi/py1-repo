@@ -7,10 +7,17 @@ Uses raw SQL to work with the current database schema.
 
 import sqlite3
 import secrets
+import hashlib
 import sys
 from pathlib import Path
 from datetime import datetime
-from werkzeug.security import generate_password_hash
+
+
+def hash_password(password):
+    """Hash password using PBKDF2 (matching AuthManager format)."""
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+    return f"{salt}${pwd_hash.hex()}"
 
 
 def generate_secure_password(length=16):
@@ -41,9 +48,9 @@ def reset_credentials():
         admin_password = generate_secure_password()
         subscriber_password = generate_secure_password()
         
-        # Hash passwords
-        admin_hash = generate_password_hash(admin_password)
-        subscriber_hash = generate_password_hash(subscriber_password)
+        # Hash passwords (using AuthManager's format)
+        admin_hash = hash_password(admin_password)
+        subscriber_hash = hash_password(subscriber_password)
         
         # Get current timestamp
         now = datetime.utcnow().isoformat()
@@ -118,3 +125,4 @@ def reset_credentials():
 
 if __name__ == '__main__':
     reset_credentials()
+
