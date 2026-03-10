@@ -11,7 +11,11 @@ export const useAuth = () => {
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('user')
-      return stored ? JSON.parse(stored) : null
+      // Handle both null and the string 'undefined'
+      if (!stored || stored === 'undefined' || stored === 'null') {
+        return null
+      }
+      return JSON.parse(stored)
     } catch (e) {
       console.warn('Failed to parse user from localStorage:', e)
       return null
@@ -36,7 +40,8 @@ export const useAuth = () => {
         setToken(newToken || null)
         setIsAuthenticated(!!newToken)
         
-        if (newUserStr) {
+        // Handle both null and the string 'undefined'
+        if (newUserStr && newUserStr !== 'undefined' && newUserStr !== 'null') {
           try {
             setUser(JSON.parse(newUserStr))
           } catch (e) {

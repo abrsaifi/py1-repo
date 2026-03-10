@@ -34,7 +34,8 @@ const UserDashboard = () => {
         const storedToken = localStorage.getItem('token')
         const storedUser = localStorage.getItem('user')
         
-        if (!storedToken || !storedUser) {
+        // Handle both null and string 'undefined' / 'null'
+        if (!storedToken || !storedUser || storedUser === 'undefined' || storedUser === 'null') {
           // No token found - user is not authenticated
           navigate('/login', { replace: true })
           return
