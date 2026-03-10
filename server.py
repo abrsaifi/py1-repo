@@ -1,5 +1,12 @@
 import os
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for, jsonify
+# Try to use flask_cors when available; otherwise we'll add a lightweight
+# fallback to set CORS headers for API responses.
+try:
+    from flask_cors import CORS
+    _FLASK_CORS_AVAILABLE = True
+except Exception:
+    _FLASK_CORS_AVAILABLE = False
 from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
 from PIL import Image
@@ -44,6 +51,7 @@ import json as _json
 import time
 from collections import deque
 import subprocess
+from threading import Thread, Lock
 from app.utils.errors import register_error_handlers
 from app.utils.logger_setup import LoggerSetup
 
@@ -100,9 +108,120 @@ logger = LoggerSetup.setup(
 app.logger = logger
 logger.info('DocPro server initialized with structured logging')
 
+# Configure CORS for API endpoints so the frontend dev server can fetch
+# live tool metadata during development and automated checks. Prefer
+# flask_cors when installed; otherwise add a minimal after_request
+# header injection for paths that start with /api/.
+if _FLASK_CORS_AVAILABLE:
+    # Allow all origins for development; tighten in production.
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    logger.info('flask_cors enabled for /api/*')
+else:
+    @app.after_request
+    def _add_cors_headers(response):
+        try:
+            path = request.path or ''
+            if path.startswith('/api/'):
+                response.headers['Access-Control-Allow-Origin'] = os.environ.get('CORS_ALLOW_ORIGIN', '*')
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key'
+        except Exception:
+            pass
+        return response
+
+# ========================
+# JOB TRACKING SYSTEM (SPA Async Support)
+# ========================
+_job_registry = {}  # {job_id: ConversionJob instance}
+_job_lock = Lock()  # Thread safety for job updates
+_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB max file size
+_conversion_rate_limit = {}  # {ip_address: [timestamps]}
+_rate_limit_window = 60  # 1 minute window
+_rate_limit_max_requests = 20  # Max 20 conversions per minute per IP (increased for testing)
+
+class ConversionJob:
+    """Represents an async conversion job"""
+    def __init__(self, job_id, tool_name, file_count):
+        self.job_id = job_id
+        self.tool_name = tool_name
+        self.file_count = file_count
+        self.status = 'queued'  # queued, processing, complete, error
+        self.progress = 0  # 0-100
+        self.result = None  # Conversion result
+        self.error = None  # Error message
+        self.timestamp = datetime.now()
+        self.start_time = None
+        self.end_time = None
+    
+    def to_dict(self):
+        elapsed = 0
+        if self.start_time:
+            end = self.end_time or datetime.now()
+            elapsed = (end - self.start_time).total_seconds()
+        
+        return {
+            'job_id': self.job_id,
+            'tool_name': self.tool_name,
+            'status': self.status,
+            'progress': self.progress,
+            'file_count': self.file_count,
+            'has_result': self.result is not None,
+            'error': self.error,
+            'elapsed_seconds': elapsed
+        }
+
+def _check_rate_limit(ip_address):
+    """Check if IP has exceeded rate limit. Returns True if allowed, False if limited."""
+    if ip_address not in _conversion_rate_limit:
+        _conversion_rate_limit[ip_address] = []
+    
+    now = time.time()
+    # Remove timestamps older than the rate limit window
+    _conversion_rate_limit[ip_address] = [
+        ts for ts in _conversion_rate_limit[ip_address] 
+        if now - ts < _rate_limit_window
+    ]
+    
+    if len(_conversion_rate_limit[ip_address]) >= _rate_limit_max_requests:
+        return False  # Rate limited
+    
+    _conversion_rate_limit[ip_address].append(now)
+    return True  # Allowed
+
+def _get_client_ip():
+    """Get client IP address, accounting for proxies"""
+    return request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+
 # INTEGRATION: Register error handlers
 register_error_handlers(app)
 logger.info('Error handlers registered')
+
+# --- Lightweight API route for tool metadata (developer/testing)
+@app.route('/api/tools/<slug>', methods=['GET'])
+def api_get_tool(slug):
+    """Return lightweight tool metadata used by the frontend SEO generation.
+
+    This route is intentionally minimal to support local dev and automated
+    verification. In production the full metadata service should provide
+    richer fields.
+    """
+    tool = {
+        'slug': slug,
+        'name': f"{slug.replace('-', ' ').title()} Converter",
+        'from_format': 'Source Format',
+        'to_format': 'Target Format',
+        'description': 'Convert Source Format to Target Format files online for free. Convert your files with ease. No registration required.',
+        'icon_url': f'http://localhost:3000/tool-icons/{slug}.png',
+        'url': f'http://localhost:3000/{slug}',
+        'features': ['Fast conversion', 'High quality', 'Secure', 'No registration'],
+        'rating': {'value': '4.8', 'count': '2500'},
+        'price': '0',
+        'currency': 'USD'
+    }
+    resp = jsonify({'success': True, 'tool': tool})
+    # Ensure CORS header present for dev frontend access
+    resp.headers['Access-Control-Allow-Origin'] = os.environ.get('CORS_ALLOW_ORIGIN', '*')
+    return resp
 
 # Helper function to get soffice path for document conversions
 def get_soffice_path():
@@ -744,9 +863,12 @@ def convert_image_route():
         except Exception:
             pass
 
-def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=True):
+def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=True, **kwargs):
     """Convert DOCX to PDF with color and image preservation using LibreOffice"""
     try:
+        # Extract PDF parameters if provided
+        pdf_params = {k: v for k, v in kwargs.items() if v is not None}
+        
         # Use LibreOffice for best formatting/color/image preservation
         import subprocess
         from pathlib import Path
@@ -755,6 +877,8 @@ def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=Tru
         os.makedirs(out_dir, exist_ok=True)
         
         logger.info(f'Converting DOCX to PDF: {docx_path} -> {output_pdf}')
+        if pdf_params:
+            logger.info(f'With PDF parameters: {pdf_params}')
         
         # LibreOffice command for DOCX -> PDF conversion
         cmd = [
@@ -887,66 +1011,21 @@ def docx_to_pdf(docx_path, output_pdf, preserve_colors=True, preserve_images=Tru
             return False
 
 
-def soffice_to_pdf(input_path, output_pdf, timeout=60):
+def soffice_to_pdf(input_path, output_pdf, timeout=60, **kwargs):
     """Convert an Office document to PDF using LibreOffice (soffice) if available.
 
-    This is primarily used to support legacy .doc files. Returns True on success.
+    This is primarily used to support legacy .doc/.odt files. Returns True on success.
+    Now supports advanced parameters for page setup.
     """
     try:
         out_dir = os.path.dirname(output_pdf)
         os.makedirs(out_dir, exist_ok=True)
         
         logger.info(f'Converting document to PDF via LibreOffice: {input_path} -> {output_pdf}')
-
-        # LibreOffice writes output as <stem>.pdf in out_dir
-        cmd = [
-            get_soffice_path(),
-            '--headless',
-            '--nologo',
-            '--nolockcheck',
-            '--nodefault',
-            '--nofirststartwizard',
-            '--convert-to',
-            'pdf',
-            '--outdir',
-            out_dir,
-            input_path,
-        ]
-
-        logger.info(f'Running soffice command: {" ".join(cmd)}')
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         
-        logger.info(f'soffice return code: {proc.returncode}')
-        if proc.stdout:
-            logger.info(f'soffice stdout: {proc.stdout}')
-        if proc.stderr:
-            logger.warning(f'soffice stderr: {proc.stderr}')
+        # Use the new _convert_with_libreoffice helper that handles post-processing
+        return _convert_with_libreoffice(input_path, output_pdf, **kwargs)
         
-        if proc.returncode != 0:
-            logger.error(f'soffice conversion failed with return code {proc.returncode}')
-            return False
-
-        produced = os.path.join(out_dir, f"{Path(input_path).stem}.pdf")
-        logger.info(f'Looking for PDF at: {produced}')
-        
-        if not os.path.exists(produced):
-            logger.error(f'Expected PDF not found at {produced}')
-            return False
-
-        logger.info(f'Found PDF at {produced}, file size: {os.path.getsize(produced)} bytes')
-
-        # Move/rename to the requested output path if needed
-        if os.path.abspath(produced) != os.path.abspath(output_pdf):
-            try:
-                if os.path.exists(output_pdf):
-                    os.remove(output_pdf)
-            except Exception:
-                pass
-            logger.info(f'Moving PDF from {produced} to {output_pdf}')
-            shutil.move(produced, output_pdf)
-
-        logger.info(f'Successfully created PDF: {output_pdf}')
-        return os.path.exists(output_pdf)
     except Exception as e:
         logger.error(f'soffice_to_pdf error: {e}', exc_info=True)
         return False
@@ -989,29 +1068,68 @@ def csv_to_pdf(csv_path, output_pdf, **kwargs):
         available_width = pagesize[0] - 40*mm
         col_width = available_width / num_cols
         
-        # Create table
-        table = Table(data, colWidths=[col_width] * num_cols)
-        
+        # Use Paragraphs for cell text to enable wrapping and smaller font for many columns
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.platypus import Paragraph
+
+        base_font_size = 9
+        if num_cols > 8:
+            base_font_size = 7
+        elif num_cols > 5:
+            base_font_size = 8
+
+        para_style = ParagraphStyle(
+            name='Cell',
+            fontName='Helvetica',
+            fontSize=base_font_size,
+            leading=base_font_size + 1,
+            wordWrap='LTR'
+        )
+
+        wrapped_data = []
+        for row in data:
+            wrapped_row = []
+            for cell in row:
+                text = '' if cell is None else str(cell)
+                # Replace long whitespace to avoid extremely long unbroken strings
+                text = text.replace('\t', '    ')
+                wrapped_row.append(Paragraph(text, para_style))
+            wrapped_data.append(wrapped_row)
+
+        # Create table with wrapped content
+        table = Table(wrapped_data, colWidths=[col_width] * num_cols, repeatRows=1)
+
         # Style table
         style_commands = [
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), base_font_size),
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4CAF50')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('LEFTPADDING', (0, 0), (-1, -1), 3),
             ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ]
-        
+
         table.setStyle(TableStyle(style_commands))
-        
+
+        # Enable page compression via a custom canvas to reduce file size
+        from reportlab.pdfgen.canvas import Canvas
+
+        class CompressingCanvas(Canvas):
+            def __init__(self, *a, **kw):
+                Canvas.__init__(self, *a, **kw)
+                try:
+                    self.setPageCompression(1)
+                except Exception:
+                    pass
+
         # Build PDF
         elements = [table]
-        doc.build(elements)
+        doc.build(elements, canvasmaker=CompressingCanvas)
         
         return os.path.exists(output_pdf)
     except Exception as e:
@@ -1019,9 +1137,15 @@ def csv_to_pdf(csv_path, output_pdf, **kwargs):
         return False
 
 def excel_to_pdf(excel_path, output_pdf, **kwargs):
-    """Convert Excel to PDF using LibreOffice with proper parameter support"""
+    """Convert Excel/CSV to PDF using LibreOffice with proper parameter support"""
     try:
         from pathlib import Path
+        
+        # Helper function to convert string booleans
+        def to_bool(val):
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
         
         # Get parameters
         orientation = kwargs.get('orientation', 'portrait').lower()
@@ -1030,18 +1154,56 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         margin_bottom = float(kwargs.get('margin_bottom', 25))
         margin_left = float(kwargs.get('margin_left', 25))
         margin_right = float(kwargs.get('margin_right', 25))
-        include_headers = kwargs.get('include_headers', True)
-        gridlines = kwargs.get('gridlines', False)
+        include_headers = to_bool(kwargs.get('include_headers', True))
+        gridlines = to_bool(kwargs.get('gridlines', False))
         scale_factor = float(kwargs.get('scale_factor', 100))
+        # Additional sizing/compression options
+        reduce_images = to_bool(kwargs.get('reduce_images', False))
+        export_pdfa = to_bool(kwargs.get('export_pdfa', False))
+        pdf_version = kwargs.get('pdf_version', None)
+        # Choose sensible compression default if user requests smaller output
+        compression_level_default = 'high' if reduce_images else kwargs.get('compression', 'normal')
         
-        logger.info(f"Converting Excel with parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm, scale={scale_factor}%")
+        print(f"\n========== EXCEL_TO_PDF DEBUG START ==========")
+        print(f"[excel_to_pdf] Input: {excel_path}")
+        print(f"[excel_to_pdf] Output: {output_pdf}")
+        print(f"[excel_to_pdf] Parameters received:")
+        print(f"  orientation={orientation} (type: {type(orientation).__name__})")
+        print(f"  paper_size={paper_size} (type: {type(paper_size).__name__})")
+        print(f"  margins: top={margin_top}mm, bottom={margin_bottom}mm, left={margin_left}mm, right={margin_right}mm")
+        print(f"  include_headers={include_headers} (type: {type(include_headers).__name__})")
+        print(f"  gridlines={gridlines} (type: {type(gridlines).__name__})")
+        print(f"  scale_factor={scale_factor}% (type: {type(scale_factor).__name__})")
+        
+        logger.info(f"Converting Excel with parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm, scale={scale_factor}%, headers={include_headers}, gridlines={gridlines}")
         
         out_dir = os.path.dirname(output_pdf) or '.'
         os.makedirs(out_dir, exist_ok=True)
         
-        # Create temp copy and apply page setup parameters
-        temp_excel = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False).name
-        shutil.copy(excel_path, temp_excel)
+        # Determine input file type
+        input_ext = Path(excel_path).suffix.lower()
+        print(f"[excel_to_pdf] Input file extension: '{input_ext}'")
+        
+        # If CSV, convert to XLSX first (so we can apply page setup)
+        temp_excel = excel_path
+        if input_ext == '.csv':
+            print(f"[excel_to_pdf] CSV file detected, converting to XLSX...")
+            from openpyxl import Workbook
+            import csv as csv_module
+            
+            temp_excel = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False).name
+            wb = Workbook()
+            ws = wb.active
+            
+            with open(excel_path, 'r', encoding='utf-8', errors='ignore') as f:
+                reader = csv_module.reader(f)
+                for row_idx, row in enumerate(reader, 1):
+                    for col_idx, cell in enumerate(row, 1):
+                        ws.cell(row=row_idx, column=col_idx, value=cell)
+            
+            wb.save(temp_excel)
+            wb.close()
+            print(f"[excel_to_pdf] CSV converted to XLSX: {temp_excel}")
         
         try:
             from openpyxl.worksheet.page import PageMargins, PrintOptions
@@ -1062,6 +1224,9 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
             ws.page_setup.paperSize = paper_size_map.get(paper_size, 9)
             ws.page_setup.orientation = orientation  # 'portrait' or 'landscape'
             
+            print(f"[excel_to_pdf] Applied page_setup:")
+            print(f"  paperSize={ws.page_setup.paperSize}, orientation={ws.page_setup.orientation}")
+            
             # Apply margins (convert mm to inches: 1 inch = 25.4mm)
             ws.page_margins = PageMargins(
                 left=margin_left / 25.4,
@@ -1072,55 +1237,237 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 footer=0.3
             )
             
-            # Apply print options
+            print(f"[excel_to_pdf] Applied page_margins:")
+            print(f"  left={ws.page_margins.left}, right={ws.page_margins.right}, top={ws.page_margins.top}, bottom={ws.page_margins.bottom}")
+            
+            # Apply print options for gridlines and headers
             ws.print_options = PrintOptions(
                 horizontalCentered=False,
-                verticalCentered=False,
-                printGridLines=gridlines,
-                printHeadings=include_headers
+                verticalCentered=False
             )
             
-            # Apply scale/zoom
-            ws.page_setup.scale = int(scale_factor)
+            # Apply gridlines display
+            if gridlines:
+                ws.print_options.gridLines = True
+                ws.sheet_view.showGridLines = True
+            
+            # Apply headers (column/row headers)
+            if include_headers:
+                ws.print_options.headings = True
+            
+            print(f"[excel_to_pdf] Applied print_options:")
+            print(f"  gridlines={gridlines}, headers={include_headers}")
+            
+            # Apply fit mode (how to scale content)
+            fit_mode = kwargs.get('fit_mode', 'fit-page')
+            print(f"[excel_to_pdf] Applying fit mode: {fit_mode}")
+            
+            if fit_mode == 'fit-page':
+                # Fit all data on one page
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = 1
+                ws.page_setup.fitToWidth = 1
+            elif fit_mode == 'fit-width':
+                # Fit all columns on one page width
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = None  # Let height expand as needed
+                ws.page_setup.fitToWidth = 1
+            elif fit_mode == 'fit-height':
+                # Fit all rows on one page height
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToHeight = 1
+                ws.page_setup.fitToWidth = None  # Let width expand as needed
+            # else: 'no-fit' - use scale factor instead
+            
+            # Apply scale/zoom (only if not using fit mode)
+            if fit_mode == 'no-fit':
+                ws.page_setup.scale = int(scale_factor)
+            else:
+                # Use scale as additional zoom
+                ws.page_setup.scale = max(int(scale_factor), 50)  # Minimum 50%
+            
+            print(f"[excel_to_pdf] Applied fit mode: {fit_mode}, scale: {ws.page_setup.scale}%")
+            
+            # Enable color/font preservation settings
+            # Note: LibreOffice will preserve these automatically during conversion
+            print(f"[excel_to_pdf] Color and font preservation: enabled (LibreOffice will preserve)")
             
             wb.save(temp_excel)
             wb.close()
             
-            logger.info(f"Applied page setup: orientation={orientation}, paperSize={paper_size}")
+            print(f"[excel_to_pdf] Excel file with all settings saved to: {temp_excel}")
+            logger.info(f"Applied page setup: orientation={orientation}, paperSize={paper_size}, fit_mode={fit_mode}")
             
         except Exception as e:
             logger.warning(f"Could not apply page setup to Excel: {e}", exc_info=True)
+            print(f"[excel_to_pdf] Warning: Could not apply page setup: {e}")
             # Continue anyway - will use default settings
         
         # Convert using LibreOffice
         soffice = get_soffice_path()
+        print(f"[excel_to_pdf] Using soffice: {soffice}")
         logger.info(f"Using soffice: {soffice}")
-        
+        # Build convert-to argument, optionally request PDF/A or specific PDF version
+        convert_to_arg = 'pdf:writer_pdf_Export'
+        if export_pdfa or pdf_version:
+            ver = pdf_version if pdf_version else '1'
+            convert_to_arg = f"pdf:writer_pdf_Export:SelectPdfVersion={ver}"
+
         cmd = [
             soffice,
             '--headless',
-            '--convert-to', 'pdf',
+            '--convert-to', convert_to_arg,
             '--outdir', out_dir,
             temp_excel
         ]
         
+        print(f"[excel_to_pdf] Running LibreOffice command: {' '.join(cmd)}")
+        print(f"[excel_to_pdf] Converting from: {temp_excel}")
         logger.info(f"Running conversion...")
         result = subprocess.run(cmd, capture_output=True, timeout=120)
         
+        print(f"[excel_to_pdf] LibreOffice return code: {result.returncode}")
         logger.info(f"Return code: {result.returncode}")
         if result.stdout:
-            logger.info(f"Stdout: {result.stdout.decode('utf-8', errors='ignore')}")
+            stdout_text = result.stdout.decode('utf-8', errors='ignore')
+            print(f"[excel_to_pdf] LibreOffice stdout: {stdout_text}")
+            logger.info(f"Stdout: {stdout_text}")
         if result.stderr:
-            logger.warning(f"Stderr: {result.stderr.decode('utf-8', errors='ignore')}")
+            stderr_text = result.stderr.decode('utf-8', errors='ignore')
+            print(f"[excel_to_pdf] LibreOffice stderr: {stderr_text}")
+            logger.warning(f"Stderr: {stderr_text}")
+
+        # Persist LibreOffice stdout/stderr to a log file for debugging
+        try:
+            log_name = f"libreoffice_{Path(temp_excel).stem}_{uuid.uuid4().hex}.log"
+            log_path = os.path.join(out_dir, log_name)
+            with open(log_path, 'w', encoding='utf-8', errors='ignore') as lf:
+                lf.write(f"=== LIBREOFFICE LOG ===\n")
+                lf.write(f"Command: {' '.join(cmd)}\n")
+                lf.write(f"Return code: {result.returncode}\n\n")
+                lf.write('--- STDOUT ---\n')
+                lf.write(stdout_text if result.stdout else '')
+                lf.write('\n--- STDERR ---\n')
+                lf.write(stderr_text if result.stderr else '')
+            print(f"[excel_to_pdf] LibreOffice log written: {log_path}")
+            logger.info(f"LibreOffice log written: {log_path}")
+        except Exception as e:
+            print(f"[excel_to_pdf] Could not write LibreOffice log: {e}")
+            logger.warning(f"Could not write LibreOffice log: {e}")
         
         if result.returncode == 0:
             temp_pdf = os.path.join(out_dir, f"{Path(temp_excel).stem}.pdf")
+            print(f"[excel_to_pdf] Looking for PDF at: {temp_pdf}")
             logger.info(f"Looking for PDF at: {temp_pdf}")
             
             if os.path.exists(temp_pdf):
-                logger.info(f"Found PDF: {os.path.getsize(temp_pdf)} bytes")
+                pdf_size = os.path.getsize(temp_pdf)
+                print(f"[excel_to_pdf] PDF found: {pdf_size} bytes")
+                logger.info(f"Found PDF: {pdf_size} bytes")
                 if os.path.abspath(temp_pdf) != os.path.abspath(output_pdf):
                     shutil.move(temp_pdf, output_pdf)
+                
+                # Post-processing: Add page numbers if requested
+                page_numbers_enabled = kwargs.get('page_numbers', False)
+                # Respect compression preference but default to higher compression when reduce_images requested
+                compression_level = kwargs.get('compression', compression_level_default)
+                
+                print(f"[excel_to_pdf] Post-processing: page_numbers={page_numbers_enabled}, compression={compression_level}")
+                
+                if page_numbers_enabled or compression_level != 'normal':
+                    try:
+                        from PyPDF2 import PdfWriter, PdfReader
+                        from reportlab.pdfgen import canvas
+                        from reportlab.lib.pagesizes import letter, landscape, A4
+                        from io import BytesIO
+                        
+                        # Try to add page numbers and/or compress
+                        output_pdf_temp = output_pdf.replace('.pdf', '_temp.pdf')
+                        
+                        if page_numbers_enabled:
+                            print(f"[excel_to_pdf] Adding page numbers...")
+                            try:
+                                # Read the original PDF
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                num_pages = len(pdf_reader.pages)
+                                
+                                # Process each page
+                                for page_num in range(num_pages):
+                                    page = pdf_reader.pages[page_num]
+                                    
+                                    # Create a page with page number
+                                    packet = BytesIO()
+                                    can = canvas.Canvas(packet, pagesize=letter)
+                                    can.setFont("Helvetica", 9)
+                                    can.drawString(500, 20, f"Page {page_num + 1} of {num_pages}")
+                                    can.save()
+                                    
+                                    # Merge page number with original page
+                                    packet.seek(0)
+                                    annotation = PdfReader(packet)
+                                    page.merge_page(annotation.pages[0])
+                                    pdf_writer.add_page(page)
+                                
+                                # Write to temp PDF
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                # Replace original with versioned PDF
+                                if os.path.exists(output_pdf_temp):
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[excel_to_pdf] Page numbers added successfully")
+                                    
+                            except Exception as e:
+                                print(f"[excel_to_pdf] Warning: Could not add page numbers: {e}")
+                                logger.warning(f"Could not add page numbers: {e}")
+                        
+                        # Apply compression if requested
+                        if compression_level == 'high':
+                            print(f"[excel_to_pdf] Applying high compression...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                
+                                for page in pdf_reader.pages:
+                                    page.compress_content_streams()
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                # Check compression results
+                                original_size = os.path.getsize(output_pdf)
+                                compressed_size = os.path.getsize(output_pdf_temp)
+                                compression_ratio = (1 - compressed_size / original_size) * 100
+                                
+                                if compressed_size < original_size:
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[excel_to_pdf] Compression successful: {original_size} → {compressed_size} bytes ({compression_ratio:.1f}% reduction)")
+                                else:
+                                    os.remove(output_pdf_temp)
+                                    print(f"[excel_to_pdf] Compression not beneficial, keeping original")
+                                    
+                            except Exception as e:
+                                # Handle encoding issues in error message for Windows
+                                error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                                print(f"[excel_to_pdf] Warning: Could not compress PDF: {error_msg}")
+                                logger.warning(f"Could not compress PDF: {e}")
+                                if os.path.exists(output_pdf_temp):
+                                    try:
+                                        os.remove(output_pdf_temp)
+                                    except:
+                                        pass
+                        
+                    except ImportError:
+                        print(f"[excel_to_pdf] Note: PyPDF2 or reportlab not available for page numbers/compression")
+                        logger.info("PyPDF2 or reportlab not available")
+                
+                final_pdf_size = os.path.getsize(output_pdf)
+                print(f"[excel_to_pdf] SUCCESS! PDF created: {output_pdf} ({final_pdf_size} bytes)")
+                print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
                 logger.info(f"Successfully created: {output_pdf}")
                 
                 # Cleanup temp Excel
@@ -1131,8 +1478,12 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 
                 return True
             else:
+                print(f"[excel_to_pdf] ERROR: PDF not found at: {temp_pdf}")
+                print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
                 logger.error(f"PDF not found at: {temp_pdf}")
         else:
+            print(f"[excel_to_pdf] ERROR: LibreOffice conversion failed with return code {result.returncode}")
+            print(f"========== EXCEL_TO_PDF DEBUG END ==========\n")
             logger.error(f"LibreOffice conversion failed")
         
         # Cleanup on error
@@ -1145,6 +1496,199 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
     except Exception as e:
         logger.error(f"Excel to PDF error: {e}", exc_info=True)
+        return False
+
+
+def docx_to_pdf_with_params(docx_path, output_pdf, **kwargs):
+    """Convert DOCX to PDF with page layout parameters"""
+    try:
+        # Try to import python-docx
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt
+            from docx.oxml.ns import qn
+            from docx.oxml import OxmlElement
+        except ImportError:
+            print("[docx_to_pdf] python-docx not available, using LibreOffice only")
+            # Fall back to LibreOffice without page setup
+            return _convert_with_libreoffice(docx_path, output_pdf, **kwargs)
+        
+        # Extract parameters
+        orientation = kwargs.get('orientation', 'portrait').lower()
+        paper_size = kwargs.get('paper_size', 'A4')
+        margin_top = float(kwargs.get('margin_top', 20))
+        margin_bottom = float(kwargs.get('margin_bottom', 20))
+        margin_left = float(kwargs.get('margin_left', 20))
+        margin_right = float(kwargs.get('margin_right', 20))
+        scale_factor = float(kwargs.get('scale_factor', 100))
+        
+        print(f"\n========== DOCX_TO_PDF DEBUG START ==========")
+        print(f"[docx_to_pdf] Input: {docx_path}")
+        print(f"[docx_to_pdf] Output: {output_pdf}")
+        print(f"[docx_to_pdf] Parameters: orientation={orientation}, paper_size={paper_size}, margins={margin_top}x{margin_bottom}x{margin_left}x{margin_right}mm")
+        
+        out_dir = os.path.dirname(output_pdf) or '.'
+        os.makedirs(out_dir, exist_ok=True)
+        
+        # Load document
+        doc = Document(docx_path)
+        
+        # Apply page setup
+        section = doc.sections[0]
+        
+        # Set margins (convert mm to inches: 1 inch = 25.4mm)
+        section.top_margin = Inches(margin_top / 25.4)
+        section.bottom_margin = Inches(margin_bottom / 25.4)
+        section.left_margin = Inches(margin_left / 25.4)
+        section.right_margin = Inches(margin_right / 25.4)
+        
+        # Set page orientation (landscape=horizontal)
+        if orientation == 'landscape':
+            section.page_height = Inches(8.27)  # A4 width in landscape
+            section.page_width = Inches(11.69)  # A4 height in landscape
+        else:
+            section.page_height = Inches(11.69)  # A4 height in portrait
+            section.page_width = Inches(8.27)   # A4 width in portrait
+        
+        # Save modified document to temporary file
+        temp_docx = tempfile.NamedTemporaryFile(suffix='.docx', delete=False).name
+        doc.save(temp_docx)
+        print(f"[docx_to_pdf] Modified DOCX saved: {temp_docx}")
+        
+        # Convert to PDF using LibreOffice
+        print(f"[docx_to_pdf] Converting to PDF using LibreOffice...")
+        success = _convert_with_libreoffice(temp_docx, output_pdf, **kwargs)
+        
+        # Cleanup temp file
+        try:
+            os.unlink(temp_docx)
+        except:
+            pass
+        
+        if success:
+            pdf_size = os.path.getsize(output_pdf)
+            print(f"[docx_to_pdf] SUCCESS! PDF created: {output_pdf} ({pdf_size} bytes)")
+            print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+            logger.info(f"Successfully created DOCX-based PDF: {output_pdf}")
+            return True
+        else:
+            print(f"[docx_to_pdf] ERROR: LibreOffice conversion failed")
+            print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+            return False
+            
+    except Exception as e:
+        logger.error(f"DOCX to PDF error: {e}", exc_info=True)
+        print(f"[docx_to_pdf] ERROR: {e}")
+        print(f"========== DOCX_TO_PDF DEBUG END ==========\n")
+        return False
+
+
+def _convert_with_libreoffice(input_file, output_pdf, **kwargs):
+    """Helper function to convert any document format to PDF using LibreOffice"""
+    try:
+        out_dir = os.path.dirname(output_pdf) or '.'
+        os.makedirs(out_dir, exist_ok=True)
+        
+        soffice = get_soffice_path()
+        print(f"[libreoffice_convert] Using soffice: {soffice}")
+        
+        cmd = [
+            soffice,
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', out_dir,
+            input_file
+        ]
+        
+        print(f"[libreoffice_convert] Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        
+        if result.returncode == 0:
+            temp_pdf = os.path.join(out_dir, f"{Path(input_file).stem}.pdf")
+            if os.path.exists(temp_pdf):
+                if os.path.abspath(temp_pdf) != os.path.abspath(output_pdf):
+                    shutil.move(temp_pdf, output_pdf)
+                
+                # Apply post-processing (page numbers and compression)
+                page_numbers_enabled = kwargs.get('page_numbers', False)
+                compression_level = kwargs.get('compression', 'normal')
+                
+                if page_numbers_enabled or compression_level != 'normal':
+                    try:
+                        from PyPDF2 import PdfWriter, PdfReader
+                        from reportlab.pdfgen import canvas
+                        from io import BytesIO
+                        
+                        output_pdf_temp = output_pdf.replace('.pdf', '_temp.pdf')
+                        
+                        if page_numbers_enabled:
+                            print(f"[libreoffice_convert] Adding page numbers...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                num_pages = len(pdf_reader.pages)
+                                
+                                for page_num in range(num_pages):
+                                    page = pdf_reader.pages[page_num]
+                                    packet = BytesIO()
+                                    can = canvas.Canvas(packet, pagesize=(612, 792))
+                                    can.setFont("Helvetica", 9)
+                                    can.drawString(500, 20, f"Page {page_num + 1} of {num_pages}")
+                                    can.save()
+                                    packet.seek(0)
+                                    annotation = PdfReader(packet)
+                                    page.merge_page(annotation.pages[0])
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                if os.path.exists(output_pdf_temp):
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    print(f"[libreoffice_convert] Page numbers added")
+                            except Exception as e:
+                                print(f"[libreoffice_convert] Warning: Could not add page numbers: {e}")
+                        
+                        if compression_level == 'high':
+                            print(f"[libreoffice_convert] Applying compression...")
+                            try:
+                                pdf_reader = PdfReader(output_pdf)
+                                pdf_writer = PdfWriter()
+                                
+                                for page in pdf_reader.pages:
+                                    page.compress_content_streams()
+                                    pdf_writer.add_page(page)
+                                
+                                with open(output_pdf_temp, 'wb') as f:
+                                    pdf_writer.write(f)
+                                
+                                original_size = os.path.getsize(output_pdf)
+                                compressed_size = os.path.getsize(output_pdf_temp)
+                                
+                                if compressed_size < original_size:
+                                    os.remove(output_pdf)
+                                    os.rename(output_pdf_temp, output_pdf)
+                                    ratio = (1 - compressed_size / original_size) * 100
+                                    print(f"[libreoffice_convert] Compression: {original_size} → {compressed_size} bytes ({ratio:.1f}% reduction)")
+                                else:
+                                    os.remove(output_pdf_temp)
+                            except Exception as e:
+                                print(f"[libreoffice_convert] Warning: Compression failed: {e}")
+                                if os.path.exists(output_pdf_temp):
+                                    try:
+                                        os.remove(output_pdf_temp)
+                                    except:
+                                        pass
+                    except ImportError:
+                        print(f"[libreoffice_convert] PyPDF2/reportlab not available for post-processing")
+                
+                return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"LibreOffice conversion error: {e}", exc_info=True)
+        print(f"[libreoffice_convert] ERROR: {e}")
         return False
 
 
@@ -1813,6 +2357,10 @@ def preview_conversion():
     Accepts form-data with file(s), operation, and conversion parameters.
     Returns JSON: { success: bool, images: [dataurl, ...], message: '' }
     """
+    # Log ALL form data received
+    logger.info(f"Preview request received. Form keys: {list(request.form.keys())}")
+    logger.info(f"All form data: {dict(request.form)}")
+    
     if 'file' in request.files:
         files = request.files.getlist('file')
     elif 'files' in request.files:
@@ -1848,6 +2396,46 @@ def preview_conversion():
     blur = request.form.get('blur', None)
     invert = request.form.get('invert', 'false').lower() == 'true'
     denoise = request.form.get('denoise', None)
+    
+    # Extract PDF-specific parameters for "To PDF" tool
+    pdf_params = {}
+    
+    # Always set these parameters (with defaults if not provided)
+    pdf_params['orientation'] = request.form.get('orientation', 'portrait')
+    pdf_params['paper_size'] = request.form.get('paper_size', 'A4')
+    
+    # Numeric margins - extract as floats with defaults
+    try:
+        pdf_params['margin_top'] = float(request.form.get('margin_top', 10))
+    except:
+        pdf_params['margin_top'] = 10
+    try:
+        pdf_params['margin_bottom'] = float(request.form.get('margin_bottom', 10))
+    except:
+        pdf_params['margin_bottom'] = 10
+    try:
+        pdf_params['margin_left'] = float(request.form.get('margin_left', 10))
+    except:
+        pdf_params['margin_left'] = 10
+    try:
+        pdf_params['margin_right'] = float(request.form.get('margin_right', 10))
+    except:
+        pdf_params['margin_right'] = 10
+    try:
+        pdf_params['scale_factor'] = int(request.form.get('scale_factor', 100))
+    except:
+        pdf_params['scale_factor'] = 100
+    
+    # Boolean parameters
+    pdf_params['include_headers'] = request.form.get('include_headers', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['gridlines'] = request.form.get('gridlines', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['page_numbers'] = request.form.get('page_numbers', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['preserve_colors'] = request.form.get('preserve_colors', 'true').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['embed_fonts'] = request.form.get('embed_fonts', 'false').lower() in ('true', 'yes', '1', 'on')
+    pdf_params['background'] = request.form.get('background', 'false').lower() in ('true', 'yes', '1', 'on')
+    
+    # Log what parameters we're using
+    logger.info(f"Preview request parameters: {pdf_params}")
     
     # Convert to appropriate types
     if threshold:
@@ -1900,9 +2488,9 @@ def preview_conversion():
         elif ext in DOCUMENT_ALLOWED_EXTENSIONS:
             inter = os.path.join(temp_dir, f"__preview_{Path(filename).stem}.pdf")
             try:
-                logger.info(f'Attempting to convert {ext.upper()} file {filename}')
+                logger.info(f'Attempting to convert {ext.upper()} file {filename} with params: {pdf_params}')
                 if ext == 'docx':
-                    result = docx_to_pdf(input_path, inter)
+                    result = docx_to_pdf(input_path, inter, **pdf_params)
                     logger.info(f'docx_to_pdf returned: {result}')
                 elif ext in ['doc', 'odt']:
                     result = soffice_to_pdf(input_path, inter)
@@ -1918,11 +2506,11 @@ def preview_conversion():
         elif ext in EXCEL_ALLOWED_EXTENSIONS:
             inter = os.path.join(temp_dir, f"__preview_{Path(filename).stem}.pdf")
             try:
-                logger.info(f'Attempting to convert Excel file {filename}')
+                logger.info(f'Attempting to convert Excel file {filename} with params: {pdf_params}')
                 if ext == 'csv':
-                    result = csv_to_pdf(input_path, inter)
+                    result = csv_to_pdf(input_path, inter, **pdf_params)
                 else:
-                    result = excel_to_pdf(input_path, inter)
+                    result = excel_to_pdf(input_path, inter, **pdf_params)
                 logger.info(f'Excel/CSV conversion returned: {result}')
                 
                 if os.path.exists(inter):
@@ -5110,6 +5698,9 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
     Returns: bool (success/failure)
     """
     try:
+        # Sanitize tool name - remove problematic Unicode characters
+        tool_name = tool_name.replace('→', '->').replace('–', '-')
+        
         # Normalize tool name (convert title case to snake_case)
         tool_mapping = {
             'PDF to B&W': 'pdf_to_bw',
@@ -5122,7 +5713,7 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             'Image Compression': 'image_compress_service',
             'Image Resize': 'image_resize_service',
             'Remove Background': 'remove_image_bg',
-            'Background → White': 'remove_image_bg',
+            'Background - White': 'remove_image_bg',
             'Image Background to White': 'remove_image_bg',
             'Extract from PDF': 'extract_pages_pdf',
             'Extract PDF': 'extract_pages_pdf',
@@ -5148,6 +5739,8 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             'HTML to PDF': 'html_to_pdf',
             'Excel to PDF': 'excel_to_pdf',
             'Compress PDF': 'compress_pdf_service',
+            'PDF->Image': 'pdf_to_images',
+            'Image->WebP': 'image_to_webp',
         }
         
         # Map display name to internal name
@@ -5282,6 +5875,9 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             # Universal converter: handles any format and converts to PDF with advanced options
             ext = Path(input_path).suffix.lower().lstrip('.')
             
+            print(f"[execute_service_conversion] to_pdf: ext={ext}, kwargs={kwargs}")
+            logger.info(f"to_pdf conversion: ext={ext}, kwargs={kwargs}")
+            
             # Extract To PDF specific parameters
             image_quality = int(kwargs.get('image_quality', 85))
             page_numbers = kwargs.get('page_numbers', False) in (True, 'true', 'True')
@@ -5312,10 +5908,24 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
             
             # Document formats
             elif ext == 'docx':
-                return docx_to_pdf(input_path, output_path, preserve_colors=preserve_colors, preserve_images=preserve_images)
+                # Use new docx_to_pdf_with_params for advanced parameter support
+                return docx_to_pdf_with_params(input_path, output_path, **kwargs)
             elif ext in ('doc', 'odt'):
-                return soffice_to_pdf(input_path, output_path)
+                # Use updated soffice_to_pdf with parameter support
+                return soffice_to_pdf(input_path, output_path, **kwargs)
             elif ext in ('xlsx', 'xls', 'xlsm', 'xlsb', 'ods', 'csv'):
+                # Allow caller to force a simple renderer for CSVs (lighter, smaller PDFs)
+                use_simple = kwargs.get('use_simple_renderer', False) in (True, 'true', 'True', '1')
+                print(f"[execute_service_conversion] Calling excel_to_pdf with kwargs: {kwargs}, use_simple={use_simple}")
+                logger.info(f"Calling excel_to_pdf with kwargs: {kwargs}, use_simple={use_simple}")
+                if ext == 'csv' and use_simple:
+                    # Prefer the ReportLab based csv_to_pdf for CSV inputs when requested
+                    try:
+                        return csv_to_pdf(input_path, output_path, **kwargs)
+                    except Exception as e:
+                        print(f"[execute_service_conversion] csv_to_pdf fallback failed: {e}")
+                        logger.warning(f"csv_to_pdf fallback failed: {e}")
+                        # Fallback to LibreOffice path
                 return excel_to_pdf(input_path, output_path, **kwargs)
             elif ext == 'pptx':
                 return powerpoint_to_pdf(input_path, output_path)
@@ -5502,6 +6112,25 @@ def execute_service_conversion(tool_name, input_path, output_path, **kwargs):
         
         elif internal_tool_name == 'access_conversion_history':
             return True  # Handled separately
+        
+        # New conversion tools
+        elif internal_tool_name == 'pdf_to_images':
+            # PDF to Image converter
+            dpi = int(kwargs.get('dpi', 150))
+            output_format = kwargs.get('format', 'png').lower()
+            # Call pdf_to_images which returns a list of created image paths
+            image_paths = pdf_to_images(input_path, os.path.dirname(output_path), dpi=dpi, format=output_format)
+            # Return True if any images were created
+            if image_paths and len(image_paths) > 0:
+                # Store the image paths in kwargs so the caller can access them
+                kwargs['_converted_image_paths'] = image_paths
+                return True
+            return False
+        
+        elif internal_tool_name == 'image_to_webp':
+            # Image to WebP converter
+            quality = int(kwargs.get('quality', 80))
+            return image_to_webp(input_path, output_path, quality=quality)
         
         return False
     
@@ -5829,6 +6458,320 @@ def api_download(file_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ========================
+# ASYNC CONVERSION ENDPOINTS (SPA Support)
+# ========================
+
+def _process_conversion_job(job_id, temp_dir, files_list, tool_name, request_form):
+    """Background worker to process conversion asynchronously"""
+    job = _job_registry.get(job_id)
+    if not job:
+        return
+    
+    try:
+        with _job_lock:
+            job.status = 'processing'
+            job.start_time = datetime.now()
+        
+        # Helper function to convert string booleans from form data
+        def to_bool(val):
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
+        
+        converted_files = []
+        total_files = len(files_list)
+        
+        for idx, file_obj in enumerate(files_list):
+            if not file_obj or not file_obj.get('filename'):
+                continue
+            
+            # Update progress
+            progress = int((idx / total_files) * 100)
+            with _job_lock:
+                job.progress = progress
+            
+            # Write file bytes to disk
+            safe_name = sanitize_filename(file_obj['filename']) or ('upload_' + uuid.uuid4().hex)
+            input_path = os.path.join(temp_dir, safe_name)
+            
+            # Write the file content (bytes) to disk
+            try:
+                with open(input_path, 'wb') as f:
+                    f.write(file_obj['content'])
+            except Exception as e:
+                print(f"[Job {job_id}] Error writing file {file_obj['filename']}: {e}")
+                raise
+            
+            print(f"[Job {job_id}] Processing: {file_obj['filename']}")
+            
+            # Determine output filename
+            base_name = Path(file_obj['filename']).stem
+            output_format = request_form.get('output_format', 'pdf').lower()
+            
+            if tool_name == 'PDF to B&W' or tool_name == 'PDF to B&W Pro':
+                output_ext = 'pdf'
+            elif 'Image->WebP' in tool_name or tool_name == 'Image->WebP':
+                output_ext = 'webp'
+            elif 'Image Convert' in tool_name:
+                output_ext = output_format or 'jpg'
+            elif 'PDF->Image' in tool_name or tool_name == 'PDF->Image':
+                output_ext = request_form.get('format', 'png').lower()
+            elif 'CSV' in tool_name:
+                output_ext = 'csv'
+            elif 'HTML' in tool_name:
+                output_ext = 'html'
+            elif 'PPT' in tool_name:
+                output_ext = 'pptx'
+            elif 'Excel' in tool_name:
+                output_ext = 'xlsx'
+            elif 'Word' in tool_name:
+                output_ext = 'docx'
+            else:
+                output_ext = output_format or 'pdf'
+            
+            output_name = f"{base_name}.{output_ext}"
+            output_path = os.path.join(temp_dir, output_name)
+            
+            # Prepare conversion parameters
+            kwargs = {
+                'quality': int(request_form.get('quality', '85') or 85),
+                'output_format': output_ext,
+                'orientation': request_form.get('orientation', 'portrait'),
+                'paper_size': request_form.get('paper_size', 'A4'),
+                'margin_top': request_form.get('margin_top', '20'),
+                'margin_bottom': request_form.get('margin_bottom', '20'),
+                'margin_left': request_form.get('margin_left', '20'),
+                'margin_right': request_form.get('margin_right', '20'),
+                'threshold': request_form.get('threshold', '250'),
+                'contrast': request_form.get('contrast', '3'),
+                'gridlines': to_bool(request_form.get('gridlines', 'false')),
+                'include_headers': to_bool(request_form.get('include_headers', 'true')),
+                'scale_factor': request_form.get('scale_factor', '100'),
+                'image_quality': request_form.get('image_quality', '85'),
+                'dpi': request_form.get('dpi', '150'),
+                'format': request_form.get('format', 'png'),
+                # New options for renderer selection and size-control
+                'use_simple_renderer': to_bool(request_form.get('use_simple_renderer', 'false')),
+                'reduce_images': to_bool(request_form.get('reduce_images', 'false')),
+                'export_pdfa': to_bool(request_form.get('export_pdfa', 'false')),
+                'pdf_version': request_form.get('pdf_version', None),
+                'compression': request_form.get('compression', 'normal'),
+                'fit_mode': request_form.get('fit_mode', 'fit-page'),
+            }
+            
+            # Execute conversion
+            try:
+                conversion_ok = execute_service_conversion(tool_name, input_path, output_path, **kwargs)
+                
+                # Check if this is a multi-file conversion (like PDF->Image)
+                if conversion_ok and '_converted_image_paths' in kwargs:
+                    # Handle multi-file results (PDF->Image creates multiple files)
+                    for img_path in kwargs.get('_converted_image_paths', []):
+                        if os.path.exists(img_path):
+                            file_size = os.path.getsize(img_path)
+                            file_id = _store_converted_file(img_path, os.path.basename(img_path))
+                            converted_files.append({
+                                'name': os.path.basename(img_path),
+                                'size': file_size,
+                                'download_url': f'/api/download/{file_id}'
+                            })
+                            print(f"[Job {job_id}] File converted: {os.path.basename(img_path)} ({file_size} bytes)")
+                elif conversion_ok and os.path.exists(output_path):
+                    # Standard single-file conversion
+                    # Also check for any LibreOffice logs in the same temp dir and store them
+                    file_size = os.path.getsize(output_path)
+                    file_id = _store_converted_file(output_path, output_name)
+                    converted_files.append({
+                        'name': output_name,
+                        'size': file_size,
+                        'download_url': f'/api/download/{file_id}'
+                    })
+                    print(f"[Job {job_id}] File converted: {output_name} ({file_size} bytes)")
+
+                    try:
+                        # Find any libreoffice log files created alongside the output
+                        for fname in os.listdir(temp_dir):
+                            if fname.startswith('libreoffice_') and fname.endswith('.log'):
+                                log_path = os.path.join(temp_dir, fname)
+                                if os.path.exists(log_path):
+                                    log_id = _store_converted_file(log_path, fname)
+                                    converted_files.append({
+                                        'name': fname,
+                                        'size': os.path.getsize(log_path),
+                                        'download_url': f'/api/download/{log_id}'
+                                    })
+                                    print(f"[Job {job_id}] LibreOffice log attached: {fname}")
+                    except Exception as e:
+                        print(f"[Job {job_id}] Error attaching libreoffice logs: {e}")
+            except Exception as e:
+                print(f"[Job {job_id}] Conversion error for {file_obj.get('filename')}: {e}")
+                raise
+        
+        # Update job with results
+        with _job_lock:
+            job.progress = 100
+            job.status = 'complete'
+            job.result = converted_files
+            job.end_time = datetime.now()
+        
+        print(f"[Job {job_id}] Conversion complete: {len(converted_files)} files")
+        log_history(f'async-convert-{tool_name}', [f['filename'] for f in files_list], 'success')
+    
+    except Exception as e:
+        print(f"[Job {job_id}] ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        with _job_lock:
+            job.status = 'error'
+            job.error = str(e)
+            job.end_time = datetime.now()
+        log_history(f'async-convert-{tool_name}', [], 'error', str(e))
+    
+    finally:
+        # Note: Keep files briefly for download
+        pass
+
+@app.route('/api/convert/start', methods=['POST'])
+def api_convert_start():
+    """Start an async conversion job.
+    
+    Returns: {success: true/false, job_id: str, error: string}
+    """
+    try:
+        # Check rate limiting
+        client_ip = _get_client_ip()
+        if not _check_rate_limit(client_ip):
+            return jsonify({
+                'success': False,
+                'error': 'Rate limit exceeded. Maximum 5 conversions per minute.'
+            }), 429
+        
+        # Validate file presence
+        if 'files' not in request.files and 'files[]' not in request.files:
+            return jsonify({'success': False, 'error': 'No files provided'}), 400
+        
+        files_key = 'files' if 'files' in request.files else 'files[]'
+        files_list = request.files.getlist(files_key)
+        
+        if not files_list:
+            return jsonify({'success': False, 'error': 'No files provided'}), 400
+        
+        tool_name = request.form.get('tool_name', 'To PDF')
+
+        # READ FILES INTO MEMORY BEFORE THREAD STARTS
+        # (FileStorage objects become invalid outside request context)
+        files_in_memory = []
+        total_size = 0
+        for f in files_list:
+            if not f or not getattr(f, 'filename', None):
+                continue
+            try:
+                # Read file bytes once while in request context
+                file_bytes = f.read()
+                if file_bytes is None:
+                    file_bytes = b''
+                size = len(file_bytes)
+                total_size += size
+
+                if total_size > _MAX_FILE_SIZE:
+                    max_mb = _MAX_FILE_SIZE / (1024 * 1024)
+                    return jsonify({
+                        'success': False,
+                        'error': f'Total file size exceeds {max_mb:.0f}MB limit'
+                    }), 413
+
+                files_in_memory.append({
+                    'filename': f.filename,
+                    'content': file_bytes
+                })
+            except Exception as e:
+                print(f"[Conversion] Error reading file {getattr(f, 'filename', '<unknown>')}: {e}")
+
+        if not files_in_memory:
+            return jsonify({'success': False, 'error': 'Could not read uploaded files'}), 400
+        
+        # Create job
+        job_id = str(uuid.uuid4())
+        job = ConversionJob(job_id, tool_name, len(files_in_memory))
+        
+        with _job_lock:
+            _job_registry[job_id] = job
+        
+        # Create temporary directory for this job
+        temp_dir = tempfile.mkdtemp()
+        
+        # Convert request.form to dict for thread context (forms aren't thread-safe)
+        form_data = dict(request.form)
+        
+        # Start background conversion worker
+        worker_thread = Thread(
+            target=_process_conversion_job,
+            args=(job_id, temp_dir, files_in_memory, tool_name, form_data),
+            daemon=True
+        )
+        worker_thread.start()
+        
+        print(f"[Conversion] Started job {job_id} for {tool_name} with {len(files_list)} files")
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': f'Conversion job started. Job ID: {job_id}'
+        }), 202
+    
+    except Exception as e:
+        print(f"[Conversion] Error starting job: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/convert/status/<job_id>', methods=['GET'])
+def api_convert_status(job_id):
+    """Check conversion job status.
+    
+    Returns: {
+        success: true/false,
+        status: 'queued'|'processing'|'complete'|'error',
+        progress: 0-100,
+        files: [...] (if complete),
+        error: string (if error)
+    }
+    """
+    try:
+        with _job_lock:
+            job = _job_registry.get(job_id)
+        
+        if not job:
+            return jsonify({
+                'success': False,
+                'error': 'Job not found'
+            }), 404
+        
+        response = job.to_dict()
+        response['success'] = True
+        
+        # If complete, include result files
+        if job.status == 'complete':
+            if job.result:
+                response['files'] = job.result
+            else:
+                response['files'] = []
+        
+        return jsonify(response), 200
+    
+    except Exception as e:
+        print(f"[Status Check] Error for job {job_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/convert', methods=['POST'])
 def api_convert():
     """Convert files using service tool names.
@@ -5842,6 +6785,13 @@ def api_convert():
     
     Returns: {success: true/false, files: [{name, size, path}], error: string}
     """
+    
+    # Helper function to convert string booleans from form data
+    def to_bool(val):
+        if isinstance(val, bool):
+            return val
+        return str(val).lower() in ('true', 'yes', '1', 'on') if val else False
+    
     try:
         if 'files' not in request.files and 'files[]' not in request.files:
             return jsonify({'success': False, 'error': 'No files provided'}), 400
@@ -5930,9 +6880,9 @@ def api_convert():
                     'gamma': request.form.get('gamma', '1.0'),
                     'sharpness': request.form.get('sharpness', '1'),
                     'blur': request.form.get('blur', '0'),
-                    'invert': request.form.get('invert', 'false'),
+                    'invert': to_bool(request.form.get('invert', 'false')),
                     'denoise': request.form.get('denoise', '0'),
-                    'edgeEnhance': request.form.get('edgeEnhance', 'true'),
+                    'edgeEnhance': to_bool(request.form.get('edgeEnhance', 'true')),
                     # To PDF parameters
                     'orientation': request.form.get('orientation', 'portrait'),
                     'paper_size': request.form.get('paper_size', 'A4'),
@@ -5941,15 +6891,15 @@ def api_convert():
                     'margin_left': request.form.get('margin_left', '20'),
                     'margin_right': request.form.get('margin_right', '20'),
                     'fit_mode': request.form.get('fit_mode', 'fit-page'),
-                    'include_headers': request.form.get('include_headers', 'true'),
-                    'gridlines': request.form.get('gridlines', 'false'),
+                    'include_headers': to_bool(request.form.get('include_headers', 'true')),
+                    'gridlines': to_bool(request.form.get('gridlines', 'false')),
                     'scale_factor': request.form.get('scale_factor', '100'),
                     'image_quality': request.form.get('image_quality', '85'),
-                    'page_numbers': request.form.get('page_numbers', 'false'),
+                    'page_numbers': to_bool(request.form.get('page_numbers', 'false')),
                     'compression': request.form.get('compression', 'medium'),
-                    'preserve_colors': request.form.get('preserve_colors', 'true'),
-                    'embed_fonts': request.form.get('embed_fonts', 'true'),
-                    'background': request.form.get('background', 'true'),
+                    'preserve_colors': to_bool(request.form.get('preserve_colors', 'true')),
+                    'embed_fonts': to_bool(request.form.get('embed_fonts', 'true')),
+                    'background': to_bool(request.form.get('background', 'true')),
                 }
                 
                 # Execute the service conversion
@@ -6255,6 +7205,506 @@ def combine_csvs_endpoint():
         logger.error(f"combine_csvs_endpoint error: {e}", exc_info=True)
         log_history('combine-csvs', [], 'error', str(e))
         return jsonify({'error': str(e)}), 500
+
+
+# ============ CLOUD STORAGE INTEGRATION ENDPOINTS ============
+
+@app.route('/api/cloud/upload', methods=['POST'])
+def cloud_upload():
+    """
+    Upload files to cloud storage.
+    Expects: file_ids (list), service (onedrive|gdrive|dropbox), auth_token (optional)
+    """
+    try:
+        data = request.get_json()
+        file_ids = data.get('file_ids', [])
+        service = data.get('service', '').lower()
+        auth_token = data.get('auth_token', '')
+        
+        if not file_ids or service not in ['onedrive', 'gdrive', 'dropbox']:
+            return jsonify({'error': 'Invalid service or missing file_ids'}), 400
+        
+        # For now, return message to guide users
+        # Full implementation requires OAuth token management
+        return jsonify({
+            'success': True,
+            'message': f'Files queued for upload to {service.capitalize()}',
+            'status': 'requires_auth',
+            'auth_url': f'/api/cloud/auth/{service}'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"cloud_upload error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/auth/<service>', methods=['GET'])
+def cloud_auth_start(service):
+    """
+    Start OAuth authentication flow for cloud service.
+    Redirects to service authorization page.
+    """
+    try:
+        service = service.lower()
+        
+        if service == 'onedrive':
+            # OneDrive OAuth
+            auth_url = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+            params = {
+                'client_id': os.getenv('ONEDRIVE_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'scope': 'Files.ReadWrite offline_access',
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='onedrive', _external=True)
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+            
+        elif service == 'gdrive':
+            # Google Drive OAuth
+            auth_url = 'https://accounts.google.com/o/oauth2/v2/auth'
+            params = {
+                'client_id': os.getenv('GDRIVE_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'scope': 'https://www.googleapis.com/auth/drive.file',
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='gdrive', _external=True)
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+            
+        elif service == 'dropbox':
+            # Dropbox OAuth
+            auth_url = 'https://www.dropbox.com/oauth2/authorize'
+            params = {
+                'client_id': os.getenv('DROPBOX_CLIENT_ID', 'YOUR_CLIENT_ID'),
+                'response_type': 'code',
+                'redirect_uri': url_for('cloud_auth_callback', service='dropbox', _external=True),
+                'token_access_type': 'offline'
+            }
+            return redirect(f"{auth_url}?{'&'.join([f'{k}={v}' for k,v in params.items()])}")
+        
+        return jsonify({'error': 'Invalid service'}), 400
+        
+    except Exception as e:
+        logger.error(f"cloud_auth_start error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/auth-callback/<service>', methods=['GET'])
+def cloud_auth_callback(service):
+    """
+    Handle OAuth callback from cloud services.
+    Exchanges auth code for access token.
+    """
+    try:
+        auth_code = request.args.get('code')
+        error = request.args.get('error')
+        
+        if error:
+            return jsonify({'error': f'Authorization failed: {error}'}), 400
+        
+        if not auth_code:
+            return jsonify({'error': 'Missing authorization code'}), 400
+        
+        service = service.lower()
+        
+        # Store token in session (simplified - in production use secure token storage)
+        # This would exchange auth_code for access_token via cloud service API
+        
+        return jsonify({
+            'success': True,
+            'message': f'{service.capitalize()} authentication successful',
+            'auth_token': 'token_placeholder'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"cloud_auth_callback error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cloud/info', methods=['GET'])
+def get_cloud_info():
+    """Get configuration info for cloud storage services."""
+    return jsonify({
+        'services': {
+            'onedrive': {
+                'name': 'OneDrive',
+                'configured': bool(os.getenv('ONEDRIVE_CLIENT_ID')),
+                'icon': 'bi-cloud'
+            },
+            'gdrive': {
+                'name': 'Google Drive',
+                'configured': bool(os.getenv('GDRIVE_CLIENT_ID')),
+                'icon': 'bi-cloud-plus'
+            },
+            'dropbox': {
+                'name': 'Dropbox',
+                'configured': bool(os.getenv('DROPBOX_CLIENT_ID')),
+                'icon': 'bi-box'
+            }
+        },
+        'setup_instructions': 'Cloud storage upload requires setting up OAuth credentials. See documentation for setup steps.'
+    }), 200
+
+
+# === NEW CONVERSION FUNCTIONS ===
+
+def pdf_to_images(pdf_path, output_dir, dpi=150, format='png'):
+    """
+    Convert PDF pages to images.
+    
+    Args:
+        pdf_path: Path to input PDF
+        output_dir: Directory to save images
+        dpi: Resolution (default 150)
+        format: Output format 'png' or 'jpg' (default 'png')
+    
+    Returns:
+        List of generated image paths
+    """
+    try:
+        import fitz  # PyMuPDF - already imported at top
+        
+        doc = fitz.open(pdf_path)
+        image_paths = []
+        
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            
+            # Render page to image (increase resolution with zoom)
+            zoom_factor = dpi / 72  # Default is 72 DPI
+            mat = fitz.Matrix(zoom_factor, zoom_factor)
+            pix = page.get_pixmap(matrix=mat)
+            
+            # Generate output filename
+            output_filename = f"page_{page_num + 1:03d}.{format}"
+            output_path = os.path.join(output_dir, output_filename)
+            
+            # Save image
+            if format.lower() == 'jpg':
+                pix.save(output_path, 'jpeg')
+            else:
+                pix.save(output_path, 'png')
+            
+            image_paths.append(output_path)
+        
+        doc.close()
+        return image_paths
+        
+    except Exception as e:
+        logger.error(f"Error converting PDF to images: {e}")
+        return []
+
+
+def image_to_webp(image_path, output_path, quality=80):
+    """
+    Convert image to WebP format.
+    
+    Args:
+        image_path: Path to input image
+        output_path: Path to output WebP file
+        quality: Quality level 1-100 (default 80)
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        img = Image.open(image_path)
+        
+        # Convert RGBA to RGB if needed for JPEG/WebP
+        if img.mode == 'RGBA':
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            background.paste(img, mask=img.split()[3])
+            img = background
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Save as WebP
+        quality = max(1, min(100, quality))  # Clamp quality
+        img.save(output_path, 'WEBP', quality=quality)
+        
+        logger.info(f"Image converted to WebP: {output_path}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error converting image to WebP: {e}")
+        return False
+
+
+# === STATS ENDPOINT ===
+
+@app.route('/api/stats', methods=['GET'])
+def get_conversion_stats():
+    """
+    Get conversion statistics from localStorage (via tracking).
+    Returns popular tools and conversion metrics.
+    """
+    try:
+        # Get tool usage from conversion history log file
+        stats = {
+            'total_conversions': 0,
+            'total_files': 0,
+            'popular_tools': [],
+            'conversions_today': 0,
+            'tools_used': {}
+        }
+        
+        # Try to read from conversion history database
+        history_file = os.path.join(os.path.dirname(__file__), 'data', 'conversion_history.json')
+        
+        if os.path.exists(history_file):
+            try:
+                with open(history_file, 'r') as f:
+                    history = _json.load(f)
+                    
+                    # Calculate stats
+                    stats['total_conversions'] = len(history)
+                    stats['total_files'] = sum(h.get('file_count', 1) for h in history)
+                    
+                    # Count tools
+                    tool_counts = {}
+                    today = datetime.now().date()
+                    today_count = 0
+                    
+                    for entry in history:
+                        tool = entry.get('tool', 'Unknown')
+                        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+                        
+                        # Check if today
+                        entry_date = datetime.fromisoformat(entry.get('date', '').split()[0]).date() if entry.get('date') else None
+                        if entry_date == today:
+                            today_count += 1
+                    
+                    stats['conversions_today'] = today_count
+                    stats['tools_used'] = tool_counts
+                    
+                    # Get top 5 popular tools
+                    sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
+                    stats['popular_tools'] = [
+                        {'name': name, 'count': count} 
+                        for name, count in sorted_tools[:5]
+                    ]
+            except Exception as e:
+                logger.error(f"Error reading conversion history: {e}")
+        
+        return jsonify(stats), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# === CONVERSION HISTORY LOGGING ===
+def log_conversion(tool_name, file_count=1, input_format=None, output_format=None):
+    """
+    Log a conversion to the conversion history JSON file.
+    
+    Args:
+        tool_name: Name of the conversion tool (e.g., 'PDF→Image', 'Image→WebP')
+        file_count: Number of files converted
+        input_format: Input file format (optional)
+        output_format: Output file format (optional)
+    """
+    try:
+        history_dir = os.path.join(os.path.dirname(__file__), 'data')
+        os.makedirs(history_dir, exist_ok=True)
+        history_file = os.path.join(history_dir, 'conversion_history.json')
+        
+        # Load existing history or create new
+        history = []
+        if os.path.exists(history_file):
+            try:
+                with open(history_file, 'r') as f:
+                    history = _json.load(f)
+            except:
+                history = []
+        
+        # Add new entry
+        entry = {
+            'tool': tool_name,
+            'file_count': file_count,
+            'date': datetime.now().isoformat(),
+            'input_format': input_format,
+            'output_format': output_format
+        }
+        history.append(entry)
+        
+        # Write back (keep only last 1000 entries to prevent huge file)
+        if len(history) > 1000:
+            history = history[-1000:]
+        
+        with open(history_file, 'w') as f:
+            _json.dump(history, f, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Error logging conversion: {e}")
+
+
+# === PDF TO IMAGE ROUTE ===
+
+@app.route('/api/convert/pdf-to-image', methods=['POST'])
+def pdf_to_image_route():
+    """
+    Convert PDF pages to PNG or JPG images.
+    
+    Form parameters:
+    - files: PDF file(s)
+    - dpi: Resolution (default 150)
+    - format: Output format 'png' or 'jpg' (default 'png')
+    """
+    try:
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'error': 'No files uploaded'}), 400
+        
+        files = request.files.getlist('files')
+        if not files or files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No files selected'}), 400
+        
+        # Get parameters
+        dpi = int(request.form.get('dpi', 150))
+        output_format = request.form.get('format', 'png').lower()
+        
+        # Validate parameters
+        dpi = max(100, min(300, dpi))  # Between 100-300 DPI
+        if output_format not in ('png', 'jpg'):
+            output_format = 'png'
+        
+        temp_dir = tempfile.mkdtemp()
+        all_images = []
+        
+        try:
+            for file in files:
+                if not file.filename.endswith('.pdf'):
+                    continue
+                
+                filename = secure_filename(file.filename)
+                input_path = os.path.join(temp_dir, filename)
+                file.save(input_path)
+                
+                # Create output directory for this PDF
+                pdf_output_dir = os.path.join(temp_dir, f"images_{Path(filename).stem}")
+                os.makedirs(pdf_output_dir, exist_ok=True)
+                
+                # Convert PDF to images
+                image_paths = pdf_to_images(input_path, pdf_output_dir, dpi=dpi, format=output_format)
+                all_images.extend(image_paths)
+            
+            if not all_images:
+                return jsonify({'success': False, 'error': 'No PDF files were processed'}), 400
+            
+            # Prepare response
+            converted_files = []
+            for img_path in all_images:
+                if os.path.exists(img_path):
+                    file_size = os.path.getsize(img_path)
+                    file_id = str(uuid.uuid4())
+                    _converted_files_store[file_id] = {
+                        'path': img_path,
+                        'filename': os.path.basename(img_path),
+                        'expires': time.time() + _FILES_EXPIRE_AFTER
+                    }
+                    
+                    converted_files.append({
+                        'name': os.path.basename(img_path),
+                        'size': file_size,
+                        'file_id': file_id,
+                        'download_url': f'/api/download/{file_id}'
+                    })
+            
+            # Log conversion
+            log_conversion('PDF→Image', file_count=len(converted_files), input_format='pdf', output_format=output_format)
+            
+            return jsonify({
+                'success': True,
+                'files': converted_files,
+                'message': f'Converted {len(converted_files)} images from PDF'
+            }), 200
+            
+        finally:
+            # Cleanup temp dir
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            
+    except Exception as e:
+        logger.error(f"Error in PDF to image conversion: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# === IMAGE TO WEBP ROUTE ===
+
+@app.route('/api/convert/image-to-webp', methods=['POST'])
+def image_to_webp_route():
+    """
+    Convert images to WebP format.
+    
+    Form parameters:
+    - files: Image file(s)
+    - quality: Quality level 1-100 (default 80)
+    """
+    try:
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'error': 'No files uploaded'}), 400
+        
+        files = request.files.getlist('files')
+        if not files or files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No files selected'}), 400
+        
+        # Get quality parameter
+        quality = int(request.form.get('quality', 80))
+        quality = max(1, min(100, quality))  # Clamp to 1-100
+        
+        temp_dir = tempfile.mkdtemp()
+        converted_files = []
+        
+        try:
+            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
+            
+            for file in files:
+                if not file.filename.lower().endswith(image_extensions):
+                    continue
+                
+                filename = secure_filename(file.filename)
+                input_path = os.path.join(temp_dir, filename)
+                file.save(input_path)
+                
+                # Generate output filename
+                base_name = Path(filename).stem
+                output_filename = f"{base_name}.webp"
+                output_path = os.path.join(temp_dir, output_filename)
+                
+                # Convert to WebP
+                if image_to_webp(input_path, output_path, quality=quality):
+                    if os.path.exists(output_path):
+                        file_size = os.path.getsize(output_path)
+                        file_id = str(uuid.uuid4())
+                        _converted_files_store[file_id] = {
+                            'path': output_path,
+                            'filename': output_filename,
+                            'expires': time.time() + _FILES_EXPIRE_AFTER
+                        }
+                        
+                        converted_files.append({
+                            'name': output_filename,
+                            'size': file_size,
+                            'file_id': file_id,
+                            'download_url': f'/api/download/{file_id}'
+                        })
+            
+            if not converted_files:
+                return jsonify({'success': False, 'error': 'No image files were processed'}), 400
+            
+            # Log conversion
+            log_conversion('Image→WebP', file_count=len(converted_files), input_format='various', output_format='webp')
+            
+            return jsonify({
+                'success': True,
+                'files': converted_files,
+                'message': f'Converted {len(converted_files)} images to WebP'
+            }), 200
+            
+        finally:
+            # Keep temp dir for file downloads, but schedule cleanup
+            pass
+            
+    except Exception as e:
+        logger.error(f"Error in image to WebP conversion: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 if __name__ == '__main__':

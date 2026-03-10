@@ -41,6 +41,14 @@ pdfkit==1.0.0
 # Image to PDF conversion
 img2pdf==0.5.1
 
+# Cloud Storage Integration
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.105.0
+python-dropbox==11.36.2
+O365==4.10.1
+azure-storage-blob==12.19.0
+
 # Logging & Monitoring
 python-json-logger==2.0.7
 protobuf==5.28.3
@@ -78,3 +86,19 @@ flask-swagger-ui==4.11.1
 Flask-Limiter==4.0.0
 Flask-CORS==4.0.0
 Flask-Talisman==1.1.0
+
+# Database & Authentication (Phase 1-2)
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+Flask-JWT-Extended==4.5.3
+bcrypt==4.1.1
+psycopg2-binary==2.9.9
+
+# Caching (Phase 3)
+Flask-Caching==2.0.2
+
+# Production Server
+gunicorn==21.2.0
+
+# Sentry for error tracking
+sentry-sdk==1.38.0

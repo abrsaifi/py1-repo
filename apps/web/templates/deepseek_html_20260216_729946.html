@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lumina · professional conversion hub</title>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #faf7f2;
+      font-family: 'Inter', sans-serif;
+      color: #2b3f4a;
+      line-height: 1.5;
+      padding-top: 90px;
+    }
+
+    .wrapper {
+      max-width: 1400px;
+      width: 92%;
+      margin: 0 auto 2rem;
+    }
+
+    /* --- FIXED TOP NAVBAR (earlier style) --- */
+    .navbar-fixed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(250, 247, 242, 0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid #f0e2d8;
+      z-index: 1000;
+      padding: 0.6rem 0;
+      box-shadow: 0 8px 20px -10px #bba99d;
+    }
+
+    .nav-container {
+      max-width: 1400px;
+      width: 92%;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 1.8rem;
+      color: #2d4f5a;
+      cursor: pointer;
+    }
+    .logo i {
+      color: #b68b7c;
+      font-size: 2rem;
+    }
+
+    /* --- DROPDOWN MENUS (with TABLE layout) --- */
+    .nav-menu {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropbtn {
+      background: transparent;
+      color: #56747d;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.5rem 0;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .dropbtn:hover {
+      color: #a67c6f;
+      border-bottom-color: #e2c0b4;
+    }
+
+    /* Dropdown content with TABLE */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #ffffffef;
+      backdrop-filter: blur(16px);
+      min-width: 500px;
+      border-radius: 24px;
+      padding: 1.2rem;
+      box-shadow: 0 20px 30px -10px #a28d81;
+      border: 1px solid #ffefe6;
+      z-index: 10;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    /* Table styling inside dropdown */
+    .menu-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .menu-table td {
+      padding: 0.6rem 1rem;
+      color: #38616b;
+      font-size: 0.95rem;
+      border-radius: 40px;
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+    .menu-table td:hover {
+      background: #f5e7df;
+      color: #1f4b55;
+    }
+    .menu-table i {
+      margin-right: 8px;
+      color: #a67c6f;
+      width: 24px;
+    }
+
+    /* right side icons */
+    .right-icons {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.3rem;
+      color: #56747d;
+      cursor: pointer;
+      padding: 0.3rem;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .icon-btn:hover {
+      color: #a67c6f;
+      background: #f0e0d6;
+    }
+    .btn-outline-light {
+      border: 1px solid #dacbc3;
+      border-radius: 100px;
+      padding: 0.4rem 1.2rem;
+      font-weight: 500;
+      color: #51717a;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .btn-outline-light:hover {
+      background: #ffffffcc;
+    }
+
+    /* --- page system --- */
+    .page {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .page.active-page {
+      display: block;
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0.2; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- service cards (clickable) --- */
+    .service-category {
+      margin: 3rem 0 2rem;
+    }
+    .category-title {
+      font-size: 2rem;
+      font-weight: 400;
+      color: #48717c;
+      border-bottom: 2px solid #efdbd1;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .service-card {
+      background: #fcf7f2;
+      border-radius: 24px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid #ffded1;
+      transition: all 0.15s;
+      font-weight: 500;
+      color: #38616b;
+      cursor: pointer;
+    }
+    .service-card:hover {
+      background: white;
+      transform: translateY(-3px);
+      border-color: #d7bcae;
+    }
+    .service-icon {
+      font-size: 1.4rem;
+      min-width: 32px;
+      color: #a67c6f;
+    }
+
+    /* --- two-column conversion page --- */
+    .conversion-studio {
+      display: flex;
+      gap: 28px;
+      margin: 30px 0 50px;
+      min-height: 600px;
+    }
+    .left-preview {
+      flex: 7;
+      background: rgba(255, 250, 245, 0.6);
+      backdrop-filter: blur(10px);
+      border-radius: 48px;
+      padding: 2rem;
+    }
+    .right-settings {
+      flex: 3;
+      background: #ffffffef;
+      backdrop-filter: blur(16px);
+      border-radius: 48px;
+      padding: 2rem;
+    }
+    .btn-convert {
+      background: #fff1e9;
+      border: 2px solid #ddc7bc;
+      width: 100%;
+      padding: 1.2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .footer {
+      margin-top: 70px;
+      padding: 35px 0;
+      border-top: 2px solid #efe2d9;
+      display: flex;
+      justify-content: space-between;
+      color: #66838c;
+    }
+
+    .bg-dots {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: radial-gradient(#dccfc7 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .hidden-input { display: none; }
+  </style>
+</head>
+<body>
+  <div class="bg-dots"></div>
+
+  <!-- ========== FIXED TOP NAVBAR (with TABLE submenus) ========== -->
+  <nav class="navbar-fixed">
+    <div class="nav-container">
+      <div class="logo" onclick="switchPage('home')">
+        <i class="fa-regular fa-star"></i>
+        <span>lumina</span>
+      </div>
+
+      <!-- dropdown menus (earlier categories with TABLE layout) -->
+      <div class="nav-menu">
+        <!-- PDF Core Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">PDF Core <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <table class="menu-table">
+              <tr><td onclick="openConversion('PDF to B&W')"><i class="fa-regular fa-circle"></i> ⚫ PDF to B&W</td></tr>
+              <tr><td onclick="openConversion('To PDF')"><i class="fa-regular fa-file-pdf"></i> 📄 To PDF</td></tr>
+              <tr><td onclick="openConversion('Extract')"><i class="fa-regular fa-copy"></i> 📋 Extract</td></tr>
+              <tr><td onclick="openConversion('Split PDF')"><i class="fa-regular fa-scissors"></i> ✂️ Split PDF</td></tr>
+              <tr><td onclick="openConversion('Merge PDF')"><i class="fa-regular fa-link"></i> 🔗 Merge PDF</td></tr>
+              <tr><td onclick="openConversion('Remove Pages')"><i class="fa-regular fa-trash-can"></i> 🗑️ Remove Pages</td></tr>
+              <tr><td onclick="openConversion('OCR')"><i class="fa-regular fa-magnifying-glass"></i> 🔍 OCR</td></tr>
+              <tr><td onclick="openConversion('Watermark')"><i class="fa-regular fa-droplet"></i> 💧 Watermark</td></tr>
+              <tr><td onclick="openConversion('Clean')"><i class="fa-regular fa-sparkles"></i> ✨ Clean</td></tr>
+              <tr><td onclick="openConversion('PDF Compress')"><i class="fa-regular fa-box"></i> 📦 PDF Compress</td></tr>
+              <tr><td onclick="openConversion('Encrypt')"><i class="fa-regular fa-lock"></i> 🔒 Encrypt</td></tr>
+              <tr><td onclick="openConversion('Decrypt')"><i class="fa-regular fa-lock-open"></i> 🔓 Decrypt</td></tr>
+              <tr><td onclick="openConversion('Redact')"><i class="fa-regular fa-eye-slash"></i> 🔐 Redact</td></tr>
+              <tr><td onclick="openConversion('Metadata')"><i class="fa-regular fa-broom"></i> 🧹 Metadata</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- PDF Conversion Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">PDF Conversion <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <table class="menu-table">
+              <tr><td onclick="openConversion('PDF→PPT')"><i class="fa-regular fa-file-powerpoint"></i> 📽️ PDF→PPT</td></tr>
+              <tr><td onclick="openConversion('PPT→PDF')"><i class="fa-regular fa-file"></i> 📄 PPT→PDF</td></tr>
+              <tr><td onclick="openConversion('HTML→PDF')"><i class="fa-regular fa-globe"></i> 🌐 HTML→PDF</td></tr>
+              <tr><td onclick="openConversion('PDF→HTML')"><i class="fa-regular fa-code"></i> 📑 PDF→HTML</td></tr>
+              <tr><td onclick="openConversion('Excel→CSV')"><i class="fa-regular fa-table"></i> 📊 Excel→CSV</td></tr>
+              <tr><td onclick="openConversion('Text→PDF')"><i class="fa-regular fa-file-lines"></i> 📝 Text→PDF</td></tr>
+              <tr><td onclick="openConversion('Excel→PDF')"><i class="fa-regular fa-file-excel"></i> 📄 Excel→PDF</td></tr>
+              <tr><td onclick="openConversion('No Colors')"><i class="fa-regular fa-circle"></i> ⚫ No Colors</td></tr>
+              <tr><td onclick="openConversion('Formulas→Values')"><i class="fa-regular fa-calculator"></i> 🧮 Formulas→Values</td></tr>
+              <tr><td onclick="openConversion('Clean Charts')"><i class="fa-regular fa-chart-bar"></i> 📊 Clean Charts</td></tr>
+              <tr><td onclick="openConversion('Normalize')"><i class="fa-regular fa-ruler"></i> 📐 Normalize</td></tr>
+              <tr><td onclick="openConversion('Split Sheets')"><i class="fa-regular fa-layer-group"></i> 📑 Split Sheets</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Image Tools Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">Image Tools <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <table class="menu-table">
+              <tr><td onclick="openConversion('Image Convert')"><i class="fa-regular fa-image"></i> 🖼️ Image Convert</td></tr>
+              <tr><td onclick="openConversion('Image Compress')"><i class="fa-regular fa-compress"></i> 🗜️ Image Compress</td></tr>
+              <tr><td onclick="openConversion('Image Resize')"><i class="fa-regular fa-up-right-and-down-left-from-center"></i> 📐 Image Resize</td></tr>
+              <tr><td onclick="openConversion('BG → White')"><i class="fa-regular fa-circle"></i> ⚪ BG → White</td></tr>
+              <tr><td onclick="openConversion('Duplicate Remover')"><i class="fa-regular fa-clone"></i> 🔄 Duplicate Remover</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Data & Spreadsheet Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">Data & Spreadsheet <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <table class="menu-table">
+              <tr><td onclick="openConversion('Data Validator')"><i class="fa-regular fa-check-circle"></i> ✅ Data Validator</td></tr>
+              <tr><td onclick="openConversion('PDF Export')"><i class="fa-regular fa-file-export"></i> 📤 PDF Export</td></tr>
+              <tr><td onclick="openConversion('Reporting')"><i class="fa-regular fa-chart-line"></i> 📊 Reporting</td></tr>
+              <tr><td onclick="openConversion('Database')"><i class="fa-regular fa-database"></i> 🗄️ Database</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- More Tools Dropdown -->
+        <div class="dropdown">
+          <button class="dropbtn">More tools <i class="fa-solid fa-chevron-down"></i></button>
+          <div class="dropdown-content">
+            <table class="menu-table">
+              <tr><td onclick="openConversion('PDF to B&W (pro)')"><i class="fa-regular fa-circle"></i> ⚫ PDF to B&W (pro)</td></tr>
+              <tr><td onclick="openConversion('To PDF (advanced)')"><i class="fa-regular fa-file-pdf"></i> 📄 To PDF (advanced)</td></tr>
+              <tr><td onclick="openConversion('Extract (extended)')"><i class="fa-regular fa-copy"></i> 📋 Extract (extended)</td></tr>
+              <tr><td onclick="openConversion('Split PDF (batch)')"><i class="fa-regular fa-scissors"></i> ✂️ Split PDF (batch)</td></tr>
+              <tr><td onclick="openConversion('Merge PDF (smart)')"><i class="fa-regular fa-link"></i> 🔗 Merge PDF (smart)</td></tr>
+              <tr><td onclick="openConversion('Remove Pages (range)')"><i class="fa-regular fa-trash-can"></i> 🗑️ Remove Pages (range)</td></tr>
+              <tr><td onclick="openConversion('OCR (searchable)')"><i class="fa-regular fa-magnifying-glass"></i> 🔍 OCR (searchable)</td></tr>
+              <tr><td onclick="openConversion('Watermark (image/text)')"><i class="fa-regular fa-droplet"></i> 💧 Watermark (image/text)</td></tr>
+              <tr><td onclick="openConversion('Clean (deskew)')"><i class="fa-regular fa-sparkles"></i> ✨ Clean (deskew)</td></tr>
+              <tr><td onclick="openConversion('PDF Compress (lossless)')"><i class="fa-regular fa-box"></i> 📦 PDF Compress (lossless)</td></tr>
+              <tr><td onclick="openConversion('Encrypt (AES-256)')"><i class="fa-regular fa-lock"></i> 🔒 Encrypt (AES-256)</td></tr>
+              <tr><td onclick="openConversion('Decrypt (remove)')"><i class="fa-regular fa-lock-open"></i> 🔓 Decrypt (remove)</td></tr>
+              <tr><td onclick="openConversion('Redact (permanent)')"><i class="fa-regular fa-eye-slash"></i> 🔐 Redact (permanent)</td></tr>
+              <tr><td onclick="openConversion('Metadata (clean)')"><i class="fa-regular fa-broom"></i> 🧹 Metadata (clean)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- right side icons -->
+      <div class="right-icons">
+        <i class="fa-regular fa-moon icon-btn" id="themeToggle" title="toggle theme"></i>
+        <i class="fa-regular fa-gear icon-btn" title="settings"></i>
+        <a href="#" class="btn-outline-light">log in</a>
+        <a href="#" class="btn-outline-light" style="background:#fff2eb;">register</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+    <!-- ========== HOME PAGE ========== -->
+    <div id="page-home" class="page active-page">
+      <div class="hero" style="text-align:center; margin:1rem 0 2rem;">
+        <h1 style="font-size:3rem;">professional <span>document studio</span></h1>
+        <p style="font-size:1.2rem;">complete toolkit for all your document needs</p>
+      </div>
+
+      <!-- service cards (quick overview) -->
+      <div class="service-category">
+        <div class="category-title"><i class="fa-regular fa-file-pdf"></i> Popular Tools</div>
+        <div class="services-grid">
+          <div class="service-card" onclick="openConversion('Merge PDF')"><span class="service-icon">🔗</span> Merge PDF</div>
+          <div class="service-card" onclick="openConversion('Split PDF')"><span class="service-icon">✂️</span> Split PDF</div>
+          <div class="service-card" onclick="openConversion('Compress PDF')"><span class="service-icon">📦</span> Compress PDF</div>
+          <div class="service-card" onclick="openConversion('OCR PDF')"><span class="service-icon">🔍</span> OCR PDF</div>
+          <div class="service-card" onclick="openConversion('Protect PDF')"><span class="service-icon">🔒</span> Protect PDF</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CONVERSION PAGE ========== -->
+    <div id="page-conversion" class="page">
+      <div class="hero" style="margin-bottom:0.5rem;">
+        <h1>conversion <span>studio</span></h1>
+        <p id="conversionTitle">selected tool: <span id="selectedTool">none</span></p>
+      </div>
+      <div class="conversion-studio">
+        <div class="left-preview">
+          <div style="background:#ffffffdc; border:2px dashed #edd8cf; border-radius:36px; padding:2.5rem; text-align:center;" id="studioDropZone">
+            <i class="fa-regular fa-hand-pointer" style="font-size:3rem;"></i>
+            <h3>drag file or click</h3>
+            <button class="btn-elegant" id="studioBrowseBtn" style="padding:0.8rem 2.2rem;">browse</button>
+            <input type="file" id="studioFileInput" class="hidden-input">
+          </div>
+          <div style="background:#ffffffd9; border-radius:32px; padding:1.8rem; margin-top:1rem;">
+            <div id="previewPlaceholder">preview area</div>
+          </div>
+        </div>
+        <div class="right-settings">
+          <h3>settings for <span id="settingToolName">tool</span></h3>
+          <button class="btn-convert" id="convertBtn">start conversion</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div>© 2025 lumina — complete document studio</div>
+    </footer>
+  </div>
+
+  <script>
+    function switchPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+      document.getElementById('page-' + pageId).classList.add('active-page');
+    }
+
+    function openConversion(toolName) {
+      switchPage('conversion');
+      document.getElementById('selectedTool').innerText = toolName;
+      document.getElementById('settingToolName').innerText = toolName;
+    }
+
+    // simple interactions
+    document.getElementById('studioBrowseBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('studioFileInput')?.click();
+    });
+    document.getElementById('convertBtn')?.addEventListener('click', () => alert('conversion simulation'));
+
+    // theme toggle placeholder
+    document.getElementById('themeToggle')?.addEventListener('click', () => alert('theme toggle (demo)'));
+  </script>
+</body>
+</html>

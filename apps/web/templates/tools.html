@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}All Tools - lumina · professional conversion hub{% endblock %}
+
+{% block extra_styles %}
+  <style>
+    /* Page-specific overrides if needed */
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="wrapper">
+  <!-- Page Title -->
+  <div class="hero">
+    <h1>Browse All <span>Tools</span></h1>
+    <p>Access 49 professional conversion tools with simple filtering and search</p>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-box">
+    <input 
+      type="text" 
+      id="toolSearchInput" 
+      placeholder="Search tools... (e.g., PDF, compress, convert)" 
+      onkeyup="handleToolSearch(this.value)"
+    />
+    <i class="bi bi-search"></i>
+  </div>
+
+  <!-- Category Filter Buttons -->
+  <div style="display: flex; gap: 12px; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center;">
+    <button class="category-filter-btn active" onclick="filterTools('all')" data-category="all">
+      <i class="bi bi-grid-3x3-gap"></i> All tools
+    </button>
+    <button class="category-filter-btn" onclick="filterTools('pdf')" data-category="pdf">
+      <i class="bi bi-filetype-pdf"></i> PDF
+    </button>
+    <button class="category-filter-btn" onclick="filterTools('image')" data-category="image">
+      <i class="bi bi-image"></i> Images
+    </button>
+    <button class="category-filter-btn" onclick="filterTools('document')" data-category="document">
+      <i class="bi bi-file-earmark"></i> Documents
+    </button>
+    <button class="category-filter-btn" onclick="filterTools('data')" data-category="data">
+      <i class="bi bi-table"></i> Data
+    </button>
+    <button class="category-filter-btn" onclick="filterTools('premium')" data-category="premium">
+      <i class="bi bi-star"></i> Premium
+      
+      </button>
+    </div>
+
+    <!-- Tools Grid -->
+    <div id="toolsGrid" class="services-grid" style="margin-bottom: 3rem;">
+      <!-- PDF Tools -->
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('To PDF')"><i class="bi bi-file-earmark-pdf"></i><span>To PDF</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('PDF to B&W')"><i class="bi bi-circle-fill"></i><span>PDF to B&W</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Split PDF')"><i class="bi bi-scissors"></i><span>Split PDF</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Merge PDF')"><i class="bi bi-link-45deg"></i><span>Merge PDF</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Extract')"><i class="bi bi-clipboard"></i><span>Extract</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Remove Pages')"><i class="bi bi-trash"></i><span>Remove Pages</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('OCR')"><i class="bi bi-search"></i><span>OCR</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Clean')"><i class="bi bi-stars"></i><span>Clean</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('PDF Compress')"><i class="bi bi-box"></i><span>Compress</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Encrypt')"><i class="bi bi-lock"></i><span>Encrypt</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Decrypt')"><i class="bi bi-unlock"></i><span>Decrypt</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Watermark')"><i class="bi bi-droplet"></i><span>Watermark</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Redact')"><i class="bi bi-shield-lock"></i><span>Redact</span></div>
+      <div class="service-card-item" data-category="pdf" onclick="openConversion('Metadata')"><i class="bi bi-broom"></i><span>Metadata</span></div>
+      
+      <!-- Image Tools -->
+      <div class="service-card-item" data-category="image" onclick="openConversion('Image Convert')"><i class="bi bi-image"></i><span>Image Convert</span></div>
+      <div class="service-card-item" data-category="image" onclick="openConversion('Image Compress')"><i class="bi bi-arrow-in"></i><span>Image Compress</span></div>
+      <div class="service-card-item" data-category="image" onclick="openConversion('Image Resize')"><i class="bi bi-rulers"></i><span>Image Resize</span></div>
+      <div class="service-card-item" data-category="image" onclick="openConversion('Remove BG')"><i class="bi bi-circle"></i><span>Remove BG</span></div>
+      <div class="service-card-item" data-category="image" onclick="openConversion('Duplicate Remover')"><i class="bi bi-arrow-clockwise"></i><span>Duplicate Remover</span></div>
+      
+      <!-- Document Tools -->
+      <div class="service-card-item" data-category="document" onclick="openConversion('PDF→PPT')"><i class="bi bi-film"></i><span>PDF→PPT</span></div>
+      <div class="service-card-item" data-category="document" onclick="openConversion('PPT→PDF')"><i class="bi bi-file-earmark-pdf"></i><span>PPT→PDF</span></div>
+      <div class="service-card-item" data-category="document" onclick="openConversion('PDF→HTML')"><i class="bi bi-newspaper"></i><span>PDF→HTML</span></div>
+      <div class="service-card-item" data-category="document" onclick="openConversion('HTML→PDF')"><i class="bi bi-globe"></i><span>HTML→PDF</span></div>
+      <div class="service-card-item" data-category="document" onclick="openConversion('Text→PDF')"><i class="bi bi-pencil-square"></i><span>Text→PDF</span></div>
+      <div class="service-card-item" data-category="document" onclick="openConversion('No Colors')"><i class="bi bi-circle-fill"></i><span>No Colors</span></div>
+      
+      <!-- Data Tools -->
+      <div class="service-card-item" data-category="data" onclick="openConversion('Excel→PDF')"><i class="bi bi-bar-chart"></i><span>Excel→PDF</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Excel→CSV')"><i class="bi bi-bar-chart"></i><span>Excel→CSV</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Formulas→Values')"><i class="bi bi-calculator"></i><span>Formulas→Values</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Clean Charts')"><i class="bi bi-bar-chart"></i><span>Clean Charts</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Normalize')"><i class="bi bi-rulers"></i><span>Normalize</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Split Sheets')"><i class="bi bi-newspaper"></i><span>Split Sheets</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Data Validator')"><i class="bi bi-check-circle"></i><span>Data Validator</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('PDF Export')"><i class="bi bi-box-arrow-up"></i><span>PDF Export</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Reporting')"><i class="bi bi-bar-chart"></i><span>Reporting</span></div>
+      <div class="service-card-item" data-category="data" onclick="openConversion('Database')"><i class="bi bi-hdd-rack"></i><span>Database</span></div>
+      
+      <!-- Premium/Extended Tools -->
+      <div class="service-card-item" data-category="premium" onclick="openConversion('PDF to B&W (pro)')"><i class="bi bi-star-fill"></i><span>PDF to B&W (Pro)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('To PDF (advanced)')"><i class="bi bi-star-fill"></i><span>To PDF (Advanced)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Extract (extended)')"><i class="bi bi-star-fill"></i><span>Extract (Extended)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Split PDF (batch)')"><i class="bi bi-star-fill"></i><span>Split PDF (Batch)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Merge PDF (smart)')"><i class="bi bi-star-fill"></i><span>Merge PDF (Smart)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Remove Pages (range)')"><i class="bi bi-star-fill"></i><span>Remove Pages (Range)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('OCR (searchable)')"><i class="bi bi-star-fill"></i><span>OCR (Searchable)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Watermark (image/text)')"><i class="bi bi-star-fill"></i><span>Watermark (Image/Text)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Clean (deskew)')"><i class="bi bi-star-fill"></i><span>Clean (Deskew)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('PDF Compress (lossless)')"><i class="bi bi-star-fill"></i><span>Compress (Lossless)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Encrypt (AES-256)')"><i class="bi bi-star-fill"></i><span>Encrypt (AES-256)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Decrypt (remove)')"><i class="bi bi-star-fill"></i><span>Decrypt (Remove)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Redact (permanent)')"><i class="bi bi-star-fill"></i><span>Redact (Permanent)</span></div>
+      <div class="service-card-item" data-category="premium" onclick="openConversion('Metadata (clean)')"><i class="bi bi-star-fill"></i><span>Metadata (Clean)</span></div>
+    </div>
+
+    <footer class="footer">
+      <div>© 2026 lumina — complete studio</div>
+      <div style="display: flex; gap: 2rem;">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">API Docs</a>
+        <a href="#">Contact</a>
+      </div>
+    </footer>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    // Dark Mode Toggle (only initialize if themeToggle exists)
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        // Theme toggle listener is already set up in base.html
+        // Just ensure theme is loaded
+        if (localStorage.getItem('theme') === 'dark') {
+          document.body.classList.add('dark-mode');
+          if (themeToggle.querySelector('i')) {
+            themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+          }
+        }
+      }
+
+      // Filter Tools by Category
+      function filterTools(category) {
+        const items = document.querySelectorAll('.service-card-item');
+        const buttons = document.querySelectorAll('.category-filter-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.closest('.category-filter-btn').classList.add('active');
+
+        items.forEach(item => {
+          if (category === 'all') {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = item.dataset.category === category ? 'flex' : 'none';
+          }
+        });
+      }
+
+      // Search Tools
+      function handleToolSearch(searchTerm) {
+        const items = document.querySelectorAll('.service-card-item');
+        const term = searchTerm.toLowerCase();
+
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          item.style.display = text.includes(term) ? 'flex' : 'none';
+        });
+      }
+
+      // Open Conversion (navigate to conversion page)
+      function openConversion(toolName) {
+        window.location.href = '/conversion?tool=' + encodeURIComponent(toolName);
+      }
+    });
+{% endblock %}

@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Converter - Multiple Format Support</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 0;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .tabs-header {
+            display: flex;
+            background: #f8f9ff;
+            border-bottom: 2px solid #e0e4ff;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            text-align: center;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .upload-text {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .file-info {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .selected-file {
+            background: #e8f5e9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .selected-file.show {
+            display: flex;
+        }
+
+        .selected-files-container {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            background: #e8f5e9;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-name {
+            flex: 1;
+            color: #2e7d32;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: #d32f2f;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        button[type=submit] {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button[type=submit]:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button[type=submit]:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .alert {
+            background: #f44336;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .features {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .feature-icon {
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .settings-panel {
+            background: #f8f9ff;
+            border: 1px solid #e0e4ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .settings-toggle {
+            color: #667eea;
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .settings-toggle.collapsed {
+            transform: rotate(180deg);
+        }
+
+        .settings-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .settings-content.show {
+            max-height: 400px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .setting-value {
+            color: #667eea;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .setting-input {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: #d3d3d3;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .setting-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .setting-input::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .setting-description {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e4ff;
+        }
+
+        .preset-btn {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 13px;
+            background: white;
+            border: 1px solid #667eea;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .settings-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                    <div class="alert">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <div class="tabs-header">
+            <button class="tab-button active" onclick="switchTab('pdf-bw')">
+                ⚫ PDF to B&W
+            </button>
+            <button class="tab-button" onclick="switchTab('to-pdf')">
+                📄 To PDF
+            </button>
+            <button class="tab-button" onclick="switchTab('extract-pdf')">
+                📋 Extract PDF
+            </button>
+            <button class="tab-button" onclick="switchTab('ocr')">
+                🔍 OCR
+            </button>
+            <button class="tab-button" onclick="switchTab('watermark')">
+                💧 Watermark
+            </button>
+            <button class="tab-button" onclick="switchTab('encrypt')">
+                🔒 Encrypt
+            </button>
+            <button class="tab-button" onclick="switchTab('autoformat')">
+                ✨ Auto-Format
+            </button>
+        </div>
+
+        <!-- Tab 1: PDF to Black & White -->
+        <div class="tab-content active" id="pdf-bw">
+            <h2>PDF Black & White Converter</h2>
+            <p class="subtitle">Convert your color PDFs to true black and white</p>
+
+            <form action="/convert" method="POST" enctype="multipart/form-data" id="uploadForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="file-info">PDF files only • Multiple files supported (Max 16MB each)</div>
+                <input type="file" name="pdf_file" id="pdfFile" accept="application/pdf" multiple required>
+            </div>
+
+            <div class="selected-files-container" id="selectedFilesContainer"></div>
+
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+                <div class="settings-header" id="settingsHeader">
+                    <span class="settings-title">⚙️ Conversion Settings</span>
+                    <span class="settings-toggle" id="settingsToggle">▼</span>
+                </div>
+                <div class="settings-content" id="settingsContent">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>DPI (Resolution)</span>
+                            <span class="setting-value" id="dpiValue">300</span>
+                        </label>
+                        <input type="range" name="dpi" id="dpiInput" class="setting-input" 
+                               min="150" max="600" step="50" value="300">
+                        <span class="setting-description">Higher = Better quality, larger file</span>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Threshold</span>
+                            <span class="setting-value" id="thresholdValue">250</span>
+                        </label>
+                        <input type="range" name="threshold" id="thresholdInput" class="setting-input" 
+                               min="128" max="255" step="1" value="250">
+                        <span class="setting-description">Higher = More becomes black</span>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Contrast</span>
+                            <span class="setting-value" id="contrastValue">3.0</span>
+                        </label>
+                        <input type="range" name="contrast" id="contrastInput" class="setting-input" 
+                               min="1.0" max="5.0" step="0.1" value="3.0">
+                        <span class="setting-description">Higher = Stronger black/white</span>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            <span>Sharpness</span>
+                            <span class="setting-value" id="sharpnessValue">2.5</span>
+                        </label>
+                        <input type="range" name="sharpness" id="sharpnessInput" class="setting-input" 
+                               min="1.0" max="5.0" step="0.1" value="2.5">
+                        <span class="setting-description">Higher = Crisper lines</span>
+                    </div>
+
+                    <div class="preset-buttons" style="grid-column: 1 / -1;">
+                        <button type="button" class="preset-btn" onclick="applyPreset('default')">
+                            📄 Default
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('technical')">
+                            📐 Technical
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('text')">
+                            📝 Text Heavy
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyPreset('light')">
+                            🌟 Light Lines
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" id="convertBtn">Convert to Black & White</button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">Converting your PDF...</p>
+            </div>
+        </form>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">📁</span>
+                <span>Multiple PDF files supported - batch conversion</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">⚡</span>
+                <span>Fast conversion at 300 DPI with high quality</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🔒</span>
+                <span>Files processed securely and deleted after download</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">✨</span>
+                <span>True black & white - perfect for technical drawings</span>
+            </div>
+        </div>
+        </div>
+
+        <!-- Tab 2: Convert to PDF -->
+        <div class="tab-content" id="to-pdf">
+            <h2>Convert to PDF</h2>
+            <p class="subtitle">Convert images, Word docs, and Excel files to PDF</p>
+
+            <form action="/convert-to-pdf" method="POST" enctype="multipart/form-data" id="toPdfForm">
+                <div class="upload-area" id="uploadArea2">
+                    <div class="upload-icon">📦</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="file-info">Images (JPG, PNG, BMP, GIF, TIFF, WebP) • Word (DOCX) • Excel (XLSX)</div>
+                    <input type="file" name="file" id="toConvertFile" accept=".jpg,.jpeg,.png,.bmp,.gif,.tiff,.webp,.docx,.doc,.xlsx,.xls" multiple required>
+                </div>
+
+                <div class="selected-files-container" id="selectedFilesContainer2"></div>
+
+                <button type="submit" id="convertToPdfBtn">Convert to PDF</button>
+
+                <div class="loading" id="loading2">
+                    <div class="spinner"></div>
+                    <p id="loadingText2">Converting your files...</p>
+                </div>
+            </form>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">🖼️</span>
+                <span>Image to PDF - JPG, PNG, BMP, GIF, TIFF, WebP</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📝</span>
+                <span>Word to PDF - Preserve formatting and layout</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <span>Excel to PDF - Convert spreadsheets to PDF</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📦</span>
+                <span>Batch conversion - Multiple files at once</span>
+            </div>
+        </div>
+        </div>
+
+        <!-- Tab 3: Extract PDF to Word/Excel -->
+        <div class="tab-content" id="extract-pdf">
+            <h2>Extract PDF</h2>
+            <p class="subtitle">Extract PDF content to Word or Excel files</p>
+
+            <form action="/pdf-extract" method="POST" enctype="multipart/form-data" id="extractForm">
+                <div class="upload-area" id="uploadArea3">
+                    <div class="upload-icon">📑</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div class="file-info">PDF files only • Multiple files supported (Max 16MB each)</div>
+                    <input type="file" name="pdf_file" id="extractPdfFile" accept="application/pdf" multiple required>
+                </div>
+
+                <div class="selected-files-container" id="selectedFilesContainer3"></div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 15px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <strong style="color: #333; display: block; margin-bottom: 5px;">Export Format</strong>
+                            <span style="color: #666; font-size: 13px;">Choose the output format for extracted content</span>
+                        </div>
+                        <select id="formatSelect" name="format" style="padding: 10px; border: 2px solid #667eea; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;">
+                            <option value="docx">📝 Word (DOCX)</option>
+                            <option value="xlsx">📊 Excel (XLSX)</option>
+                        </select>
+                    </label>
+                </div>
+
+                <button type="submit" id="extractBtn">Extract PDF</button>
+
+                <div class="loading" id="loading3">
+                    <div class="spinner"></div>
+                    <p id="loadingText3">Extracting PDF...</p>
+                </div>
+            </form>
+
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">📝</span>
+                <span>PDF to Word - Preserve text and structure</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <span>PDF to Excel - Extract tables as spreadsheets</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🔄</span>
+                <span>Batch extraction - Process multiple PDFs</span>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🔒</span>
+                <span>Secure processing - Files deleted after download</span>
+            </div>
+        </div>
+        </div>
+
+        <!-- Tab 4: OCR -->
+        <div class="tab-content" id="ocr">
+            <h2>OCR Text Extraction</h2>
+            <p class="subtitle">Extract text from images or PDFs</p>
+
+            <form action="/ocr" method="POST" enctype="multipart/form-data" id="ocrForm">
+                <div class="upload-area" id="ocrUploadArea">
+                    <p style="font-size: 24px; margin-bottom: 10px;">🔍</p>
+                    <p>Drag and drop images or PDFs here</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">or click to select</p>
+                    <input type="file" id="ocrFiles" name="files" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.bmp,.gif,.tiff,.webp">
+                </div>
+
+                <div id="ocrSelectedFiles"></div>
+                <button type="submit" class="submit-btn" id="ocrBtn">Extract Text</button>
+            </form>
+
+            <div id="ocrLoading" class="loading">
+                <div class="spinner"></div>
+                <p id="ocrLoadingText">Extracting text...</p>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">📝</span>
+                    <span>EasyOCR - High accuracy text extraction</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🖼️</span>
+                    <span>Supports images and PDF pages</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📄</span>
+                    <span>Output as text files</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Watermark -->
+        <div class="tab-content" id="watermark">
+            <h2>Add Watermark</h2>
+            <p class="subtitle">Add text watermarks to your PDFs</p>
+
+            <form action="/watermark" method="POST" enctype="multipart/form-data" id="watermarkForm">
+                <div class="upload-area" id="watermarkUploadArea">
+                    <p style="font-size: 24px; margin-bottom: 10px;">💧</p>
+                    <p>Drag and drop PDFs here</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">or click to select</p>
+                    <input type="file" id="watermarkFiles" name="files" multiple hidden accept=".pdf">
+                </div>
+
+                <div id="watermarkSelectedFiles"></div>
+
+                <div style="margin: 20px 0;">
+                    <label>Watermark Text:</label>
+                    <input type="text" name="watermark_text" value="CONFIDENTIAL" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                </div>
+
+                <div style="margin: 20px 0;">
+                    <label>Position:</label>
+                    <select name="watermark_position" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                        <option value="diagonal">Diagonal</option>
+                        <option value="center">Center</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-btn" id="watermarkBtn">Add Watermark</button>
+            </form>
+
+            <div id="watermarkLoading" class="loading">
+                <div class="spinner"></div>
+                <p id="watermarkLoadingText">Adding watermark...</p>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">💧</span>
+                    <span>Customizable watermark text</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📍</span>
+                    <span>Multiple position options</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔄</span>
+                    <span>Batch processing supported</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 6: Encrypt -->
+        <div class="tab-content" id="encrypt">
+            <h2>Encrypt PDF</h2>
+            <p class="subtitle">Protect your PDFs with password encryption</p>
+
+            <form action="/encrypt" method="POST" enctype="multipart/form-data" id="encryptForm">
+                <div class="upload-area" id="encryptUploadArea">
+                    <p style="font-size: 24px; margin-bottom: 10px;">🔒</p>
+                    <p>Drag and drop PDFs here</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">or click to select</p>
+                    <input type="file" id="encryptFiles" name="files" multiple hidden accept=".pdf">
+                </div>
+
+                <div id="encryptSelectedFiles"></div>
+
+                <div style="margin: 20px 0;">
+                    <label>Password:</label>
+                    <input type="password" name="pdf_password" placeholder="Enter password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                </div>
+
+                <button type="submit" class="submit-btn" id="encryptBtn">Encrypt PDF</button>
+            </form>
+
+            <div id="encryptLoading" class="loading">
+                <div class="spinner"></div>
+                <p id="encryptLoadingText">Encrypting...</p>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">🔐</span>
+                    <span>Password protection for PDFs</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🛡️</span>
+                    <span>Secure encryption</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔄</span>
+                    <span>Batch encryption available</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 7: Auto-Format -->
+        <div class="tab-content" id="autoformat">
+            <h2>Auto-Format Cleaning</h2>
+            <p class="subtitle">Clean and optimize PDF formatting</p>
+
+            <form action="/autoformat" method="POST" enctype="multipart/form-data" id="autoformatForm">
+                <div class="upload-area" id="autoformatUploadArea">
+                    <p style="font-size: 24px; margin-bottom: 10px;">✨</p>
+                    <p>Drag and drop PDFs here</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 5px;">or click to select</p>
+                    <input type="file" id="autoformatFiles" name="files" multiple hidden accept=".pdf">
+                </div>
+
+                <div id="autoformatSelectedFiles"></div>
+
+                <button type="submit" class="submit-btn" id="autoformatBtn">Clean PDF</button>
+            </form>
+
+            <div id="autoformatLoading" class="loading">
+                <div class="spinner"></div>
+                <p id="autoformatLoadingText">Cleaning PDF...</p>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">✨</span>
+                    <span>Remove formatting issues</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📖</span>
+                    <span>Optimize text layout</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📦</span>
+                    <span>Reduce file size</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const pdfFile = document.getElementById('pdfFile');
+        const selectedFilesContainer = document.getElementById('selectedFilesContainer');
+        const uploadForm = document.getElementById('uploadForm');
+        const convertBtn = document.getElementById('convertBtn');
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loadingText');
+
+        // Tab switching
+        window.switchTab = function(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Mark button as active
+            event.target.classList.add('active');
+        };
+
+        // Settings elements
+        const settingsHeader = document.getElementById('settingsHeader');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsContent = document.getElementById('settingsContent');
+        const dpiInput = document.getElementById('dpiInput');
+        const thresholdInput = document.getElementById('thresholdInput');
+        const contrastInput = document.getElementById('contrastInput');
+        const sharpnessInput = document.getElementById('sharpnessInput');
+        const dpiValue = document.getElementById('dpiValue');
+        const thresholdValue = document.getElementById('thresholdValue');
+        const contrastValue = document.getElementById('contrastValue');
+        const sharpnessValue = document.getElementById('sharpnessValue');
+
+        // Tab 2 elements
+        const uploadArea2 = document.getElementById('uploadArea2');
+        const toConvertFile = document.getElementById('toConvertFile');
+        const selectedFilesContainer2 = document.getElementById('selectedFilesContainer2');
+        const toPdfForm = document.getElementById('toPdfForm');
+        const convertToPdfBtn = document.getElementById('convertToPdfBtn');
+        const loading2 = document.getElementById('loading2');
+        const loadingText2 = document.getElementById('loadingText2');
+
+        let selectedFiles = [];
+        let selectedFilesTab2 = [];
+
+        // Toggle settings panel
+        settingsHeader.addEventListener('click', () => {
+            settingsContent.classList.toggle('show');
+            settingsToggle.classList.toggle('collapsed');
+        });
+
+        // Update setting values in real-time
+        dpiInput.addEventListener('input', (e) => {
+            dpiValue.textContent = e.target.value;
+        });
+
+        thresholdInput.addEventListener('input', (e) => {
+            thresholdValue.textContent = e.target.value;
+        });
+
+        contrastInput.addEventListener('input', (e) => {
+            contrastValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        sharpnessInput.addEventListener('input', (e) => {
+            sharpnessValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // Preset configurations
+        window.applyPreset = function(preset) {
+            const presets = {
+                default: { dpi: 300, threshold: 250, contrast: 3.0, sharpness: 2.5 },
+                technical: { dpi: 600, threshold: 245, contrast: 2.5, sharpness: 3.5 },
+                text: { dpi: 300, threshold: 235, contrast: 3.5, sharpness: 2.0 },
+                light: { dpi: 400, threshold: 220, contrast: 4.0, sharpness: 3.0 }
+            };
+
+            const config = presets[preset];
+            dpiInput.value = config.dpi;
+            thresholdInput.value = config.threshold;
+            contrastInput.value = config.contrast;
+            sharpnessInput.value = config.sharpness;
+
+            dpiValue.textContent = config.dpi;
+            thresholdValue.textContent = config.threshold;
+            contrastValue.textContent = config.contrast.toFixed(1);
+            sharpnessValue.textContent = config.sharpness.toFixed(1);
+        };
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Display selected files
+        function displayFiles() {
+            selectedFilesContainer.innerHTML = '';
+            
+            if (selectedFiles.length === 0) {
+                selectedFilesContainer.style.display = 'none';
+                return;
+            }
+
+            selectedFilesContainer.style.display = 'block';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                    <button type="button" class="remove-file" onclick="removeFileAt(${index})">✕</button>
+                `;
+                selectedFilesContainer.appendChild(fileItem);
+            });
+        }
+
+        // Remove file at index
+        window.removeFileAt = function(index) {
+            selectedFiles.splice(index, 1);
+            updateFileInput();
+            displayFiles();
+        };
+
+        // Update file input with selected files
+        function updateFileInput() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            pdfFile.files = dt.files;
+        }
+
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            pdfFile.click();
+        });
+
+        // File selection
+        pdfFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFiles = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
+                displayFiles();
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            
+            if (files.length > 0) {
+                selectedFiles = files;
+                updateFileInput();
+                displayFiles();
+            } else {
+                alert('Please upload valid PDF files');
+            }
+        });
+
+        // Form submission with auto-reset
+        uploadForm.addEventListener('submit', (e) => {
+            convertBtn.disabled = true;
+            loading.classList.add('show');
+            
+            const fileCount = selectedFiles.length;
+            if (fileCount > 1) {
+                loadingText.textContent = `Converting ${fileCount} PDFs...`;
+            } else {
+                loadingText.textContent = 'Converting your PDF...';
+            }
+
+            // Auto-reset after download starts (2 seconds delay)
+            setTimeout(() => {
+                resetForm();
+            }, 2000);
+        });
+
+        // Reset form function
+        function resetForm() {
+            selectedFiles = [];
+            pdfFile.value = '';
+            displayFiles();
+            convertBtn.disabled = false;
+            loading.classList.remove('show');
+            loadingText.textContent = 'Converting your PDF...';
+        }
+
+        // ============ TAB 2: FILE TO PDF CONVERSION ============
+
+        // Display files for tab 2
+        function displayFilesTab2() {
+            selectedFilesContainer2.innerHTML = '';
+            
+            if (selectedFilesTab2.length === 0) {
+                selectedFilesContainer2.style.display = 'none';
+                return;
+            }
+
+            selectedFilesContainer2.style.display = 'block';
+            
+            selectedFilesTab2.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                    <button type="button" class="remove-file" onclick="removeFileAtTab2(${index})">✕</button>
+                `;
+                selectedFilesContainer2.appendChild(fileItem);
+            });
+        }
+
+        // Remove file at index for tab 2
+        window.removeFileAtTab2 = function(index) {
+            selectedFilesTab2.splice(index, 1);
+            updateFileInputTab2();
+            displayFilesTab2();
+        };
+
+        // Update file input for tab 2
+        function updateFileInputTab2() {
+            const dt = new DataTransfer();
+            selectedFilesTab2.forEach(file => dt.items.add(file));
+            toConvertFile.files = dt.files;
+        }
+
+        // Click to upload - Tab 2
+        uploadArea2.addEventListener('click', () => {
+            toConvertFile.click();
+        });
+
+        // File selection - Tab 2
+        toConvertFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFilesTab2 = Array.from(e.target.files);
+                displayFilesTab2();
+            }
+        });
+
+        // Drag and drop - Tab 2
+        uploadArea2.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea2.classList.add('dragover');
+        });
+
+        uploadArea2.addEventListener('dragleave', () => {
+            uploadArea2.classList.remove('dragover');
+        });
+
+        uploadArea2.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea2.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                selectedFilesTab2 = files;
+                updateFileInputTab2();
+                displayFilesTab2();
+            }
+        });
+
+        // Form submission - Tab 2
+        toPdfForm.addEventListener('submit', (e) => {
+            convertToPdfBtn.disabled = true;
+            loading2.classList.add('show');
+            
+            const fileCount = selectedFilesTab2.length;
+            if (fileCount > 1) {
+                loadingText2.textContent = `Converting ${fileCount} files...`;
+            } else {
+                loadingText2.textContent = 'Converting your file...';
+            }
+
+            // Auto-reset after download starts
+            setTimeout(() => {
+                resetFormTab2();
+            }, 2000);
+        });
+
+        // Reset form function - Tab 2
+        function resetFormTab2() {
+            selectedFilesTab2 = [];
+            toConvertFile.value = '';
+            displayFilesTab2();
+            convertToPdfBtn.disabled = false;
+            loading2.classList.remove('show');
+            loadingText2.textContent = 'Converting your files...';
+        }
+
+        // ============ TAB 3: PDF EXTRACTION ============
+
+        const uploadArea3 = document.getElementById('uploadArea3');
+        const extractPdfFile = document.getElementById('extractPdfFile');
+        const selectedFilesContainer3 = document.getElementById('selectedFilesContainer3');
+        const extractForm = document.getElementById('extractForm');
+        const extractBtn = document.getElementById('extractBtn');
+        const loading3 = document.getElementById('loading3');
+        const loadingText3 = document.getElementById('loadingText3');
+
+        let selectedFilesTab3 = [];
+
+        // Display files for tab 3
+        function displayFilesTab3() {
+            selectedFilesContainer3.innerHTML = '';
+            
+            if (selectedFilesTab3.length === 0) {
+                selectedFilesContainer3.style.display = 'none';
+                return;
+            }
+
+            selectedFilesContainer3.style.display = 'block';
+            
+            selectedFilesTab3.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                    <button type="button" class="remove-file" onclick="removeFileAtTab3(${index})">✕</button>
+                `;
+                selectedFilesContainer3.appendChild(fileItem);
+            });
+        }
+
+        // Remove file at index for tab 3
+        window.removeFileAtTab3 = function(index) {
+            selectedFilesTab3.splice(index, 1);
+            updateFileInputTab3();
+            displayFilesTab3();
+        };
+
+        // Update file input for tab 3
+        function updateFileInputTab3() {
+            const dt = new DataTransfer();
+            selectedFilesTab3.forEach(file => dt.items.add(file));
+            extractPdfFile.files = dt.files;
+        }
+
+        // Click to upload - Tab 3
+        uploadArea3.addEventListener('click', () => {
+            extractPdfFile.click();
+        });
+
+        // File selection - Tab 3
+        extractPdfFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFilesTab3 = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
+                displayFilesTab3();
+            }
+        });
+
+        // Drag and drop - Tab 3
+        uploadArea3.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea3.classList.add('dragover');
+        });
+
+        uploadArea3.addEventListener('dragleave', () => {
+            uploadArea3.classList.remove('dragover');
+        });
+
+        uploadArea3.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea3.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+            if (files.length > 0) {
+                selectedFilesTab3 = files;
+                updateFileInputTab3();
+                displayFilesTab3();
+            }
+        });
+
+        // Form submission - Tab 3
+        extractForm.addEventListener('submit', (e) => {
+            extractBtn.disabled = true;
+            loading3.classList.add('show');
+            
+            const fileCount = selectedFilesTab3.length;
+            const format = document.getElementById('formatSelect').value;
+            const formatText = format === 'docx' ? 'Word' : 'Excel';
+            
+            if (fileCount > 1) {
+                loadingText3.textContent = `Extracting ${fileCount} PDFs to ${formatText}...`;
+            } else {
+                loadingText3.textContent = `Extracting to ${formatText}...`;
+            }
+
+            // Auto-reset after download starts
+            setTimeout(() => {
+                resetFormTab3();
+            }, 2000);
+        });
+
+        // Reset form function - Tab 3
+        function resetFormTab3() {
+            selectedFilesTab3 = [];
+            extractPdfFile.value = '';
+            displayFilesTab3();
+            extractBtn.disabled = false;
+            loading3.classList.remove('show');
+            loadingText3.textContent = 'Extracting PDF...';
+        }
+
+        // Auto-hide flash messages
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+
+        // ======= OCR TAB =======
+        let selectedFilesOCR = [];
+        const ocrUploadArea = document.getElementById('ocrUploadArea');
+        const ocrFiles = document.getElementById('ocrFiles');
+        const ocrForm = document.getElementById('ocrForm');
+        const ocrBtn = document.getElementById('ocrBtn');
+        const ocrLoading = document.getElementById('ocrLoading');
+        const ocrLoadingText = document.getElementById('ocrLoadingText');
+        const ocrSelectedFilesDiv = document.getElementById('ocrSelectedFiles');
+
+        ocrUploadArea.addEventListener('click', () => ocrFiles.click());
+        ocrUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); ocrUploadArea.style.background = '#e8d5f2'; });
+        ocrUploadArea.addEventListener('dragleave', () => { ocrUploadArea.style.background = '#f8f9ff'; });
+        ocrUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            ocrUploadArea.style.background = '#f8f9ff';
+            selectedFilesOCR = Array.from(e.dataTransfer.files);
+            displayFilesOCR();
+        });
+
+        ocrFiles.addEventListener('change', () => {
+            selectedFilesOCR = Array.from(ocrFiles.files);
+            displayFilesOCR();
+        });
+
+        function displayFilesOCR() {
+            ocrSelectedFilesDiv.innerHTML = '';
+            selectedFilesOCR.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.marginBottom = '5px';
+                div.style.background = '#f0f2ff';
+                div.style.borderRadius = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.textContent = file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.background = 'none';
+                removeBtn.style.border = 'none';
+                removeBtn.style.color = '#667eea';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.onclick = () => removeFileOCR(index);
+                div.appendChild(removeBtn);
+                ocrSelectedFilesDiv.appendChild(div);
+            });
+            updateFileInputOCR();
+        }
+
+        function removeFileOCR(index) {
+            selectedFilesOCR.splice(index, 1);
+            updateFileInputOCR();
+            displayFilesOCR();
+        }
+
+        function updateFileInputOCR() {
+            const dt = new DataTransfer();
+            selectedFilesOCR.forEach(file => dt.items.add(file));
+            ocrFiles.files = dt.files;
+        }
+
+        ocrForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            ocrLoading.classList.add('show');
+            ocrBtn.disabled = true;
+            ocrForm.submit();
+            setTimeout(() => resetOCR(), 2000);
+        });
+
+        function resetOCR() {
+            selectedFilesOCR = [];
+            ocrFiles.value = '';
+            displayFilesOCR();
+            ocrBtn.disabled = false;
+            ocrLoading.classList.remove('show');
+            ocrLoadingText.textContent = 'Extracting text...';
+        }
+
+        // ======= WATERMARK TAB =======
+        let selectedFilesWatermark = [];
+        const watermarkUploadArea = document.getElementById('watermarkUploadArea');
+        const watermarkFiles = document.getElementById('watermarkFiles');
+        const watermarkForm = document.getElementById('watermarkForm');
+        const watermarkBtn = document.getElementById('watermarkBtn');
+        const watermarkLoading = document.getElementById('watermarkLoading');
+        const watermarkLoadingText = document.getElementById('watermarkLoadingText');
+        const watermarkSelectedFilesDiv = document.getElementById('watermarkSelectedFiles');
+
+        watermarkUploadArea.addEventListener('click', () => watermarkFiles.click());
+        watermarkUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); watermarkUploadArea.style.background = '#e8d5f2'; });
+        watermarkUploadArea.addEventListener('dragleave', () => { watermarkUploadArea.style.background = '#f8f9ff'; });
+        watermarkUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            watermarkUploadArea.style.background = '#f8f9ff';
+            selectedFilesWatermark = Array.from(e.dataTransfer.files);
+            displayFilesWatermark();
+        });
+
+        watermarkFiles.addEventListener('change', () => {
+            selectedFilesWatermark = Array.from(watermarkFiles.files);
+            displayFilesWatermark();
+        });
+
+        function displayFilesWatermark() {
+            watermarkSelectedFilesDiv.innerHTML = '';
+            selectedFilesWatermark.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.marginBottom = '5px';
+                div.style.background = '#f0f2ff';
+                div.style.borderRadius = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.textContent = file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.background = 'none';
+                removeBtn.style.border = 'none';
+                removeBtn.style.color = '#667eea';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.onclick = () => removeFileWatermark(index);
+                div.appendChild(removeBtn);
+                watermarkSelectedFilesDiv.appendChild(div);
+            });
+            updateFileInputWatermark();
+        }
+
+        function removeFileWatermark(index) {
+            selectedFilesWatermark.splice(index, 1);
+            updateFileInputWatermark();
+            displayFilesWatermark();
+        }
+
+        function updateFileInputWatermark() {
+            const dt = new DataTransfer();
+            selectedFilesWatermark.forEach(file => dt.items.add(file));
+            watermarkFiles.files = dt.files;
+        }
+
+        watermarkForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            watermarkLoading.classList.add('show');
+            watermarkBtn.disabled = true;
+            watermarkForm.submit();
+            setTimeout(() => resetWatermark(), 2000);
+        });
+
+        function resetWatermark() {
+            selectedFilesWatermark = [];
+            watermarkFiles.value = '';
+            displayFilesWatermark();
+            watermarkBtn.disabled = false;
+            watermarkLoading.classList.remove('show');
+            watermarkLoadingText.textContent = 'Adding watermark...';
+        }
+
+        // ======= ENCRYPT TAB =======
+        let selectedFilesEncrypt = [];
+        const encryptUploadArea = document.getElementById('encryptUploadArea');
+        const encryptFiles = document.getElementById('encryptFiles');
+        const encryptForm = document.getElementById('encryptForm');
+        const encryptBtn = document.getElementById('encryptBtn');
+        const encryptLoading = document.getElementById('encryptLoading');
+        const encryptLoadingText = document.getElementById('encryptLoadingText');
+        const encryptSelectedFilesDiv = document.getElementById('encryptSelectedFiles');
+
+        encryptUploadArea.addEventListener('click', () => encryptFiles.click());
+        encryptUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); encryptUploadArea.style.background = '#e8d5f2'; });
+        encryptUploadArea.addEventListener('dragleave', () => { encryptUploadArea.style.background = '#f8f9ff'; });
+        encryptUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            encryptUploadArea.style.background = '#f8f9ff';
+            selectedFilesEncrypt = Array.from(e.dataTransfer.files);
+            displayFilesEncrypt();
+        });
+
+        encryptFiles.addEventListener('change', () => {
+            selectedFilesEncrypt = Array.from(encryptFiles.files);
+            displayFilesEncrypt();
+        });
+
+        function displayFilesEncrypt() {
+            encryptSelectedFilesDiv.innerHTML = '';
+            selectedFilesEncrypt.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.marginBottom = '5px';
+                div.style.background = '#f0f2ff';
+                div.style.borderRadius = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.textContent = file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.background = 'none';
+                removeBtn.style.border = 'none';
+                removeBtn.style.color = '#667eea';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.onclick = () => removeFileEncrypt(index);
+                div.appendChild(removeBtn);
+                encryptSelectedFilesDiv.appendChild(div);
+            });
+            updateFileInputEncrypt();
+        }
+
+        function removeFileEncrypt(index) {
+            selectedFilesEncrypt.splice(index, 1);
+            updateFileInputEncrypt();
+            displayFilesEncrypt();
+        }
+
+        function updateFileInputEncrypt() {
+            const dt = new DataTransfer();
+            selectedFilesEncrypt.forEach(file => dt.items.add(file));
+            encryptFiles.files = dt.files;
+        }
+
+        encryptForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            encryptLoading.classList.add('show');
+            encryptBtn.disabled = true;
+            encryptForm.submit();
+            setTimeout(() => resetEncrypt(), 2000);
+        });
+
+        function resetEncrypt() {
+            selectedFilesEncrypt = [];
+            encryptFiles.value = '';
+            displayFilesEncrypt();
+            encryptBtn.disabled = false;
+            encryptLoading.classList.remove('show');
+            encryptLoadingText.textContent = 'Encrypting...';
+        }
+
+        // ======= AUTOFORMAT TAB =======
+        let selectedFilesAutoformat = [];
+        const autoformatUploadArea = document.getElementById('autoformatUploadArea');
+        const autoformatFiles = document.getElementById('autoformatFiles');
+        const autoformatForm = document.getElementById('autoformatForm');
+        const autoformatBtn = document.getElementById('autoformatBtn');
+        const autoformatLoading = document.getElementById('autoformatLoading');
+        const autoformatLoadingText = document.getElementById('autoformatLoadingText');
+        const autoformatSelectedFilesDiv = document.getElementById('autoformatSelectedFiles');
+
+        autoformatUploadArea.addEventListener('click', () => autoformatFiles.click());
+        autoformatUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); autoformatUploadArea.style.background = '#e8d5f2'; });
+        autoformatUploadArea.addEventListener('dragleave', () => { autoformatUploadArea.style.background = '#f8f9ff'; });
+        autoformatUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            autoformatUploadArea.style.background = '#f8f9ff';
+            selectedFilesAutoformat = Array.from(e.dataTransfer.files);
+            displayFilesAutoformat();
+        });
+
+        autoformatFiles.addEventListener('change', () => {
+            selectedFilesAutoformat = Array.from(autoformatFiles.files);
+            displayFilesAutoformat();
+        });
+
+        function displayFilesAutoformat() {
+            autoformatSelectedFilesDiv.innerHTML = '';
+            selectedFilesAutoformat.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.marginBottom = '5px';
+                div.style.background = '#f0f2ff';
+                div.style.borderRadius = '5px';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.textContent = file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '✕';
+                removeBtn.style.background = 'none';
+                removeBtn.style.border = 'none';
+                removeBtn.style.color = '#667eea';
+                removeBtn.style.cursor = 'pointer';
+                removeBtn.onclick = () => removeFileAutoformat(index);
+                div.appendChild(removeBtn);
+                autoformatSelectedFilesDiv.appendChild(div);
+            });
+            updateFileInputAutoformat();
+        }
+
+        function removeFileAutoformat(index) {
+            selectedFilesAutoformat.splice(index, 1);
+            updateFileInputAutoformat();
+            displayFilesAutoformat();
+        }
+
+        function updateFileInputAutoformat() {
+            const dt = new DataTransfer();
+            selectedFilesAutoformat.forEach(file => dt.items.add(file));
+            autoformatFiles.files = dt.files;
+        }
+
+        autoformatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            autoformatLoading.classList.add('show');
+            autoformatBtn.disabled = true;
+            autoformatForm.submit();
+            setTimeout(() => resetAutoformat(), 2000);
+        });
+
+        function resetAutoformat() {
+            selectedFilesAutoformat = [];
+            autoformatFiles.value = '';
+            displayFilesAutoformat();
+            autoformatBtn.disabled = false;
+            autoformatLoading.classList.remove('show');
+            autoformatLoadingText.textContent = 'Cleaning PDF...';
+        }
+    </script>
+</body>
+</html>

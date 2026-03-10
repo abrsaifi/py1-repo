@@ -1,0 +1,91 @@
+# Alert rules for Document Converter monitoring
+
+groups:
+  - name: converter_alerts
+    interval: 30s
+    rules:
+      # Backend health alerts
+      - alert: BackendDown
+        expr: up{job="backend-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend service is down"
+          description: "Backend at {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(flask_http_request_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # Performance alerts
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, flask_http_request_duration_seconds_bucket) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response times detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{name=~"converter.*"} / container_spec_memory_limit_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of memory"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name=~"converter.*"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of CPU"
+
+      # Disk space alerts
+      - alert: LowDiskSpace
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining on {{ $labels.device }}"
+
+      # Database alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_activity_count > pg_settings_max_connections / 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool nearing limit"
+          description: "Using {{ $value }} of {{ $labels.max_connections }} connections"
+
+      # File upload alerts
+      - alert: HighUploadQueueSize
+        expr: converter_upload_queue_size > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of pending uploads"
+          description: "{{ $value }} uploads pending processing"
+
+      - alert: UploadFailureRate
+        expr: rate(converter_upload_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High upload failure rate"
+          description: "Upload failure rate is {{ $value | humanizePercentage }}"
