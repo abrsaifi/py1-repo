@@ -21,6 +21,7 @@ import SettingsPage from './pages/SettingsPage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdvancedAnalyticsPage from './pages/AdvancedAnalyticsPage'
 import UserDashboard from './pages/UserDashboard'
+import SubscriberDashboard from './pages/SubscriberDashboard'
 import UserProfile from './pages/UserProfile'
 import AccountSettings from './pages/AccountSettings'
 import './styles/app.css'
@@ -83,6 +84,8 @@ function AppContent() {
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={auth.isAuthenticated ? <UserDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+          <Route path="/billing" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+          <Route path="/subscription" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
           <Route path="/dashboard/profile" element={auth.isAuthenticated ? <UserProfile onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
           <Route path="/dashboard/account" element={auth.isAuthenticated ? <AccountSettings onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
           <Route path="/metrics" element={auth.isAuthenticated ? <MetricsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />

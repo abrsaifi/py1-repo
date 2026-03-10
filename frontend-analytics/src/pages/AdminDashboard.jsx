@@ -194,6 +194,12 @@ const AdminDashboard = () => {
     { id: 'cms', label: 'CMS', icon: '📄' }
   ]
 
+  // Get current tab label for breadcrumbs
+  const getCurrentTabLabel = () => {
+    const item = [...adminMenuItems].flat().find(i => i.id === activeTab)
+    return item ? item.label : 'Dashboard'
+  }
+
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
@@ -202,9 +208,25 @@ const AdminDashboard = () => {
             <UniversalIcon icon="⚡" size={24} />
             <span className="logo-text">FastConvert</span>
           </div>
+          
+          {/* Breadcrumb Navigation */}
+          <div className="header-breadcrumb">
+            <span className="breadcrumb-item">Dashboard</span>
+            <span className="breadcrumb-separator">/</span>
+            <span className="breadcrumb-item active">{getCurrentTabLabel()}</span>
+          </div>
         </div>
 
         <div className="header-right">
+          <button className="header-icon-btn" title="Notifications">
+            <UniversalIcon icon="🔔" size={20} />
+            <span className="notification-badge">3</span>
+          </button>
+          
+          <button className="header-icon-btn" onClick={toggleTheme} title="Toggle Theme">
+            <UniversalIcon icon="🌓" size={20} />
+          </button>
+          
           <div className="avatar-container">
             <button 
               className="avatar-button"
@@ -222,28 +244,30 @@ const AdminDashboard = () => {
                 <button className="dropdown-item"><UniversalIcon icon="👤" size={16} /> Profile</button>
                 <button className="dropdown-item"><UniversalIcon icon="🔔" size={16} /> Notifications</button>
                 <button className="dropdown-item"><UniversalIcon icon="🔐" size={16} /> Security</button>
-                <button className="dropdown-item" onClick={toggleTheme}><UniversalIcon icon="🌓" size={16} /> Toggle Dark/Light</button>
                 <div className="dropdown-divider"></div>
-                <button className="dropdown-item logout" onClick={auth.logout}><UniversalIcon icon="🔒" size={16} /> Logout</button>
+                <button className="dropdown-item logout" onClick={auth.logout}><UniversalIcon icon="🚪" size={16} /> Logout</button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Left Sidebar Navigation - Outside container for fixed positioning */}
-      <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        <button 
-          className="sidebar-toggle"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          title={sidebarCollapsed ? 'Expand' : 'Collapse'}
-        >
-          {sidebarCollapsed ? <UniversalIcon icon="→" size={18} /> : <UniversalIcon icon="←" size={18} />}
-        </button>
+      {/* Left Sidebar Navigation - Improved with Categories */}
+      <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''} v2`}>
+        <div className="sidebar-header">
+          <button 
+            className="sidebar-toggle"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? 'Expand' : 'Collapse'}
+          >
+            {sidebarCollapsed ? '→' : '←'}
+          </button>
+          {!sidebarCollapsed && <span className="sidebar-title">Menu</span>}
+        </div>
         
         <nav className="admin-nav">
           <div className="admin-nav-section">
-            <h3 className="admin-nav-title">Operations</h3>
+            <h3 className="admin-nav-title">📊 Operations</h3>
             <ul className="admin-nav-items">
               {adminMenuItems.slice(0, 7).map(item => (
                 <li key={item.id}>
@@ -252,7 +276,7 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab(item.id)}
                     title={item.label}
                   >
-                    <UniversalIcon icon={item.icon} size={18} />
+                    <span className="nav-icon">{item.icon}</span>
                     {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
                   </button>
                 </li>
@@ -261,7 +285,7 @@ const AdminDashboard = () => {
           </div>
 
           <div className="admin-nav-section">
-            <h3 className="admin-nav-title">Management</h3>
+            <h3 className="admin-nav-title">👥 Management</h3>
             <ul className="admin-nav-items">
               {adminMenuItems.slice(7, 11).map(item => (
                 <li key={item.id}>
@@ -270,7 +294,7 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab(item.id)}
                     title={item.label}
                   >
-                    <UniversalIcon icon={item.icon} size={18} />
+                    <span className="nav-icon">{item.icon}</span>
                     {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
                   </button>
                 </li>
@@ -279,7 +303,7 @@ const AdminDashboard = () => {
           </div>
 
           <div className="admin-nav-section">
-            <h3 className="admin-nav-title">System</h3>
+            <h3 className="admin-nav-title">⚙️ System</h3>
             <ul className="admin-nav-items">
               {adminMenuItems.slice(11).map(item => (
                 <li key={item.id}>
@@ -288,7 +312,7 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab(item.id)}
                     title={item.label}
                   >
-                    <UniversalIcon icon={item.icon} size={18} />
+                    <span className="nav-icon">{item.icon}</span>
                     {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
                   </button>
                 </li>
@@ -298,7 +322,7 @@ const AdminDashboard = () => {
         </nav>
       </aside>
 
-      <div className="admin-container">
+      <div className="admin-container v2">
         <main className="admin-content">
           {renderContent()}
         </main>

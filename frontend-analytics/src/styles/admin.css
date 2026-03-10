@@ -2927,11 +2927,300 @@
   color: #667eea;
 }
 
-/* Responsive Design */
+/* Admin Dashboard V2 Improvements */
+
+/* Enhanced Header */
+.admin-header {
+  padding: 0 20px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.header-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-left: 20px;
+}
+
+.breadcrumb-item {
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-item.active {
+  color: white;
+  font-weight: 600;
+}
+
+.breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.header-icon-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 50%;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Enhanced Sidebar V2 */
+.admin-sidebar.v2 {
+  padding: 0;
+  border-right: 1px solid #e5e7eb;
+  background: white;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  margin: 70px 0 0 0;
+}
+
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.admin-nav-section h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin: 16px 12px 8px 12px;
+  font-weight: 700;
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+  border-radius: 6px;
+  margin: 2px 6px;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-link:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-nav-link.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+  color: #667eea;
+  font-weight: 600;
+  border-left: 3px solid #667eea;
+  padding-left: 9px;
+}
+
+.nav-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Admin Container V2 */
+.admin-container.v2 {
+  margin-top: 70px;
+  margin-left: 260px;
+  padding: 20px;
+}
+
+.admin-sidebar.v2.collapsed ~ .admin-container.v2 {
+  margin-left: 70px;
+}
+
+/* Admin Overview Enhancements */
+.admin-overview {
+  padding: 0;
+}
+
+.admin-overview-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 24px 0;
+}
+
+/* Stats Grid Enhancement */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.admin-stat-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-stat-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  border-color: #bfdbfe;
+}
+
+.admin-stat-card.metric-primary {
+  border-left: 4px solid #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+}
+
+.admin-stat-card.metric-success {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(52, 211, 153, 0.05));
+}
+
+.admin-stat-card.metric-danger {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(252, 165, 165, 0.05));
+}
+
+.admin-stat-card.metric-info {
+  border-left: 4px solid #0ea5e9;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(165, 243, 252, 0.05));
+}
+
+.admin-stat-card.metric-warning {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(250, 204, 21, 0.05));
+}
+
+.admin-stat-card.metric-queue {
+  border-left: 4px solid #8b5cf6;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(196, 181, 253, 0.05));
+}
+
+.admin-stat-card.metric-revenue {
+  border-left: 4px solid #06b6d4;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(165, 243, 252, 0.05));
+}
+
+.admin-stat-card .stat-content {
+  flex: 1;
+}
+
+.admin-stat-card h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.admin-stat-card .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 2px 0;
+}
+
+.admin-stat-card .stat-detail {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+}
+
+/* Charts Section Enhancements */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.chart-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.chart-container:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 300px;
+}
+
+.chart-wrapper.pie-chart {
+  height: 350px;
+}
+
+/* Responsive Design - Updated */
 @media (max-width: 1200px) {
   .two-column {
     grid-template-columns: 1fr;
     gap: 25px;
+  }
+  
+  .admin-container.v2 {
+    margin-left: 260px;
+  }
+  
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .charts-section {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2941,6 +3230,33 @@
     gap: 20px;
   }
   
+  .admin-header {
+    padding: 0 12px;
+    height: 60px;
+  }
+  
+  .header-breadcrumb {
+    display: none;
+  }
+  
+  .admin-container.v2 {
+    margin-left: 70px;
+    padding: 12px;
+  }
+  
+  .admin-sidebar.v2 {
+    width: 70px;
+  }
+  
+  .admin-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .chart-wrapper {
+    height: 250px;
+  }
+}
   .column h3 {
     font-size: 1.1em;
     margin-bottom: 15px;

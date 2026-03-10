@@ -14,11 +14,24 @@ const UserDashboard = () => {
   const [filterFormat, setFilterFormat] = useState('all')
   const [showProfile, setShowProfile] = useState(false)
   const [conversions, setConversions] = useState([])
+  const [showNotifications, setShowNotifications] = useState(false)
   const [stats, setStats] = useState({
-    totalConversions: 0,
-    conversionsSaved: 0,
-    averageConversionTime: 0,
-    mostUsedTool: 'N/A'
+    totalConversions: 156,
+    conversionsSaved: 2456,
+    averageConversionTime: 3.2,
+    mostUsedTool: 'PDF to DOCX',
+    filesProcessed: 250,
+    successRate: 99.2,
+    monthlyConversions: 42,
+    storageUsed: 2.3,
+    storageTotal: 100
+  })
+  const [profile, setProfile] = useState({
+    joinDate: '2024-01-15',
+    plan: 'Pro',
+    nextBillingDate: '2024-04-15',
+    conversionsThisMonth: 42,
+    tasksCompleted: 156
   })
 
   // Redirect if not authenticated - check immediately without loading state to prevent flicker
@@ -36,21 +49,15 @@ const UserDashboard = () => {
       try {
         setLoading(true)
         
-        // For now, use mock data - will integrate with real API later
+        // Mock conversion data
         const mockConversions = [
-          { id: 1, filename: 'document.pdf', from: 'PDF', to: 'DOCX', date: '2024-03-06', time: '14:30', status: 'completed', size: '2.4 MB' },
-          { id: 2, filename: 'photo.jpg', from: 'JPG', to: 'PNG', date: '2024-03-06', time: '10:15', status: 'completed', size: '1.8 MB' },
-          { id: 3, filename: 'spreadsheet.xlsx', from: 'XLSX', to: 'PDF', date: '2024-03-05', time: '16:45', status: 'completed', size: '0.8 MB' }
+          { id: 1, filename: 'document.pdf', from: 'PDF', to: 'DOCX', date: '2024-03-06', time: '14:30', status: 'completed', size: '2.4 MB', duration: 2.1 },
+          { id: 2, filename: 'photo.jpg', from: 'JPG', to: 'PNG', date: '2024-03-06', time: '10:15', status: 'completed', size: '1.8 MB', duration: 1.5 },
+          { id: 3, filename: 'spreadsheet.xlsx', from: 'XLSX', to: 'PDF', date: '2024-03-05', time: '16:45', status: 'completed', size: '0.8 MB', duration: 3.8 },
+          { id: 4, filename: 'presentation.pptx', from: 'PPTX', to: 'PDF', date: '2024-03-05', time: '14:20', status: 'completed', size: '4.2 MB', duration: 5.2 },
+          { id: 5, filename: 'image.png', from: 'PNG', to: 'JPG', date: '2024-03-04', time: '09:30', status: 'completed', size: '0.6 MB', duration: 0.8 },
         ]
         setConversions(mockConversions)
-
-        setStats({
-          totalConversions: 156,
-          conversionsSaved: 2456,
-          averageConversionTime: 3.2,
-          mostUsedTool: 'PDF to DOCX'
-        })
-
         setError(null)
       } catch (err) {
         console.error('Error fetching dashboard stats:', err)
@@ -103,13 +110,22 @@ const UserDashboard = () => {
   }
 
   return (
-    <div className="user-dashboard refined">
-      {/* Top Navigation Bar */}
-      <nav className="dashboard-topnav">
+    <div className="user-dashboard enhanced">
+      {/* Enhanced Top Navigation Bar */}
+      <nav className="dashboard-topnav v2">
         <div className="topnav-left">
-          <h1>Dashboard</h1>
+          <h1>🎯 Dashboard</h1>
+          <div className="breadcrumb">
+            <span>Home</span>
+            <span className="divider">/</span>
+            <span className="active">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span>
+          </div>
         </div>
         <div className="topnav-right">
+          <button className="btn-icon notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            🔔
+            <span className="notification-badge">3</span>
+          </button>
           <button className="btn-primary" onClick={handleNewConversion}>
             ➕ New Conversion
           </button>
@@ -119,19 +135,28 @@ const UserDashboard = () => {
               onClick={() => setShowProfile(!showProfile)}
               title="Profile menu"
             >
-              <span className="profile-icon">👤</span>
-              {auth.user && <span className="profile-name">{auth.user.username}</span>}
+              <span className="profile-avatar">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</span>
+              <span className="profile-name">{auth.user?.username}</span>
             </button>
             
             {showProfile && (
               <div className="profile-dropdown">
-                <div className="profile-info">
-                  <p><strong>{auth.user?.username}</strong></p>
-                  <p className="text-muted">{auth.user?.email}</p>
+                <div className="profile-header">
+                  <div className="profile-avatar-large">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</div>
+                  <div>
+                    <p className="profile-name-large"><strong>{auth.user?.username}</strong></p>
+                    <p className="text-muted">{auth.user?.email}</p>
+                  </div>
                 </div>
                 <hr />
+                <button className="dropdown-item" onClick={() => navigate('/profile')}>
+                  👤 View Profile
+                </button>
                 <button className="dropdown-item" onClick={() => navigate('/settings')}>
                   ⚙️ Settings
+                </button>
+                <button className="dropdown-item" onClick={() => navigate('/billing')}>
+                  💳 Billing
                 </button>
                 <button className="dropdown-item" onClick={() => navigate('/api-keys')}>
                   🔑 API Keys
@@ -146,108 +171,194 @@ const UserDashboard = () => {
         </div>
       </nav>
 
-      {/* Navigation Tabs */}
-      <div className="dashboard-nav sticky">
+      {/* Notifications Panel */}
+      {showNotifications && (
+        <div className="notifications-panel">
+          <div className="notifications-header">
+            <h3>Notifications</h3>
+            <button className="btn-icon" onClick={() => setShowNotifications(false)}>✕</button>
+          </div>
+          <div className="notifications-list">
+            <div className="notification-item">
+              <span className="notification-icon">✅</span>
+              <div>
+                <p className="notification-title">Conversion Completed</p>
+                <p className="notification-meta">Your PDF conversion finished in 2.1s</p>
+              </div>
+            </div>
+            <div className="notification-item">
+              <span className="notification-icon">💾</span>
+              <div>
+                <p className="notification-title">Storage Warning</p>
+                <p className="notification-meta">You've used 2.3GB of 100GB storage</p>
+              </div>
+            </div>
+            <div className="notification-item">
+              <span className="notification-icon">🎉</span>
+              <div>
+                <p className="notification-title">Achievement Unlocked</p>
+                <p className="notification-meta">You've completed 150 conversions!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Navigation Tabs */}
+      <div className="dashboard-nav sticky v2">
         <div className="nav-container">
           <button 
             className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
-            role="tab"
-            aria-selected={activeTab === 'overview'}
+            title="Overview dashboard"
           >
             📊 Overview
           </button>
           <button 
             className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
-            role="tab"
-            aria-selected={activeTab === 'history'}
+            title="Conversion history"
           >
             📜 History
           </button>
           <button 
             className={`nav-tab ${activeTab === 'storage' ? 'active' : ''}`}
             onClick={() => setActiveTab('storage')}
-            role="tab"
-            aria-selected={activeTab === 'storage'}
+            title="Storage management"
           >
             💾 Storage
+          </button>
+          <button 
+            className={`nav-tab ${activeTab === 'performance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('performance')}
+            title="Performance metrics"
+          >
+            ⚡ Performance
           </button>
         </div>
       </div>
 
-      <div className="dashboard-container">
-        {/* Compact Sidebar */}
-        <aside className="dashboard-sidebar compact">
-          <div className="sidebar-card">
-            <div className="card-header">Current Plan</div>
-            <div className="plan-badge pro">Pro</div>
-            <p className="plan-desc">Full access to all converters</p>
-            <button className="btn-link text-sm">Upgrade →</button>
+      <div className="dashboard-container v2">
+        {/* Enhanced Sidebar */}
+        <aside className="dashboard-sidebar v2">
+          {/* Profile Card */}
+          <div className="sidebar-card profile-card">
+            <div className="profile-section">
+              <div className="avatar-large">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</div>
+              <h3>{auth.user?.username}</h3>
+              <p className="text-muted">{auth.user?.email}</p>
+              <div className="profile-badge pro">{profile.plan} Plan</div>
+            </div>
+            <div className="profile-details">
+              <div className="detail-item">
+                <span className="label">Member Since</span>
+                <span className="value">{profile.joinDate}</span>
+              </div>
+              <div className="detail-item">
+                <span className="label">Next Billing</span>
+                <span className="value">{profile.nextBillingDate}</span>
+              </div>
+            </div>
+            <button className="btn-secondary btn-block">Edit Profile</button>
           </div>
 
-          <div className="sidebar-card">
-            <div className="card-header">Storage</div>
-            <div className="storage-bar">
-              <div className="storage-fill" style={{ width: '23%' }}></div>
+          {/* Plan Card */}
+          <div className="sidebar-card plan-card">
+            <div className="card-header">📋 Current Plan</div>
+            <div className="plan-info">
+              <div className="plan-badge pro">{profile.plan}</div>
+              <p className="plan-desc">Full access to all converters</p>
+              <div className="plan-features">
+                <div className="feature">✅ Unlimited conversions</div>
+                <div className="feature">✅ 100GB storage</div>
+                <div className="feature">✅ Priority support</div>
+              </div>
             </div>
-            <p className="storage-text" style={{ fontSize: '0.875rem' }}>2.3 GB / 100 GB</p>
+            <button className="btn-link btn-block">Upgrade Plan →</button>
           </div>
 
-          <div className="sidebar-card">
-            <div className="card-header">Quick Stats</div>
-            <div className="mini-stat">
-              <span className="label">Conversions</span>
-              <span className="value">{stats.totalConversions}</span>
+          {/* Storage Card */}
+          <div className="sidebar-card storage-card">
+            <div className="card-header">💾 Storage</div>
+            <div className="storage-visual">
+              <div className="storage-bar">
+                <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
+              </div>
+              <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB</p>
+              <p className="storage-percent">{((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used</p>
             </div>
-            <div className="mini-stat">
-              <span className="label">This Month</span>
-              <span className="value">42</span>
+          </div>
+
+          {/* Quick Stats Card */}
+          <div className="sidebar-card stats-card">
+            <div className="card-header">📈 This Month</div>
+            <div className="quick-stat">
+              <div className="stat-number">{profile.conversionsThisMonth}</div>
+              <div className="stat-label">Conversions</div>
+            </div>
+            <div className="quick-stat">
+              <div className="stat-number">{stats.successRate}%</div>
+              <div className="stat-label">Success Rate</div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="dashboard-main">
+        {/* Enhanced Main Content */}
+        <main className="dashboard-main v2">
           {activeTab === 'overview' && (
             <>
-              {/* Stats Grid - Simplified */}
-              <section className="stats-grid compact">
-                <div className="stat-card">
-                  <div className="stat-icon">📋</div>
-                  <div className="stat-content">
-                    <div className="stat-value">{stats.totalConversions}</div>
-                    <div className="stat-label">Total Conversions</div>
+              {/* Hero Stats Section */}
+              <section className="stats-section hero-stats">
+                <h2 className="section-title">Your Activity Overview</h2>
+                <div className="stats-grid v2">
+                  <div className="stat-card premium">
+                    <div className="stat-header">
+                      <span className="stat-icon">📋</span>
+                      <span className="stat-label">Total Conversions</span>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-value">{stats.totalConversions}</div>
+                      <div className="stat-change positive">↑ 12 this month</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="stat-card">
-                  <div className="stat-icon">💾</div>
-                  <div className="stat-content">
-                    <div className="stat-value">{(stats.conversionsSaved / 1024).toFixed(1)} GB</div>
-                    <div className="stat-label">Space Saved</div>
+                  <div className="stat-card premium">
+                    <div className="stat-header">
+                      <span className="stat-icon">⚡</span>
+                      <span className="stat-label">Avg Speed</span>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-value">{stats.averageConversionTime}s</div>
+                      <div className="stat-change positive">↑ Faster than last week</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="stat-card">
-                  <div className="stat-icon">⚡</div>
-                  <div className="stat-content">
-                    <div className="stat-value">{stats.averageConversionTime}s</div>
-                    <div className="stat-label">Avg. Speed</div>
+                  <div className="stat-card premium">
+                    <div className="stat-header">
+                      <span className="stat-icon">💾</span>
+                      <span className="stat-label">Storage Saved</span>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-value">{(stats.conversionsSaved / 1024).toFixed(1)} GB</div>
+                      <div className="stat-change positive">↑ Growing daily</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="stat-card">
-                  <div className="stat-icon">🏆</div>
-                  <div className="stat-content">
-                    <div className="stat-value text-sm">{stats.mostUsedTool}</div>
-                    <div className="stat-label">Top Tool</div>
+                  <div className="stat-card premium">
+                    <div className="stat-header">
+                      <span className="stat-icon">🏆</span>
+                      <span className="stat-label">Most Used</span>
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-value text-sm">{stats.mostUsedTool}</div>
+                      <div className="stat-change">{stats.filesProcessed} files</div>
+                    </div>
                   </div>
                 </div>
               </section>
 
-              {/* Recent Activity - Cleaner */}
-              <section className="recent-activity">
+              {/* Recent Activity */}
+              <section className="recent-activity v2">
                 <div className="section-header">
                   <h2>📌 Recent Conversions</h2>
                   <button className="btn-link" onClick={() => setActiveTab('history')}>
@@ -257,30 +368,33 @@ const UserDashboard = () => {
 
                 {conversions.length === 0 ? (
                   <div className="empty-state">
-                    <p>📂 No conversions yet</p>
+                    <span className="empty-icon">📂</span>
+                    <p>No conversions yet</p>
                     <button className="btn-primary" onClick={handleNewConversion}>
                       Start Your First Conversion
                     </button>
                   </div>
                 ) : (
-                  <div className="conversion-list">
+                  <div className="conversion-list v2">
                     {conversions.slice(0, 5).map((conversion) => (
-                      <div key={conversion.id} className="conversion-item">
+                      <div key={conversion.id} className="conversion-item v2">
                         <div className="conversion-left">
-                          <span className="status-badge">{conversion.status === 'completed' ? '✅' : '⏳'}</span>
+                          <span className="file-icon">📄</span>
                           <div className="conversion-details">
                             <div className="conversion-name">{conversion.filename}</div>
                             <div className="conversion-meta">
-                              {conversion.from} → {conversion.to} ({conversion.size})
+                              <span className="format-badge">{conversion.from}</span>
+                              <span className="arrow">→</span>
+                              <span className="format-badge">{conversion.to}</span>
+                              <span className="spacer">•</span>
+                              <span className="size">{conversion.size}</span>
                             </div>
                           </div>
                         </div>
                         <div className="conversion-right">
-                          <div className="conversion-time text-muted">
-                            {conversion.date} {conversion.time}
-                          </div>
+                          <div className="conversion-time">{conversion.date}</div>
                           <button 
-                            className="btn-icon"
+                            className="btn-icon download"
                             onClick={() => downloadConversion(conversion.filename)}
                             title="Download file"
                           >
@@ -293,25 +407,29 @@ const UserDashboard = () => {
                 )}
               </section>
 
-              {/* Quick Actions - Simplified */}
-              <section className="quick-actions">
-                <h3>❓ Need Help?</h3>
-                <div className="actions-grid">
+              {/* Quick Actions */}
+              <section className="quick-actions v2">
+                <h2 className="section-title">⚡ Quick Actions</h2>
+                <div className="actions-grid v2">
+                  <button className="action-card" onClick={handleNewConversion}>
+                    <span className="action-icon">➕</span>
+                    <span className="action-title">New Conversion</span>
+                    <span className="action-desc">Start converting</span>
+                  </button>
                   <a href="#docs" className="action-card">
                     <span className="action-icon">📖</span>
-                    <span>Documentation</span>
+                    <span className="action-title">Documentation</span>
+                    <span className="action-desc">Learn how to use</span>
                   </a>
                   <a href="#support" className="action-card">
                     <span className="action-icon">💬</span>
-                    <span>Contact Support</span>
+                    <span className="action-title">Contact Support</span>
+                    <span className="action-desc">Get help fast</span>
                   </a>
                   <a href="#api" className="action-card">
                     <span className="action-icon">🔌</span>
-                    <span>API Reference</span>
-                  </a>
-                  <a href="#upgrade" className="action-card">
-                    <span className="action-icon">⭐</span>
-                    <span>Upgrade Plan</span>
+                    <span className="action-title">API Reference</span>
+                    <span className="action-desc">Integrate with API</span>
                   </a>
                 </div>
               </section>
@@ -319,10 +437,9 @@ const UserDashboard = () => {
           )}
 
           {activeTab === 'history' && (
-            <section className="history-section">
+            <section className="history-section v2">
               <h2>📜 Conversion History</h2>
               
-              {/* Enhanced Filters */}
               <div className="history-controls">
                 <div className="search-box">
                   <input 
@@ -331,14 +448,12 @@ const UserDashboard = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="search-input"
-                    aria-label="Search conversions"
                   />
                 </div>
                 <select 
                   value={filterFormat}
                   onChange={(e) => setFilterFormat(e.target.value)}
                   className="filter-select"
-                  aria-label="Filter by format"
                 >
                   <option value="all">All Formats</option>
                   <option value="pdf">PDF</option>
@@ -348,33 +463,32 @@ const UserDashboard = () => {
                 </select>
               </div>
 
-              {/* Filtered List */}
               {filteredConversions.length === 0 ? (
                 <div className="empty-state">
                   <p>🔍 No conversions found</p>
                   <p className="text-muted">Try adjusting your filters</p>
                 </div>
               ) : (
-                <div className="conversion-list">
+                <div className="conversion-table">
+                  <div className="table-header">
+                    <div className="col-file">File</div>
+                    <div className="col-format">Format</div>
+                    <div className="col-date">Date</div>
+                    <div className="col-size">Size</div>
+                    <div className="col-duration">Duration</div>
+                    <div className="col-actions">Actions</div>
+                  </div>
                   {filteredConversions.map((conversion) => (
-                    <div key={conversion.id} className="conversion-item">
-                      <div className="conversion-left">
-                        <span className="status-badge">{conversion.status === 'completed' ? '✅' : '⏳'}</span>
-                        <div className="conversion-details">
-                          <div className="conversion-name">{conversion.filename}</div>
-                          <div className="conversion-meta">
-                            {conversion.from} → {conversion.to} ({conversion.size})
-                          </div>
-                        </div>
-                      </div>
-                      <div className="conversion-right">
-                        <div className="conversion-time text-muted">
-                          {conversion.date} {conversion.time}
-                        </div>
+                    <div key={conversion.id} className="table-row">
+                      <div className="col-file">{conversion.filename}</div>
+                      <div className="col-format">{conversion.from} → {conversion.to}</div>
+                      <div className="col-date">{conversion.date} {conversion.time}</div>
+                      <div className="col-size">{conversion.size}</div>
+                      <div className="col-duration">{conversion.duration}s</div>
+                      <div className="col-actions">
                         <button 
                           className="btn-icon"
                           onClick={() => downloadConversion(conversion.filename)}
-                          title="Download file"
                         >
                           ⬇️
                         </button>
@@ -384,22 +498,22 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              <div className="history-footer text-muted text-center">
+              <div className="history-footer">
                 Showing {filteredConversions.length} of {conversions.length} conversions
               </div>
             </section>
           )}
 
           {activeTab === 'storage' && (
-            <section className="storage-section">
+            <section className="storage-section v2">
               <h2>💾 Storage Management</h2>
               <div className="storage-details">
                 <div className="storage-main">
                   <div className="storage-info">
                     <div className="storage-bar large">
-                      <div className="storage-fill" style={{ width: '23%' }}></div>
+                      <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
                     </div>
-                    <p className="storage-text">2.3 GB / 100 GB (23% used)</p>
+                    <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB ({((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used)</p>
                     
                     <div className="storage-breakdown">
                       <div className="breakdown-item">
@@ -421,11 +535,39 @@ const UserDashboard = () => {
                 <div className="storage-actions">
                   <button className="btn-secondary">🗑️ Clear Old Files</button>
                   <button className="btn-secondary">📥 Download All</button>
-                  <button className="btn-primary">⭐ Upgrade to 1TB</button>
+                  <button className="btn-primary">⭐ Upgrade Storage</button>
                 </div>
 
                 <div className="storage-note">
                   <p><strong>💡 Tip:</strong> Keep your storage organized by regularly deleting old conversions you no longer need.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'performance' && (
+            <section className="performance-section v2">
+              <h2>⚡ Performance Metrics</h2>
+              <div className="performance-grid">
+                <div className="performance-card">
+                  <h3>Average Conversion Speed</h3>
+                  <div className="metric-display">{stats.averageConversionTime}s</div>
+                  <div className="metric-trend positive">↓ 0.5s faster than last week</div>
+                </div>
+                <div className="performance-card">
+                  <h3>Success Rate</h3>
+                  <div className="metric-display">{stats.successRate}%</div>
+                  <div className="metric-trend positive">↑ 0.3% improvement</div>
+                </div>
+                <div className="performance-card">
+                  <h3>Total Files Processed</h3>
+                  <div className="metric-display">{stats.filesProcessed}</div>
+                  <div className="metric-trend">→ Steady performance</div>
+                </div>
+                <div className="performance-card">
+                  <h3>This Month Activity</h3>
+                  <div className="metric-display">{profile.conversionsThisMonth}</div>
+                  <div className="metric-trend positive">↑ 42% vs last month</div>
                 </div>
               </div>
             </section>
