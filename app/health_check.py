@@ -1,10 +1,17 @@
 """Enhanced Health Check Endpoints for Load Balancer"""
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request, make_response
 from datetime import datetime
 from app.models import db
 import os
 
 health_bp = Blueprint('health', __name__)
+
+def add_cors_headers(response):
+    """Add CORS headers to response"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 class HealthStatus:
     """Health status enumeration"""
@@ -89,14 +96,18 @@ def check_celery_health():
             'message': f'Celery check failed: {str(e)}'
         }
 
-@health_bp.route('/health', methods=['GET'])
+@health_bp.route('/health', methods=['GET', 'OPTIONS'])
 def basic_health_check():
     """Basic health check (fast, used by load balancer)"""
-    return jsonify({
+    if request.method == 'OPTIONS':
+        return add_cors_headers(make_response('', 204))
+    
+    response = jsonify({
         'status': HealthStatus.HEALTHY,
         'timestamp': datetime.utcnow().isoformat(),
         'service': 'docpro-api'
-    }), 200
+    })
+    return add_cors_headers(response), 200
 
 @health_bp.route('/health/detailed', methods=['GET'])
 def detailed_health_check():

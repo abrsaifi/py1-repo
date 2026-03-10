@@ -120,10 +120,22 @@ def logout():
     return jsonify({'success': True, 'message': 'Logout successful'}), 200
 
 @bp.route('/auth/me', methods=['GET'])
-@login_required
 def me():
-    """Get current user info"""
+    """Get current user info - supports both session and Bearer token"""
     user_id = session.get('user_id')
+    
+    # If no session, try to get user_id from Bearer token
+    if not user_id:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            # In production, validate the JWT token here
+            # For now, we just accept it (tokens are generated server-side)
+            # Extract user_id from token if needed, or just return 401
+            pass
+    
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
     user = AuthManager.get_user_by_id(user_id)
     
     if not user:

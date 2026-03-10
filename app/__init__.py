@@ -92,20 +92,23 @@ def create_app(config=None):
     except Exception as e:
         app.logger.warning(f'Auto-scaling manager initialization failed: {str(e)}')
 
-    # Enable CORS for API endpoints in the package app so the frontend can
+    # Enable CORS for API endpoints and health endpoints in the package app so the frontend can
     # fetch `/api/*` during development. Prefer `flask_cors` if available.
     try:
         from flask_cors import CORS
         CORS(app, 
-             resources={r"/api/*": {"origins": "*"}},
+             resources={
+                 r"/api/*": {"origins": "*"},
+                 r"/health*": {"origins": "*"}
+             },
              supports_credentials=True)
-        app.logger.info('flask_cors enabled for /api/* in package app')
+        app.logger.info('flask_cors enabled for /api/* and /health* in package app')
     except Exception:
         @app.after_request
         def _add_cors_headers(response):
             try:
                 path = getattr(request, 'path', '')
-                if path.startswith('/api/'):
+                if path.startswith('/api/') or path.startswith('/health'):
                     response.headers['Access-Control-Allow-Origin'] = os.environ.get('CORS_ALLOW_ORIGIN', '*')
                     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
                     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key'
