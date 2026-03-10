@@ -7,75 +7,36 @@ import '../styles/dashboard.css'
 const UserDashboard = () => {
   const navigate = useNavigate()
   const auth = useAuth()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterFormat, setFilterFormat] = useState('all')
   const [showProfile, setShowProfile] = useState(false)
-
-  // Real API state
-  const [user, setUser] = useState(null)
+  const [conversions, setConversions] = useState([])
   const [stats, setStats] = useState({
     totalConversions: 0,
     conversionsSaved: 0,
     averageConversionTime: 0,
     mostUsedTool: 'N/A'
   })
-  const [conversions, setConversions] = useState([])
 
-  // Fetch user data and stats from API
+  // Redirect if not authenticated - check immediately without loading state to prevent flicker
   useEffect(() => {
-    const fetchData = async () => {
+    if (!auth.isAuthenticated || !auth.user) {
+      navigate('/login', { replace: true })
+    }
+  }, [auth.isAuthenticated, auth.user, navigate])
+
+  // Fetch stats and conversion history from API
+  useEffect(() => {
+    if (!auth.isAuthenticated) return // Skip if not authenticated
+    
+    const fetchStats = async () => {
       try {
         setLoading(true)
         
-        // Check if user is authenticated by checking localStorage first (source of truth)
-        const storedToken = localStorage.getItem('token')
-        const storedUser = localStorage.getItem('user')
-        
-        // Handle both null and string 'undefined' / 'null'
-        if (!storedToken || !storedUser || storedUser === 'undefined' || storedUser === 'null') {
-          // No token found - user is not authenticated
-          navigate('/login', { replace: true })
-          return
-        }
-        
-        const token = storedToken
-        
-        // Fetch user profile from /me endpoint
-        const meResponse = await fetch('http://localhost:5000/api/auth/me', {
-          method: 'GET',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include'
-        })
-
-        if (!meResponse.ok) {
-          if (meResponse.status === 401) {
-            // Token expired or invalid, clear storage and redirect to login
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            navigate('/login', { replace: true })
-            return
-          }
-          throw new Error('Failed to fetch user data')
-        }
-
-        const userData = await meResponse.json()
-        setUser({
-          id: userData.user_id,
-          username: userData.username,
-          email: userData.email,
-          plan: 'Pro',
-          conversionsThisMonth: 42,
-          filesProcessed: 156,
-          totalStorage: 2.3
-        })
-
-        // For now, use mock conversion data - will integrate with real API later
+        // For now, use mock data - will integrate with real API later
         const mockConversions = [
           { id: 1, filename: 'document.pdf', from: 'PDF', to: 'DOCX', date: '2024-03-06', time: '14:30', status: 'completed', size: '2.4 MB' },
           { id: 2, filename: 'photo.jpg', from: 'JPG', to: 'PNG', date: '2024-03-06', time: '10:15', status: 'completed', size: '1.8 MB' },
@@ -92,16 +53,15 @@ const UserDashboard = () => {
 
         setError(null)
       } catch (err) {
-        console.error('Error fetching dashboard data:', err)
+        console.error('Error fetching dashboard stats:', err)
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
 
-    // Only run on component mount, not on every re-render
-    fetchData()
-  }, [])
+    fetchStats()
+  }, [auth.isAuthenticated])
 
   const handleNewConversion = () => {
     navigate('/')
@@ -160,14 +120,14 @@ const UserDashboard = () => {
               title="Profile menu"
             >
               <span className="profile-icon">👤</span>
-              {user && <span className="profile-name">{user.username}</span>}
+              {auth.user && <span className="profile-name">{auth.user.username}</span>}
             </button>
             
             {showProfile && (
               <div className="profile-dropdown">
                 <div className="profile-info">
-                  <p><strong>{user?.username}</strong></p>
-                  <p className="text-muted">{user?.email}</p>
+                  <p><strong>{auth.user?.username}</strong></p>
+                  <p className="text-muted">{auth.user?.email}</p>
                 </div>
                 <hr />
                 <button className="dropdown-item" onClick={() => navigate('/settings')}>
@@ -221,7 +181,7 @@ const UserDashboard = () => {
         <aside className="dashboard-sidebar compact">
           <div className="sidebar-card">
             <div className="card-header">Current Plan</div>
-            <div className="plan-badge pro">{user?.plan || 'Free'}</div>
+            <div className="plan-badge pro">Pro</div>
             <p className="plan-desc">Full access to all converters</p>
             <button className="btn-link text-sm">Upgrade →</button>
           </div>
@@ -242,7 +202,7 @@ const UserDashboard = () => {
             </div>
             <div className="mini-stat">
               <span className="label">This Month</span>
-              <span className="value">{user?.conversionsThisMonth || 0}</span>
+              <span className="value">42</span>
             </div>
           </div>
         </aside>
