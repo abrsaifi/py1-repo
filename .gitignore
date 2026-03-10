@@ -138,3 +138,7 @@ conversion_history.db
 /tmp/
 docpro_uploads/
 *.db
+
+# Sensitive files - never commit
+CREDENTIALS.txt
+*.credentials.txt
