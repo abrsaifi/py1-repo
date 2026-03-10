@@ -1,21 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { UniversalIcon } from '../utils/UniversalIcon'
-import { Line, Pie, Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+  CategoryScale, LinearScale, PointElement, LineElement,
+  BarElement, ArcElement, Title, Tooltip, Legend, Filler
 } from 'chart.js'
+import { Line, Pie, Bar } from 'react-chartjs-2'
 import UserManagement from './UserManagement'
 import EmployeeManagement from './EmployeeManagement'
 import RoleManagement from './RoleManagement'
@@ -34,515 +25,245 @@ import UsageBilling from './UsageBilling'
 import SecurityManagement from './SecurityManagement'
 import AutomationCenter from './AutomationCenter'
 import ContentManager from './CMSIntegration'
-import DashboardPage from './DashboardPage'
-import MetricsPage from './MetricsPage'
-import ReportsPage from './ReportsPage'
-import AlertsPage from './AlertsPage'
-import QueryPage from './QueryPage'
-import CustomMetricsPage from './CustomMetricsPage'
-import AdvancedAnalyticsPage from './AdvancedAnalyticsPage'
-import '../styles/admin.css'
+import '../styles/admin-dashboard.css'
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
 
-const AdminDashboard = () => {
-  const [searchParams] = useSearchParams()
+const NAV_SECTIONS = [
+  {
+    label: 'Operations',
+    items: [
+      { id: 'overview',     icon: '📊', label: 'Overview' },
+      { id: 'conversions',  icon: '🔄', label: 'Conversions' },
+      { id: 'workers',      icon: '⚙️',  label: 'Workers' },
+      { id: 'traffic',      icon: '📈', label: 'Traffic' },
+      { id: 'seo',          icon: '🔍', label: 'SEO' },
+      { id: 'storage',      icon: '💾', label: 'Storage' },
+      { id: 'api',          icon: '🔌', label: 'API' },
+    ]
+  },
+  {
+    label: 'Management',
+    items: [
+      { id: 'users',      icon: '👥', label: 'Users' },
+      { id: 'employees',  icon: '👔', label: 'Employees' },
+      { id: 'roles',      icon: '🎭', label: 'Roles' },
+      { id: 'audit',      icon: '📋', label: 'Audit Logs' },
+    ]
+  },
+  {
+    label: 'System',
+    items: [
+      { id: 'settings',   icon: '⚙️',  label: 'Settings' },
+      { id: 'monitoring', icon: '📡', label: 'Monitoring' },
+      { id: 'reports',    icon: '📑', label: 'Reports' },
+      { id: 'activity',   icon: '📝', label: 'Activity' },
+      { id: 'billing',    icon: '💳', label: 'Billing' },
+      { id: 'security',   icon: '🔒', label: 'Security' },
+      { id: 'automation', icon: '🤖', label: 'Automation' },
+      { id: 'cms',        icon: '📄', label: 'CMS' },
+    ]
+  }
+]
+
+const OVERVIEW_STATS = [
+  { label: 'Conversions Today', value: '3,204', icon: '🔄', trend: '+12%', color: '#667eea' },
+  { label: 'Active Users',      value: '234',   icon: '👥', trend: '+5%',  color: '#48bb78' },
+  { label: 'Success Rate',      value: '98.2%', icon: '✅', trend: '+0.3%',color: '#38b2ac' },
+  { label: 'Revenue Today',     value: '$5,240',icon: '💰', trend: '+8%',  color: '#ed8936' },
+  { label: 'Server Load',       value: '42%',   icon: '📡', trend: '-3%',  color: '#9f7aea' },
+  { label: 'Worker Queue',      value: '27',    icon: '⚙️',  trend: '-8',   color: '#f56565' },
+]
+
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.05)' } } }
+}
+
+const PIE_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } } }
+}
+
+function AdminOverview() {
+  const convData = {
+    labels: ['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'],
+    datasets: [{ label: 'Conversions', data: [120,145,167,142,189,203,195,187,172,156,198,211], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.08)', tension: 0.4, fill: true }]
+  }
+  const fmtData = {
+    labels: ['PDF','DOCX','PNG','XLSX'],
+    datasets: [{ data: [45,28,15,12], backgroundColor: ['#667eea','#764ba2','#f093fb','#4facfe'], borderWidth: 2, borderColor: '#fff' }]
+  }
+  const trafData = {
+    labels: ['Direct','Search','Social','Referral','Email'],
+    datasets: [{ label: 'Visitors', data: [285,195,142,87,56], backgroundColor: 'rgba(102,126,234,0.7)', borderColor: '#667eea', borderWidth: 1, borderRadius: 4 }]
+  }
+  const SERVICES = [
+    { name: 'API Server', latency: '12ms' }, { name: 'Worker Pool', latency: '8ms' },
+    { name: 'Database', latency: '3ms' }, { name: 'Storage', latency: '45ms' },
+    { name: 'Email Service', latency: '120ms' }, { name: 'CDN', latency: '18ms' },
+  ]
+  return (
+    <div className="ad-overview">
+      <div className="ad-stats-grid">
+        {OVERVIEW_STATS.map((s) => (
+          <div className="ad-stat-card" key={s.label}>
+            <div className="ad-stat-icon" style={{ background: s.color + '20', color: s.color }}>{s.icon}</div>
+            <div className="ad-stat-body">
+              <div className="ad-stat-value">{s.value}</div>
+              <div className="ad-stat-label">{s.label}</div>
+              <div className={`ad-stat-trend ${s.trend.startsWith('+') ? 'up' : 'down'}`}>{s.trend} vs yesterday</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="ad-charts-row">
+        <div className="ad-chart-card wide">
+          <h3>Conversions per Hour</h3>
+          <div className="ad-chart-wrap"><Line data={convData} options={CHART_OPTS} /></div>
+        </div>
+        <div className="ad-chart-card">
+          <h3>Format Distribution</h3>
+          <div className="ad-chart-wrap"><Pie data={fmtData} options={PIE_OPTS} /></div>
+        </div>
+      </div>
+      <div className="ad-charts-row">
+        <div className="ad-chart-card">
+          <h3>Traffic Sources</h3>
+          <div className="ad-chart-wrap"><Bar data={trafData} options={CHART_OPTS} /></div>
+        </div>
+        <div className="ad-chart-card wide">
+          <h3>System Status</h3>
+          <div className="ad-status-list">
+            {SERVICES.map((s) => (
+              <div className="ad-status-row" key={s.name}>
+                <div className="ad-status-dot"></div>
+                <span className="ad-status-name">{s.name}</span>
+                <span className="ad-status-latency">{s.latency}</span>
+                <span className="ad-status-badge">Online</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function AdminDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const auth = useAuth()
-  const tabFromUrl = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState(tabFromUrl || 'overview')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('adminTheme')
-    return saved ? JSON.parse(saved) : false
-  })
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalRoles: 0,
-    auditLogsCount: 0,
-    systemHealth: 'healthy'
-  })
+  const navigate = useNavigate()
+  const dropdownRef = useRef(null)
+
+  const [tab, setTab]               = useState(searchParams.get('tab') || 'overview')
+  const [collapsed, setCollapsed]   = useState(false)
+  const [dropOpen, setDropOpen]     = useState(false)
+  const [dark, setDark]             = useState(() => JSON.parse(localStorage.getItem('adminTheme') || 'false'))
 
   useEffect(() => {
-    // Update activeTab if URL changes
-    if (tabFromUrl) {
-      setActiveTab(tabFromUrl)
-    }
-  }, [tabFromUrl])
+    if (!auth.isAuthenticated) navigate('/login', { replace: true })
+  }, [auth.isAuthenticated, navigate])
 
   useEffect(() => {
-    // Load admin stats
-    loadAdminStats()
+    setSearchParams({ tab }, { replace: true })
+  }, [tab])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+    localStorage.setItem('adminTheme', JSON.stringify(dark))
+  }, [dark])
+
+  useEffect(() => {
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  useEffect(() => {
-    // Apply theme to document
-    if (isDarkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light')
-    }
-    localStorage.setItem('adminTheme', JSON.stringify(isDarkMode))
-  }, [isDarkMode])
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-  }
-
-  const loadAdminStats = () => {
-    // This would be loaded from API in production
-    setStats({
-      totalUsers: 42,
-      activeUsers: 28,
-      totalRoles: 4,
-      auditLogsCount: 1250,
-      systemHealth: 'healthy'
-    })
-  }
+  const tabLabel = NAV_SECTIONS.flatMap(s => s.items).find(i => i.id === tab)?.label || 'Overview'
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <AdminOverview stats={stats} />
-      case 'conversions':
-        return <ConversionMonitoring />
-      case 'workers':
-        return <WorkerMonitoring />
-      case 'traffic':
-        return <TrafficAnalytics />
-      case 'seo':
-        return <SEOEngine />
-      case 'storage':
-        return <StorageManagement />
-      case 'api':
-        return <APIMonitoring />
-      case 'analytics-dashboard':
-        return <DashboardPage onTitleChange={() => {}} />
-      case 'analytics-metrics':
-        return <MetricsPage onTitleChange={() => {}} />
-      case 'analytics-reports':
-        return <ReportsPage onTitleChange={() => {}} />
-      case 'analytics-alerts':
-        return <AlertsPage onTitleChange={() => {}} />
-      case 'analytics-queries':
-        return <QueryPage onTitleChange={() => {}} />
-      case 'analytics-custom':
-        return <CustomMetricsPage onTitleChange={() => {}} />
-      case 'analytics-advanced':
-        return <AdvancedAnalyticsPage onTitleChange={() => {}} />
-      case 'users':
-        return <UserManagement />
-      case 'employees':
-        return <EmployeeManagement />
-      case 'roles':
-        return <RoleManagement />
-      case 'audit':
-        return <AuditLogsViewer />
-      case 'settings':
-        return <SystemSettings />
-      case 'monitoring':
-        return <SystemMonitoring />
-      case 'reports':
-        return <ReportSchedulingAdmin />
-      case 'activity':
-        return <ActivityFeed />
-      case 'billing':
-        return <UsageBilling />
-      case 'security':
-        return <SecurityManagement />
-      case 'automation':
-        return <AutomationCenter />
-      case 'cms':
-        return <ContentManager />
-      default:
-        return <AdminOverview stats={stats} />
+    if (tab === 'overview') return <AdminOverview />
+    const map = {
+      conversions: <ConversionMonitoring />, workers: <WorkerMonitoring />,
+      traffic: <TrafficAnalytics />, seo: <SEOEngine />, storage: <StorageManagement />,
+      api: <APIMonitoring />, users: <UserManagement />, employees: <EmployeeManagement />,
+      roles: <RoleManagement />, audit: <AuditLogsViewer />, settings: <SystemSettings />,
+      monitoring: <SystemMonitoring />, reports: <ReportSchedulingAdmin />,
+      activity: <ActivityFeed />, billing: <UsageBilling />, security: <SecurityManagement />,
+      automation: <AutomationCenter />, cms: <ContentManager />,
     }
-  }
-
-  // Icon components for menu items - using iconName property for UniversalIcon
-  const adminMenuItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'conversions', label: 'Conversions', icon: '📦' },
-    { id: 'workers', label: 'Workers', icon: '⚙️' },
-    { id: 'traffic', label: 'Traffic', icon: '📈' },
-    { id: 'seo', label: 'SEO', icon: '🔍' },
-    { id: 'storage', label: 'Storage', icon: '💾' },
-    { id: 'api', label: 'API', icon: '🔌' },
-    { id: 'users', label: 'Users', icon: '👥' },
-    { id: 'employees', label: 'Employees', icon: '👔' },
-    { id: 'roles', label: 'Roles', icon: '🎭' },
-    { id: 'audit', label: 'Audit Logs', icon: '📋' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
-    { id: 'monitoring', label: 'Monitoring', icon: '📡' },
-    { id: 'reports', label: 'Reports', icon: '📑' },
-    { id: 'activity', label: 'Activity', icon: '📝' },
-    { id: 'billing', label: 'Billing', icon: '💳' },
-    { id: 'security', label: 'Security', icon: '🔒' },
-    { id: 'automation', label: 'Automation', icon: '🤖' },
-    { id: 'cms', label: 'CMS', icon: '📄' }
-  ]
-
-  // Get current tab label for breadcrumbs
-  const getCurrentTabLabel = () => {
-    const item = [...adminMenuItems].flat().find(i => i.id === activeTab)
-    return item ? item.label : 'Dashboard'
+    return map[tab] ?? <AdminOverview />
   }
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-header">
-        <div className="header-left">
-          <div className="header-logo">
-            <UniversalIcon icon="⚡" size={24} />
-            <span className="logo-text">FastConvert</span>
+    <div className={`ad-root${dark ? ' dark' : ''}`}>
+      <header className="ad-header">
+        <div className="ad-header-left">
+          <div className="ad-logo">
+            <span>⚡</span>
+            {!collapsed && <span className="ad-logo-text">FastConvert</span>}
           </div>
-          
-          {/* Breadcrumb Navigation */}
-          <div className="header-breadcrumb">
-            <span className="breadcrumb-item">Dashboard</span>
-            <span className="breadcrumb-separator">/</span>
-            <span className="breadcrumb-item active">{getCurrentTabLabel()}</span>
+          <div className="ad-breadcrumb">
+            <span>Admin</span>
+            <span className="ad-sep">/</span>
+            <span className="ad-active">{tabLabel}</span>
           </div>
         </div>
-
-        <div className="header-right">
-          <button className="header-icon-btn" title="Notifications">
-            <UniversalIcon icon="🔔" size={20} />
-            <span className="notification-badge">3</span>
+        <div className="ad-header-right">
+          <button className="ad-icon-btn" onClick={() => setDark(!dark)} title="Toggle theme">
+            {dark ? '☀️' : '🌙'}
           </button>
-          
-          <button className="header-icon-btn" onClick={toggleTheme} title="Toggle Theme">
-            <UniversalIcon icon="🌓" size={20} />
+          <button className="ad-icon-btn" title="Notifications">
+            🔔<span className="ad-badge">3</span>
           </button>
-          
-          <div className="avatar-container">
-            <button 
-              className="avatar-button"
-              onClick={() => setAvatarDropdownOpen(!avatarDropdownOpen)}
-              title="Admin Settings"
-            >
-              <UniversalIcon icon="👤" size={24} />
+          <div className="ad-user-wrap" ref={dropdownRef}>
+            <button className="ad-avatar" onClick={() => setDropOpen(!dropOpen)}>
+              {auth.user?.username?.[0]?.toUpperCase() || 'A'}
             </button>
-
-            {avatarDropdownOpen && (
-              <div className="avatar-dropdown">
-                <div className="dropdown-header">Admin User</div>
-                <div className="dropdown-divider"></div>
-                <button className="dropdown-item"><UniversalIcon icon="⚙️" size={16} /> Admin Settings</button>
-                <button className="dropdown-item"><UniversalIcon icon="👤" size={16} /> Profile</button>
-                <button className="dropdown-item"><UniversalIcon icon="🔔" size={16} /> Notifications</button>
-                <button className="dropdown-item"><UniversalIcon icon="🔐" size={16} /> Security</button>
-                <div className="dropdown-divider"></div>
-                <button className="dropdown-item logout" onClick={auth.logout}><UniversalIcon icon="🚪" size={16} /> Logout</button>
+            {dropOpen && (
+              <div className="ad-dropdown">
+                <div className="ad-drop-user">
+                  <strong>{auth.user?.username || 'Admin'}</strong>
+                  <small>{auth.user?.email || 'admin@docpro.local'}</small>
+                </div>
+                <hr />
+                <button className="ad-drop-item" onClick={() => { setTab('settings'); setDropOpen(false) }}>⚙️ Settings</button>
+                <button className="ad-drop-item" onClick={() => { setTab('security'); setDropOpen(false) }}>🔒 Security</button>
+                <hr />
+                <button className="ad-drop-item danger" onClick={auth.logout}>🚪 Logout</button>
               </div>
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Left Sidebar Navigation - Improved with Categories */}
-      <aside className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''} v2`}>
-        <div className="sidebar-header">
-          <button 
-            className="sidebar-toggle"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title={sidebarCollapsed ? 'Expand' : 'Collapse'}
-          >
-            {sidebarCollapsed ? '→' : '←'}
-          </button>
-          {!sidebarCollapsed && <span className="sidebar-title">Menu</span>}
-        </div>
-        
-        <nav className="admin-nav">
-          <div className="admin-nav-section">
-            <h3 className="admin-nav-title">📊 Operations</h3>
-            <ul className="admin-nav-items">
-              {adminMenuItems.slice(0, 7).map(item => (
-                <li key={item.id}>
-                  <button
-                    className={`admin-nav-link ${activeTab === item.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(item.id)}
-                    title={item.label}
-                  >
-                    <span className="nav-icon">{item.icon}</span>
-                    {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
-                  </button>
-                </li>
+      <aside className={`ad-sidebar${collapsed ? ' collapsed' : ''}`}>
+        <button className="ad-toggle" onClick={() => setCollapsed(!collapsed)}>
+          {collapsed ? '→' : '←'}
+        </button>
+        <nav className="ad-nav">
+          {NAV_SECTIONS.map((sec) => (
+            <div key={sec.label} className="ad-nav-sec">
+              {!collapsed && <div className="ad-nav-sec-title">{sec.label}</div>}
+              {sec.items.map((item) => (
+                <button
+                  key={item.id}
+                  className={`ad-nav-btn${tab === item.id ? ' active' : ''}`}
+                  onClick={() => setTab(item.id)}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <span>{item.icon}</span>
+                  {!collapsed && <span>{item.label}</span>}
+                </button>
               ))}
-            </ul>
-          </div>
-
-          <div className="admin-nav-section">
-            <h3 className="admin-nav-title">👥 Management</h3>
-            <ul className="admin-nav-items">
-              {adminMenuItems.slice(7, 11).map(item => (
-                <li key={item.id}>
-                  <button
-                    className={`admin-nav-link ${activeTab === item.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(item.id)}
-                    title={item.label}
-                  >
-                    <span className="nav-icon">{item.icon}</span>
-                    {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="admin-nav-section">
-            <h3 className="admin-nav-title">⚙️ System</h3>
-            <ul className="admin-nav-items">
-              {adminMenuItems.slice(11).map(item => (
-                <li key={item.id}>
-                  <button
-                    className={`admin-nav-link ${activeTab === item.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(item.id)}
-                    title={item.label}
-                  >
-                    <span className="nav-icon">{item.icon}</span>
-                    {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+            </div>
+          ))}
         </nav>
       </aside>
 
-      <div className="admin-container v2">
-        <main className="admin-content">
-          {renderContent()}
-        </main>
-      </div>
+      <main className="ad-main">{renderContent()}</main>
     </div>
   )
 }
-
-const AdminOverview = ({ stats }) => {
-  const [dashboardData, setDashboardData] = useState({
-    conversionsToday: 3204,
-    successRate: 98.2,
-    failedConversions: 58,
-    activeUsers: 234,
-    serverLoad: 42,
-    workerQueue: 27,
-    revenue: 5240,
-    hourlyConversions: [120, 145, 167, 142, 189, 203, 195, 187, 172, 156, 198, 211],
-    topFormats: [
-      { name: 'PDF', value: 45 },
-      { name: 'DOCX', value: 28 },
-      { name: 'PNG', value: 15 },
-      { name: 'XLSX', value: 12 }
-    ],
-    trafficSources: [285, 195, 142, 87, 56],
-    errorTrends: [5, 8, 3, 6, 4, 7, 5, 8, 6, 4, 7, 6]
-  })
-
-  // Conversions per hour - Line Chart
-  const conversionsChartData = {
-    labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-    datasets: [
-      {
-        label: 'Conversions per Hour',
-        data: dashboardData.hourlyConversions,
-        borderColor: '#667eea',
-        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#667eea'
-      }
-    ]
-  }
-
-  // Top Format Types - Pie Chart
-  const formatsChartData = {
-    labels: dashboardData.topFormats.map(f => f.name),
-    datasets: [
-      {
-        data: dashboardData.topFormats.map(f => f.value),
-        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
-        borderColor: '#fff',
-        borderWidth: 2
-      }
-    ]
-  }
-
-  // Traffic Sources - Bar Chart
-  const trafficChartData = {
-    labels: ['Direct', 'Search', 'Social', 'Referral', 'Email'],
-    datasets: [
-      {
-        label: 'Traffic',
-        data: dashboardData.trafficSources,
-        backgroundColor: '#667eea',
-        borderColor: '#764ba2',
-        borderWidth: 1
-      }
-    ]
-  }
-
-  // Error Trends - Line Chart
-  const errorChartData = {
-    labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-    datasets: [
-      {
-        label: 'Failed Conversions',
-        data: dashboardData.errorTrends,
-        borderColor: '#ff6b6b',
-        backgroundColor: 'rgba(255, 107, 107, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 3,
-        pointBackgroundColor: '#ff6b6b'
-      }
-    ]
-  }
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'top'
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    }
-  }
-
-  return (
-    <div className="admin-overview">
-      <h1 className="admin-overview-title">Admin Dashboard</h1>
-      {/* Key Metrics Cards */}
-      <div className="admin-stats-grid">
-        <div className="admin-stat-card metric-primary">
-          <UniversalIcon icon="📦" size={32} />
-          <div className="stat-content">
-            <h3>Conversions Today</h3>
-            <p className="stat-value">{dashboardData.conversionsToday.toLocaleString()}</p>
-            <p className="stat-detail">Total completed</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-success">
-          <UniversalIcon icon="✅" size={32} />
-          <div className="stat-content">
-            <h3>Success Rate</h3>
-            <p className="stat-value">{dashboardData.successRate}%</p>
-            <p className="stat-detail">High quality</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-danger">
-          <UniversalIcon icon="❌" size={32} />
-          <div className="stat-content">
-            <h3>Failed</h3>
-            <p className="stat-value">{dashboardData.failedConversions}</p>
-            <p className="stat-detail">Needs review</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-info">
-          <UniversalIcon icon="👥" size={32} />
-          <div className="stat-content">
-            <h3>Active Users</h3>
-            <p className="stat-value">{dashboardData.activeUsers}</p>
-            <p className="stat-detail">Right now</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-warning">
-          <UniversalIcon icon="⚙️" size={32} />
-          <div className="stat-content">
-            <h3>Server Load</h3>
-            <p className="stat-value">{dashboardData.serverLoad}%</p>
-            <p className="stat-detail">Normal</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-queue">
-          <UniversalIcon icon="📋" size={32} />
-          <div className="stat-content">
-            <h3>Worker Queue</h3>
-            <p className="stat-value">{dashboardData.workerQueue}</p>
-            <p className="stat-detail">Jobs waiting</p>
-          </div>
-        </div>
-
-        <div className="admin-stat-card metric-revenue">
-          <UniversalIcon icon="💰" size={32} />
-          <div className="stat-content">
-            <h3>Revenue Today</h3>
-            <p className="stat-value">${dashboardData.revenue.toLocaleString()}</p>
-            <p className="stat-detail">Running total</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="charts-section">
-        <div className="chart-container">
-          <h3>Conversions per Hour</h3>
-          <div className="chart-wrapper">
-            <Line data={conversionsChartData} options={chartOptions} />
-          </div>
-        </div>
-
-        <div className="chart-container">
-          <h3>Top Format Types</h3>
-          <div className="chart-wrapper pie-chart">
-            <Pie data={formatsChartData} />
-          </div>
-        </div>
-
-        <div className="chart-container">
-          <h3>Traffic Sources</h3>
-          <div className="chart-wrapper">
-            <Bar data={trafficChartData} options={chartOptions} />
-          </div>
-        </div>
-
-        <div className="chart-container">
-          <h3>Error Trends</h3>
-          <div className="chart-wrapper">
-            <Line data={errorChartData} options={chartOptions} />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="admin-welcome">
-        <h2>Founder Command Center</h2>
-        <p>
-          Monitor conversion metrics, system performance, and user activity in real-time.
-          Access detailed analytics, manage operations, and optimize your conversion pipeline.
-        </p>
-        <div className="quick-actions">
-          <button className="action-button primary"><UniversalIcon icon="📊" size={16} /> View Detailed Metrics</button>
-          <button className="action-button secondary"><UniversalIcon icon="⚙️" size={16} /> Manage Workers</button>
-          <button className="action-button secondary"><UniversalIcon icon="👥" size={16} /> User Management</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default AdminDashboard

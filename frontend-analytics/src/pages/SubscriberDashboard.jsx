@@ -1,495 +1,291 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import '../styles/dashboard.css'
+import { useAuth } from '../hooks/useAuth'
+import '../styles/subscriber-dashboard.css'
 
-const SubscriberDashboard = () => {
+const PLANS = [
+  {
+    id: 'free', name: 'Free', price: 0, period: 'forever',
+    description: 'Perfect for getting started',
+    features: ['10 conversions/day', '2 GB storage', 'Basic analytics', 'Email support'],
+    cta: 'Downgrade'
+  },
+  {
+    id: 'pro', name: 'Pro', price: 9.99, period: 'month',
+    description: 'For regular users', popular: true,
+    features: ['Unlimited conversions', '100 GB storage', 'Advanced analytics', 'Priority support', 'API access', 'Custom branding'],
+    cta: 'Current Plan'
+  },
+  {
+    id: 'enterprise', name: 'Enterprise', price: null, period: 'month',
+    description: 'For teams & enterprises',
+    features: ['Everything in Pro', '1 TB+ storage', 'Dedicated account manager', 'Phone support', 'Custom integrations', 'SLA guarantee'],
+    cta: 'Contact Sales'
+  }
+]
+
+const BILLING_HISTORY = [
+  { id: 1, date: '2026-03-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid',    invoice: 'INV-2026-003' },
+  { id: 2, date: '2026-02-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid',    invoice: 'INV-2026-002' },
+  { id: 3, date: '2026-01-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid',    invoice: 'INV-2026-001' },
+  { id: 4, date: '2025-12-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid',    invoice: 'INV-2025-012' },
+  { id: 5, date: '2025-11-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'refunded',invoice: 'INV-2025-011' },
+]
+
+export default function SubscriberDashboard() {
   const navigate = useNavigate()
   const auth = useAuth()
-  const [activeTab, setActiveTab] = useState('subscription')
-  const [showProfile, setShowProfile] = useState(false)
-  const [showBillingModal, setShowBillingModal] = useState(false)
+  const profileRef = useRef(null)
 
-  // Redirect if not authenticated
+  const [tab, setTab]             = useState('subscription')
+  const [profileOpen, setProfile] = useState(false)
+  const [upgradeModal, setUpgrade]= useState(false)
+
   useEffect(() => {
-    if (!auth.isAuthenticated || !auth.user) {
-      navigate('/login', { replace: true })
-    }
-  }, [auth.isAuthenticated, auth.user, navigate])
+    if (!auth.isAuthenticated) navigate('/login', { replace: true })
+  }, [auth.isAuthenticated, navigate])
 
-  const [subscription, setSubscription] = useState({
-    plan: 'Pro',
-    status: 'active',
-    nextBillingDate: '2024-04-15',
-    amount: 9.99,
-    billingCycle: 'monthly',
-    autoRenewal: true,
-    startDate: '2024-01-15',
-    features: [
-      'Unlimited conversions',
-      '100GB storage',
-      'Priority email support',
-      'Advanced analytics',
-      'API access',
-      'Custom branding'
-    ],
-    nextTierFeatures: [
-      'Everything in Pro +',
-      '1TB storage',
-      'Phone support',
-      'Branded portal',
-      'Webhook integrations',
-      'Custom integrations'
-    ]
-  })
+  useEffect(() => {
+    const h = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfile(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
 
-  const [billingHistory, setBillingHistory] = useState([
-    { id: 1, date: '2024-03-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid', invoice: '#INV-2024-003' },
-    { id: 2, date: '2024-02-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid', invoice: '#INV-2024-002' },
-    { id: 3, date: '2024-01-15', description: 'Pro Plan Subscription', amount: '$9.99', status: 'paid', invoice: '#INV-2024-001' },
-  ])
-
-  const [plans, setPlans] = useState([
-    {
-      id: 'free',
-      name: 'Free',
-      price: 0,
-      period: 'forever',
-      description: 'Perfect for getting started',
-      features: [
-        'Up to 10 conversions/day',
-        '2GB storage',
-        'Email support',
-        'Basic analytics'
-      ],
-      cta: 'Current Plan',
-      highlighted: false
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: 9.99,
-      period: 'month',
-      description: 'Best for regular users',
-      features: [
-        'Unlimited conversions',
-        '100GB storage',
-        'Priority email support',
-        'Advanced analytics',
-        'API access',
-        'Custom branding'
-      ],
-      cta: 'Current Plan',
-      highlighted: true
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 'Custom',
-      period: 'month',
-      description: 'For teams and enterprises',
-      features: [
-        'Everything in Pro +',
-        '1TB+ storage',
-        'Phone & email support',
-        'Dedicated account manager',
-        'Custom integrations',
-        'SLA guarantee'
-      ],
-      cta: 'Contact Sales',
-      highlighted: false
-    }
-  ])
-
-  const handleDownloadInvoice = (invoiceId) => {
-    console.log('Downloading invoice:', invoiceId)
-    // Implement invoice download
+  const sub = {
+    plan: 'Pro', status: 'active', amount: 9.99, cycle: 'monthly',
+    startDate: '2026-01-15', nextBilling: '2026-04-15', autoRenew: true,
+    features: ['Unlimited conversions', '100 GB storage', 'Priority support', 'Advanced analytics', 'API access', 'Custom branding']
   }
 
-  const handleUpgrade = () => {
-    setShowBillingModal(true)
-  }
+  const usage = [
+    { label: 'Conversions', used: 250, total: 'unlimited', pct: 50 },
+    { label: 'Storage',     used: '2.3 GB', total: '100 GB', pct: 23 },
+    { label: 'API Calls',   used: '4,500', total: '100,000', pct: 5 },
+  ]
 
-  const handleCancelSubscription = () => {
-    if (window.confirm('Are you sure you want to cancel your subscription? Your access will end on ' + subscription.nextBillingDate)) {
-      console.log('Subscription cancelled')
-      // Implement cancel logic
-    }
-  }
+  const initials = auth.user?.username?.[0]?.toUpperCase() || 'U'
 
   return (
-    <div className="subscriber-dashboard">
-      {/* Top Navigation */}
-      <nav className="dashboard-topnav v2">
-        <div className="topnav-left">
-          <h1>💳 Subscriptions & Billing</h1>
+    <div className="sb-root">
+      {/* ── Header ── */}
+      <header className="sb-header">
+        <div className="sb-header-left">
+          <div className="sb-logo">⚡ <span>FastConvert</span></div>
+          <h1 className="sb-title">Subscription & Billing</h1>
         </div>
-        <div className="topnav-right">
-          <div className="profile-menu-wrapper">
-            <button 
-              className="profile-button"
-              onClick={() => setShowProfile(!showProfile)}
-            >
-              <span className="profile-avatar">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</span>
-              <span className="profile-name">{auth.user?.username}</span>
-            </button>
-            
-            {showProfile && (
-              <div className="profile-dropdown">
-                <div className="profile-header">
-                  <div className="profile-avatar-large">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</div>
-                  <div>
-                    <p className="profile-name-large"><strong>{auth.user?.username}</strong></p>
-                    <p className="text-muted">{auth.user?.email}</p>
-                  </div>
+        <div className="sb-header-right" ref={profileRef}>
+          <button className="sb-avatar" onClick={() => setProfile(!profileOpen)}>{initials}</button>
+          {profileOpen && (
+            <div className="sb-profile-drop">
+              <div className="sb-drop-user">
+                <div className="sb-drop-avatar">{initials}</div>
+                <div>
+                  <strong>{auth.user?.username}</strong>
+                  <small>{auth.user?.email}</small>
                 </div>
-                <hr />
-                <button className="dropdown-item" onClick={() => navigate('/dashboard')}>
-                  📊 Back to Dashboard
-                </button>
-                <button className="dropdown-item" onClick={() => navigate('/settings')}>
-                  ⚙️ Account Settings
-                </button>
-                <hr />
-                <button className="dropdown-item logout" onClick={auth.logout}>
-                  🚪 Logout
-                </button>
               </div>
-            )}
-          </div>
+              <hr />
+              <button className="sb-drop-item" onClick={() => { navigate('/dashboard'); setProfile(false) }}>📊 Dashboard</button>
+              <button className="sb-drop-item" onClick={() => { navigate('/settings'); setProfile(false) }}>⚙️ Settings</button>
+              <hr />
+              <button className="sb-drop-item danger" onClick={auth.logout}>🚪 Logout</button>
+            </div>
+          )}
         </div>
+      </header>
+
+      {/* ── Tabs ── */}
+      <nav className="sb-tabs">
+        {[
+          { id: 'subscription', label: 'My Subscription', icon: '📋' },
+          { id: 'billing',      label: 'Billing History',  icon: '💳' },
+          { id: 'plans',        label: 'All Plans',         icon: '📦' },
+          { id: 'payment',      label: 'Payment Method',    icon: '💰' },
+        ].map((t) => (
+          <button key={t.id} className={`sb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.icon} {t.label}
+          </button>
+        ))}
       </nav>
 
-      {/* Tabs */}
-      <div className="dashboard-nav sticky v2">
-        <div className="nav-container">
-          <button 
-            className={`nav-tab ${activeTab === 'subscription' ? 'active' : ''}`}
-            onClick={() => setActiveTab('subscription')}
-          >
-            📋 My Subscription
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'billing' ? 'active' : ''}`}
-            onClick={() => setActiveTab('billing')}
-          >
-            💳 Billing History
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'plans' ? 'active' : ''}`}
-            onClick={() => setActiveTab('plans')}
-          >
-            📦 All Plans
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'payment' ? 'active' : ''}`}
-            onClick={() => setActiveTab('payment')}
-          >
-            💰 Payment Method
-          </button>
-        </div>
-      </div>
-
-      <div className="dashboard-container v2">
+      {/* ── Body ── */}
+      <div className="sb-body">
         {/* Sidebar */}
-        <aside className="dashboard-sidebar v2">
-          {/* Current Plan Card */}
-          <div className="sidebar-card">
-            <div className="card-header">🎯 Current Plan</div>
-            <div className="plan-display">
-              <div className="plan-name">{subscription.plan}</div>
-              <div className="plan-price">${subscription.amount}<span className="period">/{subscription.billingCycle}</span></div>
-              <div className={`plan-status ${subscription.status}`}>{subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}</div>
+        <aside className="sb-sidebar">
+          <div className="sb-card">
+            <div className="sb-card-title">Current Plan</div>
+            <div className="sb-plan-name">{sub.plan}</div>
+            <div className="sb-plan-price">${sub.amount}<span>/{sub.cycle}</span></div>
+            <div className="sb-status active">{sub.status}</div>
+            <div className="sb-dates">
+              <div className="sb-date-row"><span>Started</span><span>{sub.startDate}</span></div>
+              <div className="sb-date-row"><span>Next Billing</span><span>{sub.nextBilling}</span></div>
+              <div className="sb-date-row"><span>Auto-Renew</span><span>{sub.autoRenew ? 'On' : 'Off'}</span></div>
             </div>
-            <div className="plan-dates">
-              <div className="date-item">
-                <span className="label">Started</span>
-                <span className="value">{subscription.startDate}</span>
-              </div>
-              <div className="date-item">
-                <span className="label">Next Billing</span>
-                <span className="value">{subscription.nextBillingDate}</span>
-              </div>
-            </div>
-            <button className="btn-primary btn-block" onClick={handleUpgrade}>
-              ⭐ Upgrade Plan
-            </button>
-            <button className="btn-secondary btn-block" onClick={handleCancelSubscription}>
-              Cancel Subscription
-            </button>
+            <button className="sb-btn-primary" onClick={() => setUpgrade(true)}>⭐ Upgrade Plan</button>
+            <button className="sb-btn-ghost" onClick={() => { if (window.confirm('Cancel subscription?')) alert('Contact support to cancel.') }}>Cancel Subscription</button>
           </div>
 
-          {/* Usage Card */}
-          <div className="sidebar-card">
-            <div className="card-header">📊 Usage This Month</div>
-            <div className="usage-stats">
-              <div className="usage-item">
-                <div className="usage-label">Conversions</div>
-                <div className="usage-bar">
-                  <div className="usage-fill" style={{ width: '65%' }}></div>
+          <div className="sb-card">
+            <div className="sb-card-title">Usage This Month</div>
+            {usage.map((u) => (
+              <div className="sb-usage-item" key={u.label}>
+                <div className="sb-usage-top">
+                  <span>{u.label}</span>
+                  <span className="sb-usage-vals">{u.used} / {u.total}</span>
                 </div>
-                <div className="usage-text">250 / 500 (unlimited)</div>
-              </div>
-              <div className="usage-item">
-                <div className="usage-label">Storage</div>
-                <div className="usage-bar">
-                  <div className="usage-fill" style={{ width: '23%' }}></div>
+                <div className="sb-usage-bar">
+                  <div className="sb-usage-fill" style={{ width: u.pct + '%' }}></div>
                 </div>
-                <div className="usage-text">2.3 GB / 100 GB</div>
               </div>
-              <div className="usage-item">
-                <div className="usage-label">API Calls</div>
-                <div className="usage-bar">
-                  <div className="usage-fill" style={{ width: '45%' }}></div>
-                </div>
-                <div className="usage-text">4,500 / 100,000</div>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Help Card */}
-          <div className="sidebar-card">
-            <div className="card-header">❓ Need Help?</div>
-            <a href="#support" className="help-link">
-              <span>📖</span> Billing FAQ
-            </a>
-            <a href="#support" className="help-link">
-              <span>💬</span> Contact Support
-            </a>
-            <a href="#docs" className="help-link">
-              <span>📚</span> Documentation
-            </a>
+          <div className="sb-card">
+            <div className="sb-card-title">Help & Support</div>
+            <a className="sb-help-link" href="#faq">📖 Billing FAQ</a>
+            <a className="sb-help-link" href="#support">💬 Contact Support</a>
+            <a className="sb-help-link" href="#docs">📚 Documentation</a>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="dashboard-main v2">
-          {activeTab === 'subscription' && (
-            <>
-              <section className="subscription-section">
-                <h2>Your Subscription Details</h2>
-                
-                <div className="section-card">
-                  <h3>Plan Information</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="info-label">Plan Name</span>
-                      <span className="info-value">{subscription.plan}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Status</span>
-                      <span className={`info-value status ${subscription.status}`}>{subscription.status}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Billing Cycle</span>
-                      <span className="info-value">{subscription.billingCycle.charAt(0).toUpperCase() + subscription.billingCycle.slice(1)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Monthly Amount</span>
-                      <span className="info-value">${subscription.amount}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Auto-Renewal</span>
-                      <span className="info-value">{subscription.autoRenewal ? 'Enabled' : 'Disabled'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Next Billing Date</span>
-                      <span className="info-value">{subscription.nextBillingDate}</span>
-                    </div>
-                  </div>
+        {/* Main content */}
+        <main className="sb-main">
+          {/* ── Subscription tab ── */}
+          {tab === 'subscription' && (
+            <div className="sb-section">
+              <h2>Subscription Details</h2>
+              <div className="sb-info-card">
+                <h3>Plan Information</h3>
+                <div className="sb-info-grid">
+                  <div className="sb-info-row"><span>Plan</span><strong>{sub.plan}</strong></div>
+                  <div className="sb-info-row"><span>Status</span><span className="sb-status active">{sub.status}</span></div>
+                  <div className="sb-info-row"><span>Billing Cycle</span><strong>{sub.cycle}</strong></div>
+                  <div className="sb-info-row"><span>Amount</span><strong>${sub.amount}/mo</strong></div>
+                  <div className="sb-info-row"><span>Auto-Renewal</span><strong>{sub.autoRenew ? 'Enabled' : 'Disabled'}</strong></div>
+                  <div className="sb-info-row"><span>Next Billing</span><strong>{sub.nextBilling}</strong></div>
                 </div>
-
-                <div className="section-card">
-                  <h3>Included Features</h3>
-                  <div className="features-list">
-                    {subscription.features.map((feature, idx) => (
-                      <div key={idx} className="feature-item">
-                        <span className="feature-icon">✅</span>
-                        <span className="feature-name">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
+              </div>
+              <div className="sb-info-card">
+                <h3>Included Features</h3>
+                <div className="sb-features">
+                  {sub.features.map((f) => (
+                    <div key={f} className="sb-feature-item">✅ {f}</div>
+                  ))}
                 </div>
-
-                <div className="section-card upgrade-card">
-                  <h3>Upgrade to Enterprise</h3>
-                  <p>Get advanced features and dedicated support</p>
-                  <div className="upgrade-features">
-                    {subscription.nextTierFeatures.map((feature, idx) => (
-                      <div key={idx} className="upgrade-feature">
-                        <span className="feature-icon">🌟</span>
-                        <span>{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button className="btn-primary btn-lg" onClick={handleUpgrade}>
-                    Upgrade to Enterprise
-                  </button>
-                </div>
-              </section>
-            </>
+              </div>
+              <div className="sb-cta-card">
+                <h3>Upgrade to Enterprise</h3>
+                <p>Get dedicated support, 1TB+ storage, custom integrations and an SLA guarantee.</p>
+                <button className="sb-btn-primary" onClick={() => setUpgrade(true)}>View Enterprise Plans</button>
+              </div>
+            </div>
           )}
 
-          {activeTab === 'billing' && (
-            <section className="billing-section">
+          {/* ── Billing History tab ── */}
+          {tab === 'billing' && (
+            <div className="sb-section">
               <h2>Billing History</h2>
-              
-              <div className="billing-table">
-                <div className="table-header">
-                  <div className="col-date">Date</div>
-                  <div className="col-description">Description</div>
-                  <div className="col-amount">Amount</div>
-                  <div className="col-status">Status</div>
-                  <div className="col-actions">Invoice</div>
+              <div className="sb-table-wrap">
+                <div className="sb-table-head">
+                  <span>Date</span><span>Description</span><span>Amount</span><span>Status</span><span>Invoice</span>
                 </div>
-                {billingHistory.map((bill) => (
-                  <div key={bill.id} className="table-row">
-                    <div className="col-date">{bill.date}</div>
-                    <div className="col-description">
-                      <strong>{bill.description}</strong>
-                      <br />
-                      <small className="text-muted">{bill.invoice}</small>
-                    </div>
-                    <div className="col-amount">{bill.amount}</div>
-                    <div className="col-status">
-                      <span className={`status-badge ${bill.status}`}>{bill.status}</span>
-                    </div>
-                    <div className="col-actions">
-                      <button 
-                        className="btn-icon"
-                        onClick={() => handleDownloadInvoice(bill.invoice)}
-                        title="Download invoice"
-                      >
-                        📥
-                      </button>
-                    </div>
+                {BILLING_HISTORY.map((b) => (
+                  <div className="sb-table-row" key={b.id}>
+                    <span>{b.date}</span>
+                    <span>{b.description}<br /><small>{b.invoice}</small></span>
+                    <span>{b.amount}</span>
+                    <span><span className={`sb-badge ${b.status}`}>{b.status}</span></span>
+                    <span><button className="sb-icon-btn" title="Download">📥</button></span>
                   </div>
                 ))}
               </div>
-
-              <div className="billing-note">
-                <p><strong>Note:</strong> All invoices include detailed information about your subscription and charges. Keep them for your records.</p>
-              </div>
-            </section>
+              <p className="sb-note">All invoices include full charge details. Keep them for your records.</p>
+            </div>
           )}
 
-          {activeTab === 'plans' && (
-            <section className="plans-section">
+          {/* ── Plans tab ── */}
+          {tab === 'plans' && (
+            <div className="sb-section">
               <h2>All Plans</h2>
-              <p className="section-intro">Choose the perfect plan for your needs</p>
-              
-              <div className="plans-grid">
-                {plans.map((plan) => (
-                  <div key={plan.id} className={`plan-card ${plan.highlighted ? 'highlighted' : ''}`}>
-                    {plan.highlighted && <div className="plan-badge">Most Popular</div>}
-                    <div className="plan-header">
-                      <h3>{plan.name}</h3>
-                      <div className="plan-price">
-                        {typeof plan.price === 'number' ? (
-                          <>
-                            <span className="currency">$</span>
-                            <span className="amount">{plan.price}</span>
-                            <span className="period">/{plan.period}</span>
-                          </>
-                        ) : (
-                          <span className="amount">{plan.price}</span>
-                        )}
-                      </div>
-                      <p className="plan-description">{plan.description}</p>
+              <p className="sb-sub">Choose the plan that works for you.</p>
+              <div className="sb-plans-grid">
+                {PLANS.map((p) => (
+                  <div key={p.id} className={`sb-plan-card${p.popular ? ' popular' : ''}`}>
+                    {p.popular && <div className="sb-popular-badge">Most Popular</div>}
+                    <div className="sb-plan-card-name">{p.name}</div>
+                    <div className="sb-plan-card-price">
+                      {p.price !== null ? <><span className="sb-currency">$</span>{p.price}<span className="sb-period">/{p.period}</span></> : <span>Custom</span>}
                     </div>
-                    <ul className="plan-features">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx}>
-                          <span className="feature-bullet">✓</span>
-                          {feature}
-                        </li>
-                      ))}
+                    <p className="sb-plan-desc">{p.description}</p>
+                    <ul className="sb-plan-features">
+                      {p.features.map((f) => <li key={f}>✓ {f}</li>)}
                     </ul>
-                    <button 
-                      className={`btn-${plan.id === 'pro' ? 'secondary' : plan.highlighted ? 'primary' : 'tertiary'} btn-block btn-lg`}
-                      onClick={() => plan.id !== 'pro' && handleUpgrade()}
-                      disabled={plan.id === 'pro'}
+                    <button
+                      className={p.id === 'pro' ? 'sb-btn-current' : 'sb-btn-primary'}
+                      disabled={p.id === 'pro'}
+                      onClick={() => p.id !== 'pro' && setUpgrade(true)}
                     >
-                      {plan.cta}
+                      {p.cta}
                     </button>
                   </div>
                 ))}
               </div>
-            </section>
+            </div>
           )}
 
-          {activeTab === 'payment' && (
-            <section className="payment-section">
+          {/* ── Payment tab ── */}
+          {tab === 'payment' && (
+            <div className="sb-section">
               <h2>Payment Method</h2>
-
-              <div className="section-card">
-                <h3>Current Payment Method</h3>
-                <div className="payment-method-display">
-                  <div className="card-visual">
-                    <div className="card-type">💳 Visa</div>
-                    <div className="card-number">•••• •••• •••• 4242</div>
-                    <div className="card-details">
-                      <span>Expires: 12/25</span>
-                      <span>Cardholder: John Doe</span>
-                    </div>
-                  </div>
+              <div className="sb-info-card">
+                <h3>Current Card</h3>
+                <div className="sb-credit-card">
+                  <div className="sb-card-type">💳 Visa</div>
+                  <div className="sb-card-num">•••• •••• •••• 4242</div>
+                  <div className="sb-card-meta"><span>Expires 12/25</span><span>John Doe</span></div>
                 </div>
-                <button className="btn-secondary">Edit Payment Method</button>
-                <button className="btn-secondary">Add Another Card</button>
+                <div className="sb-btn-row">
+                  <button className="sb-btn-ghost">Edit Card</button>
+                  <button className="sb-btn-ghost">Add Card</button>
+                </div>
               </div>
-
-              <div className="section-card">
+              <div className="sb-info-card">
                 <h3>Billing Address</h3>
-                <div className="address-display">
-                  <p>John Doe</p>
-                  <p>123 Main Street</p>
-                  <p>New York, NY 10001</p>
-                  <p>United States</p>
+                <div className="sb-address">
+                  <p>John Doe</p><p>123 Main Street</p><p>New York, NY 10001</p><p>United States</p>
                 </div>
-                <button className="btn-secondary">Edit Address</button>
+                <button className="sb-btn-ghost">Edit Address</button>
               </div>
-
-              <div className="section-card">
+              <div className="sb-info-card">
                 <h3>Tax Information</h3>
-                <div className="tax-settings">
-                  <div className="setting-item">
-                    <span className="label">Tax ID</span>
-                    <span className="value">Not provided</span>
-                  </div>
-                  <div className="setting-item">
-                    <span className="label">Tax Exemption</span>
-                    <span className="value">Not applicable</span>
-                  </div>
+                <div className="sb-info-grid">
+                  <div className="sb-info-row"><span>Tax ID</span><strong>Not provided</strong></div>
+                  <div className="sb-info-row"><span>Tax Exemption</span><strong>Not applicable</strong></div>
                 </div>
-                <button className="btn-secondary">Edit Tax Information</button>
+                <button className="sb-btn-ghost">Edit Tax Info</button>
               </div>
-            </section>
+            </div>
           )}
         </main>
       </div>
 
-      {/* Billing Modal */}
-      {showBillingModal && (
-        <div className="modal-overlay" onClick={() => setShowBillingModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowBillingModal(false)}>✕</button>
-            <h2>Upgrade Your Subscription</h2>
-            <p>Select a plan to upgrade to:</p>
-            <div className="upgrade-plans">
-              <button className="upgrade-plan" onClick={() => setShowBillingModal(false)}>
-                <h3>Enterprise</h3>
-                <p className="price">Custom Pricing</p>
-                <p className="desc">Contact sales for custom pricing</p>
-              </button>
+      {/* ── Upgrade Modal ── */}
+      {upgradeModal && (
+        <div className="sb-modal-overlay" onClick={() => setUpgrade(false)}>
+          <div className="sb-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="sb-modal-close" onClick={() => setUpgrade(false)}>✕</button>
+            <h2>Upgrade to Enterprise</h2>
+            <p>Contact our sales team for custom pricing tailored to your team's needs.</p>
+            <div className="sb-modal-features">
+              {['1TB+ storage','Dedicated account manager','Phone & email support','Custom integrations','SLA guarantee','Branded portal'].map((f) => (
+                <div key={f} className="sb-modal-feature">🌟 {f}</div>
+              ))}
             </div>
-            <button className="btn-primary btn-block" onClick={() => setShowBillingModal(false)}>
-              Contact Sales
-            </button>
+            <button className="sb-btn-primary" onClick={() => setUpgrade(false)}>Contact Sales</button>
           </div>
         </div>
       )}
     </div>
   )
 }
-
-export default SubscriberDashboard
