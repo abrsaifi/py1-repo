@@ -33,10 +33,10 @@ function AppContent() {
     auth.logout()
   }
 
-  // DEV MODE: On dev server (localhost:5173), always show admin dashboard
+  // DEV MODE: On dev server (localhost:5173), show admin dashboard only if authenticated as admin
   const isDevServer = window.location.hostname === 'localhost' && window.location.port === '5173'
   
-  if (isDevServer) {
+  if (isDevServer && auth.isAuthenticated && auth.user?.role === 'admin') {
     return (
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
