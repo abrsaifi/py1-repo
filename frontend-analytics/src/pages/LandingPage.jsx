@@ -255,7 +255,7 @@ const LandingPage = () => {
 
           <div className="features-grid">
             {features.map((feature, idx) => (
-              <div key={idx} className="feature-card">
+              <div key={`feature-${idx}-${feature.title}`} className="feature-card">
                 <div className="feature-icon-large">{feature.icon}</div>
                 <h3>{feature.title}</h3>
                 <p>{feature.description}</p>
@@ -275,7 +275,7 @@ const LandingPage = () => {
 
           <div className="steps-container">
             {steps.map((step, idx) => (
-              <div key={idx} className="step-card">
+              <div key={`step-${idx}-${step.num}`} className="step-card">
                 <div className="step-number">{step.num}</div>
                 <h3>{step.title}</h3>
                 <p>{step.description}</p>
@@ -345,7 +345,7 @@ const LandingPage = () => {
 
           <div className="testimonials-grid">
             {testimonials.map((test, idx) => (
-              <div key={idx} className="testimonial-card">
+              <div key={`testimonial-${idx}-${test.author}`} className="testimonial-card">
                 <div className="testimonial-stars"><UniversalIcon icon="⭐" size={18} /><UniversalIcon icon="⭐" size={18} /><UniversalIcon icon="⭐" size={18} /><UniversalIcon icon="⭐" size={18} /><UniversalIcon icon="⭐" size={18} /></div>
                 <p className="testimonial-text">"{test.text}"</p>
                 <div className="testimonial-author">
@@ -371,7 +371,7 @@ const LandingPage = () => {
 
           <div className="faq-container">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="faq-item">
+              <div key={`faq-${idx}`} className="faq-item">
                 <button 
                   className="faq-question"
                   onClick={() => setExpandedFAQ(expandedFAQ === idx ? null : idx)}

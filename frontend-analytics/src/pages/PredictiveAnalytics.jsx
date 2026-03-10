@@ -103,7 +103,7 @@ const PredictiveAnalytics = () => {
                 <span>Confidence</span>
               </div>
               {forecastResults.forecast.map((item, idx) => (
-                <div key={idx} className="table-row">
+                <div key={`forecast-${idx}-${item.date}`} className="table-row">
                   <span>{item.date}</span>
                   <span className="forecast-value">{item.forecast}</span>
                   <span>{item.lowerBound}</span>
@@ -145,7 +145,7 @@ const PredictiveAnalytics = () => {
               <h2><UniversalIcon icon="🚨" size={24} /> Anomalies Detected</h2>
               <div className="anomalies-list">
                 {anomalies.map((anomaly, idx) => (
-                  <div key={idx} className={`anomaly-item severity-${anomaly.severity}`}>
+                  <div key={`anomaly-${idx}-${anomaly.date}`} className={`anomaly-item severity-${anomaly.severity}`}>
                     <div className="anomaly-icon">
                       {anomaly.severity === 'critical' ? <UniversalIcon icon="🔴" size={18} /> : <UniversalIcon icon="🜢" size={18} />}
                     </div>

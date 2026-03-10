@@ -243,7 +243,7 @@ const ToolPage = () => {
               const stepDesc = typeof step === 'object' ? step.description : step
               
               return (
-                <div key={idx} className="step-item">
+                <div key={`step-${idx}-${stepNum}`} className="step-item">
                   <div className="step-number">{stepNum}</div>
                   <div className="step-content">
                     <h4>{stepTitle}</h4>
@@ -262,7 +262,7 @@ const ToolPage = () => {
           <h2>Key Features</h2>
           <div className="features-list">
             {(tool?.keyFeatures || []).map((feature, idx) => (
-              <div key={idx} className="feature-item">
+              <div key={`feature-${idx}-${feature}`} className="feature-item">
                 <UniversalIcon icon="✓" size={18} />
                 <span className="feature-text">{feature}</span>
               </div>
@@ -282,7 +282,7 @@ const ToolPage = () => {
               { icon: '💯', title: 'High Quality', description: 'Best quality conversion with no loss' },
               { icon: '📱', title: 'Works Everywhere', description: 'Desktop, tablet, mobile supported' }
             ]).map((card, idx) => (
-              <div key={idx} className="quality-card">
+              <div key={`quality-${idx}-${card.title}`} className="quality-card">
                 <UniversalIcon icon={card.icon} size={32} />
                 <h4>{card.title}</h4>
                 <p>{card.description}</p>
@@ -302,7 +302,7 @@ const ToolPage = () => {
               { q: 'What happens to my file?', a: 'Your file is uploaded securely, converted, and then automatically deleted. We never store your files.' },
               { q: 'Is there a file size limit?', a: 'Free users can convert files up to 50MB. Premium users get up to 500MB.' }
             ]).map((faq, idx) => (
-              <div key={idx} className="faq-item">
+              <div key={`faq-${idx}-${faq.q}`} className="faq-item">
                 <h4>{faq.q}</h4>
                 <p>{faq.a}</p>
               </div>
@@ -319,7 +319,7 @@ const ToolPage = () => {
             <div className="related-tools-grid">
               {(relatedTools.length > 0 ? relatedTools : (tool?.relatedTools || [])).map((relTool, idx) => (
                 <div 
-                  key={idx} 
+                  key={`tool-${idx}-${relTool.slug}`} 
                   className="related-tool-card"
                   onClick={() => navigate(`/${relTool.slug}`)}
                 >

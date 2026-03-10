@@ -193,7 +193,7 @@ const StatisticalAnalysis = () => {
                 <span>Significance</span>
               </div>
               {statsResults.correlation.map((item, idx) => (
-                <div key={idx} className="table-row">
+                <div key={`corr-${idx}-${item.variable}`} className="table-row">
                   <span>{item.variable}</span>
                   <span>{item.correlation.toFixed(3)}</span>
                   <span>{item.pValue}</span>
@@ -234,7 +234,7 @@ const StatisticalAnalysis = () => {
                 <span>T-Value</span>
               </div>
               {statsResults.regression.coefficients.map((coef, idx) => (
-                <div key={idx} className="table-row">
+                <div key={`coef-${idx}-${coef.variable}`} className="table-row">
                   <span>{coef.variable}</span>
                   <span>{coef.value.toFixed(3)}</span>
                   <span>{coef.stderr.toFixed(3)}</span>
