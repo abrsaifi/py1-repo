@@ -38,7 +38,7 @@ function AppContent() {
   
   if (isDevServer) {
     return (
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<AdminDashboard onTitleChange={setPageTitle} />} />
           <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
@@ -51,7 +51,7 @@ function AppContent() {
   // If admin is authenticated, show admin dashboard without MainLayout
   if (auth.isAuthenticated && auth.user?.role === 'admin') {
     return (
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
           <Route path="*" element={<Navigate to="/admin" />} />
@@ -62,7 +62,7 @@ function AppContent() {
 
   // For all other users (not authenticated or subscriber), use MainLayout
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <MainLayout
         isAuthenticated={auth.isAuthenticated}
         onLogout={handleLogout}

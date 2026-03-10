@@ -270,7 +270,7 @@ def get_recovery_plan(recovery_type):
                     {'step': 1, 'action': 'Identify latest good backup'},
                     {'step': 2, 'action': 'Stop application servers'},
                     {'step': 3, 'action': 'Stop primary database'},
-                    {'step': 4, 'action': 'Restore from backup: pg_restore -d docpro /backups/backup_*.sql'),
+                    {'step': 4, 'action': 'Restore from backup: pg_restore -d docpro /backups/backup_*.sql'},
                     {'step': 5, 'action': 'Verify data integrity'},
                     {'step': 6, 'action': 'Restart application servers'},
                     {'step': 7, 'action': 'Verify application functionality'},

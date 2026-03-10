@@ -172,7 +172,7 @@ const UserManagement = () => {
                           <strong><UniversalIcon icon="📋" size={16} /> Accessible Features ({features.length}):</strong>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', marginTop: '10px' }}>
                             {features.map((feature, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', padding: '6px 8px', background: '#f5f5f5', borderRadius: '3px' }}>
+                              <div key={`feature-${idx}-${feature}`} style={{ display: 'flex', alignItems: 'center', padding: '6px 8px', background: '#f5f5f5', borderRadius: '3px' }}>
                                 <span style={{ color: '#11998e', marginRight: '6px' }}><UniversalIcon icon="✓" size={14} /></span>
                                 <span style={{ fontSize: '13px' }}>{feature}</span>
                               </div>

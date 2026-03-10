@@ -146,7 +146,7 @@ const APIMonitoring = () => {
         <h3>Endpoint Performance</h3>
         <div className="table-list">
           {endpoints.map((endpoint, idx) => (
-            <div key={idx} className="list-item">
+            <div key={`endpoint-${idx}-${endpoint.endpoint}`} className="list-item">
               <div className="item-info">
                 <p className="item-name">{endpoint.endpoint}</p>
                 <p className="item-detail">{endpoint.requests.toLocaleString()} requests • {endpoint.avgTime}ms avg • {endpoint.errors} errors</p>
@@ -163,7 +163,7 @@ const APIMonitoring = () => {
         <h3>Rate Limit Violations</h3>
         <div className="table-list">
           {rateLimits.map((item, idx) => (
-            <div key={idx} className="list-item">
+            <div key={`ratelimit-${idx}-${item.ip}`} className="list-item">
               <div className="item-info">
                 <p className="item-name">{item.ip}</p>
                 <p className="item-detail">{item.requests} requests (limit: {item.limit})</p>

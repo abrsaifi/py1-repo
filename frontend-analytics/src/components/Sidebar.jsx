@@ -175,7 +175,7 @@ export const Sidebar = ({ onLogout, userName, userRole }) => {
 
       <nav className="sidebar-nav">
         {menuItems.map((item, index) => (
-          <div key={index}>
+          <div key={`menu-${index}-${item.label}`}>
             {item.submenu ? (
               <>
                 <button

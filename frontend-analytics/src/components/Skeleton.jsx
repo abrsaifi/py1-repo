@@ -6,7 +6,7 @@ export const Skeleton = ({ width = '100%', height = '20px', borderRadius = '4px'
     <>
       {Array(count).fill(0).map((_, i) => (
         <div 
-          key={i}
+          key={`skeleton-${i}`}
           className="skeleton"
           style={{ width, height, borderRadius }}
         ></div>
@@ -37,7 +37,7 @@ export const TableSkeleton = ({ rows = 5 }) => {
       </thead>
       <tbody>
         {Array(rows).fill(0).map((_, i) => (
-          <tr key={i}>
+          <tr key={`row-${i}`}>
             <td><Skeleton width="100%" height="20px" /></td>
             <td><Skeleton width="100%" height="20px" /></td>
             <td><Skeleton width="100%" height="20px" /></td>

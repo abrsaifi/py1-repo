@@ -13,7 +13,8 @@ import {
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js'
 import UserManagement from './UserManagement'
 import EmployeeManagement from './EmployeeManagement'
@@ -51,7 +52,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 )
 
 const AdminDashboard = () => {

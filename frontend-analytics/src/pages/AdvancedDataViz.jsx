@@ -101,15 +101,15 @@ const HeatmapViz = () => {
         <div className="heatmap-labels">
           <div className="heatmap-label">Days</div>
           {Array.from({ length: 24 }, (_, i) => (
-            <div key={i} className="hour-label">{i}</div>
+            <div key={`hour-${i}`} className="hour-label">{i}</div>
           ))}
         </div>
         {data.map((day, dayIdx) => (
-          <div key={dayIdx} className="heatmap-row">
+          <div key={`day-${dayIdx}-${day.day}`} className="heatmap-row">
             <div className="day-label">{day.day}</div>
             {day.hours.map((value, hourIdx) => (
               <div
-                key={hourIdx}
+                key={`cell-${dayIdx}-${hourIdx}`}
                 className="heatmap-cell"
                 style={{
                   backgroundColor: `hsl(0, 100%, ${100 - value}%)`
@@ -154,7 +154,7 @@ const ScatterViz = () => {
           const y = 30 + Math.random() * 340
           return (
             <circle
-              key={i}
+              key={`point-${i}`}
               cx={x}
               cy={y}
               r="5"
@@ -199,7 +199,7 @@ const TreemapViz = () => {
           const size = Math.sqrt(percentage) * 30
           return (
             <div
-              key={idx}
+              key={`cat-${idx}-${cat.name}`}
               className="treemap-box"
               style={{
                 backgroundColor: cat.color,
@@ -285,7 +285,7 @@ const FunnelViz = () => {
       <h3>Conversion Funnel</h3>
       <div className="funnel-chart">
         {stages.map((stage, idx) => (
-          <div key={idx} className="funnel-stage">
+          <div key={`stage-${idx}-${stage.label}`} className="funnel-stage">
             <div
               className="funnel-bar"
               style={{

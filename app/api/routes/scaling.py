@@ -18,7 +18,7 @@ def get_scaling_status():
     Returns: Current replica count, metrics, and recent scaling decisions
     """
     try:
-        from ..autoscaling_manager import evaluate_scaling
+        from app.autoscaling_manager import evaluate_scaling
         
         status = evaluate_scaling()
         return jsonify({
@@ -81,7 +81,7 @@ def change_scaling_policy():
     """
     try:
         from flask import current_app
-        from ..middleware.auth import auth_required, require_scope
+        from app.middleware.auth import auth_required, require_scope
         
         # Check authorization
         if not verify_admin_access():
@@ -90,7 +90,7 @@ def change_scaling_policy():
         data = request.get_json()
         policy_name = data.get('policy_name', '').lower()
         
-        from ..autoscaling_manager import (
+        from app.autoscaling_manager import (
             get_autoscaling_manager,
             ScalingPolicies
         )

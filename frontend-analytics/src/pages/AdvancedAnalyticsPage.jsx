@@ -174,7 +174,7 @@ const AnalyticsDashboard = ({ data }) => {
         <h2>Key Insights</h2>
         <div className="insights-list">
           {data.insights.map((insight, idx) => (
-            <div key={idx} className="insight-item">
+            <div key={`insight-${idx}`} className="insight-item">
               <span className="insight-marker">💡</span>
               <p>{insight}</p>
             </div>

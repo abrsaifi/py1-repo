@@ -193,7 +193,7 @@ const AnomalyAnalysis = ({ anomalies }) => {
           {anomalies
             .filter(a => a.isAnomaly)
             .map((item, idx) => (
-              <div key={idx} className="anomaly-item">
+              <div key={`anomaly-${idx}-${item.zscore}`} className="anomaly-item">
                 <span className="anomaly-label">Item {idx + 1}</span>
                 <span className="anomaly-zscore">Z-Score: {item.zscore.toFixed(2)}</span>
               </div>
@@ -209,7 +209,7 @@ const ForecastAnalysis = ({ forecast }) => (
     <h4>7-Day Forecast</h4>
     <div className="forecast-list">
       {forecast.map((item, idx) => (
-        <div key={idx} className="forecast-item">
+        <div key={`forecast-${idx}-${item.value}`} className="forecast-item">
           <span className="forecast-period">Day {idx + 1}</span>
           <span className="forecast-value">{item.value.toFixed(2)}</span>
         </div>
@@ -223,7 +223,7 @@ const DistributionAnalysis = ({ distribution }) => (
     <h4>Value Distribution</h4>
     <div className="distribution-chart">
       {distribution.map((count, idx) => (
-        <div key={idx} className="distribution-bar">
+        <div key={`dist-${idx}`} className="distribution-bar">
           <div
             className="distribution-fill"
             style={{

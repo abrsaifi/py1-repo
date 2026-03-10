@@ -64,7 +64,7 @@ export const DataTable = ({ columns, data, title, onRowClick, loading = false })
           ) : (
             sortedData.map((row, idx) => (
               <tr
-                key={idx}
+                key={`row-${idx}-${Object.values(row).join('-')}`}
                 onClick={() => onRowClick && onRowClick(row)}
                 className={onRowClick ? 'clickable' : ''}
               >

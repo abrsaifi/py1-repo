@@ -88,7 +88,7 @@ const TrafficAnalytics = () => {
               </thead>
               <tbody>
                 {stats.topPages.map((page, idx) => (
-                  <tr key={idx}>
+                  <tr key={`page-${idx}-${page.name}`}>
                     <td>{page.name}</td>
                     <td>{page.visits}</td>
                     <td>{page.rate}%</td>
@@ -110,7 +110,7 @@ const TrafficAnalytics = () => {
               </thead>
               <tbody>
                 {stats.trafficSource.map((source, idx) => (
-                  <tr key={idx}>
+                  <tr key={`source-${idx}-${source.name}`}>
                     <td>{source.source}</td>
                     <td>{source.visitors}</td>
                     <td>

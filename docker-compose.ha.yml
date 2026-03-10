@@ -213,6 +213,7 @@ services:
       - POSTGRES_PASSWORD=secure_password
       - POSTGRES_DB=docpro
       - POSTGRES_INITDB_ARGS=-c max_connections=200 -c shared_buffers=256MB -c effective_cache_size=1GB
+      - TZ=UTC
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
@@ -226,8 +227,6 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
-    environment:
-      - TZ=UTC
 
   # ============================================================================
   # Cache (Redis)
@@ -279,6 +278,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - TZ=UTC
     volumes:
       - grafana_data:/var/lib/grafana
     ports:
@@ -288,8 +288,6 @@ services:
     networks:
       - docpro_network
     restart: unless-stopped
-    environment:
-      - TZ=UTC
 
 # ============================================================================
 # Networks and Volumes
