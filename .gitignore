@@ -133,6 +133,14 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# Node modules (frontend)
+node_modules/
+frontend/node_modules/
+frontend/admin/node_modules/
+frontend/main-website/node_modules/
+frontend/admin/dist/
+frontend/main-website/dist/
+
 # Project-specific
 conversion_history.db
 /tmp/

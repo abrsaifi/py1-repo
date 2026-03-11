@@ -1,0 +1,16 @@
+{
+  "name": "frontend",
+  "private": true,
+  "description": "Root package — installs shared dependencies accessible by all sub-apps via Node module resolution",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "react-chartjs-2": "^5.2.0",
+    "chart.js": "^4.4.0",
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0",
+    "react-icons": "^4.12.0",
+    "focus-visible": "^5.2.0"
+  }
+}

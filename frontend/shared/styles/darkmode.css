@@ -1,0 +1,89 @@
+/* Dark Mode Styles */
+html.dark-mode {
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+  --text-dark: #f3f4f6;
+  --text-light: #d1d5db;
+  --text-lighter: #9ca3af;
+  --border-color: #4b5563;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+}
+
+html.dark-mode,
+html.dark-mode body {
+  background-color: var(--bg-secondary);
+  color: var(--text-dark);
+}
+
+html.dark-mode a {
+  color: var(--primary-light);
+}
+
+html.dark-mode a:hover {
+  color: var(--primary-color);
+}
+
+html.dark-mode button {
+  color: var(--text-dark);
+}
+
+html.dark-mode input,
+html.dark-mode textarea,
+html.dark-mode select {
+  background-color: var(--bg-tertiary);
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
+  color: var(--text-lighter);
+}
+
+html.dark-mode .card,
+html.dark-mode .modal,
+html.dark-mode .dropdown,
+html.dark-mode .toast {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+html.dark-mode table {
+  background-color: var(--bg-primary);
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+html.dark-mode table th {
+  background-color: var(--bg-tertiary);
+  color: var(--text-dark);
+  border-color: var(--border-color);
+}
+
+html.dark-mode table tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+html.dark-mode .sidebar {
+  background-color: var(--bg-primary);
+  border-right-color: var(--border-color);
+}
+
+html.dark-mode .header {
+  background-color: var(--bg-primary);
+  border-bottom-color: var(--border-color);
+}
+
+html.dark-mode .menu-item {
+  color: var(--text-light);
+}
+
+html.dark-mode .menu-item:hover,
+html.dark-mode .menu-item.active {
+  background-color: var(--bg-tertiary);
+  color: var(--text-dark);
+}
