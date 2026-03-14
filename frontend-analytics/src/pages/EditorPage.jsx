@@ -10,6 +10,10 @@ function EditorPage() {
   const [message, setMessage] = useState('')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [currentFileType, setCurrentFileType] = useState('image')
+  const [targetFormat, setTargetFormat] = useState('pdf')
+  const pdfDocRef = useRef(null)
+  const [pdfPage, setPdfPage] = useState(1)
+  const [pdfPageCount, setPdfPageCount] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -61,6 +65,7 @@ function EditorPage() {
 
     if (type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       setCurrentFileType('pdf')
+      setTargetFormat('pdf')
       setMessage('Rendering PDF preview...')
       try {
         const url = URL.createObjectURL(file)
@@ -69,14 +74,10 @@ function EditorPage() {
         pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js'
         const loadingTask = pdfjs.getDocument(url)
         const pdf = await loadingTask.promise
-        const page = await pdf.getPage(1)
-        const viewport = page.getViewport({ scale: 1.5 })
-        const canvas = canvasRef.current
-        canvas.width = Math.min(1200, viewport.width)
-        canvas.height = Math.min(1600, viewport.height)
-        const ctx = canvas.getContext('2d')
-        const renderContext = { canvasContext: ctx, viewport }
-        await page.render(renderContext).promise
+        pdfDocRef.current = pdf
+        setPdfPageCount(pdf.numPages || 0)
+        setPdfPage(1)
+        await renderPdfPage(1)
         setMessage('PDF page rendered — annotate on canvas')
         URL.revokeObjectURL(url)
       } catch (err) {
@@ -119,6 +120,7 @@ function EditorPage() {
         const arrayBuffer = await file.arrayBuffer()
         const { value: html } = await mammoth.convertToHtml({ arrayBuffer })
         p.innerHTML = html
+        setTargetFormat('pdf')
         setMessage('DOCX preview rendered — upload to convert/export')
         URL.revokeObjectURL(url)
         return
@@ -167,6 +169,7 @@ function EditorPage() {
         p.innerHTML = ''
         p.appendChild(btn)
         p.appendChild(table)
+        setTargetFormat('xlsx')
         setMessage('CSV loaded — edit cells then Export & Upload')
         return
       } catch (err) {
@@ -192,7 +195,34 @@ function EditorPage() {
       iframe.style.width = '100%'
       iframe.style.height = '400px'
       p.appendChild(iframe)
+      // set sensible default target for unknown office files
+      if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) setTargetFormat('pdf')
+      if (file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx')) setTargetFormat('pdf')
     }
+  }
+
+  // Render a specific PDF page into the canvas
+  const renderPdfPage = async (pageNum) => {
+    try {
+      const pdf = pdfDocRef.current
+      if (!pdf) return
+      const page = await pdf.getPage(pageNum)
+      const viewport = page.getViewport({ scale: 1.5 })
+      const canvas = canvasRef.current
+      canvas.width = Math.min(1200, viewport.width)
+      canvas.height = Math.min(1600, viewport.height)
+      const ctx = canvas.getContext('2d')
+      const renderContext = { canvasContext: ctx, viewport }
+      await page.render(renderContext).promise
+    } catch (err) {
+      console.error('renderPdfPage error', err)
+    }
+  }
+
+  const gotoPdfPage = async (delta) => {
+    const next = Math.max(1, Math.min(pdfPageCount || 1, pdfPage + delta))
+    setPdfPage(next)
+    await renderPdfPage(next)
   }
 
   const downloadLocal = () => {
@@ -247,7 +277,7 @@ function EditorPage() {
         body: JSON.stringify({
           tool_slug: 'editor',
           uploads: [{ upload_id: uploadId, filename }],
-          target_format: null,
+          target_format: targetFormat || null,
           parameters: {}
         })
       })
@@ -311,7 +341,7 @@ function EditorPage() {
         body: JSON.stringify({
           tool_slug: 'editor',
           uploads: [{ upload_id: uploadId, filename }],
-          target_format: null,
+          target_format: targetFormat || null,
           parameters: {}
         })
       })
@@ -379,14 +409,33 @@ function EditorPage() {
               onMouseLeave={endDraw}
             />
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input ref={fileInputRef} type="file" accept="image/*,application/pdf,.pdf,.docx,.doc,.xlsx,.xls,.csv" onChange={handleFileInput} style={{ display: 'none' }} />
               <button className="btn-small" onClick={() => fileInputRef.current?.click()}>Load File</button>
               <button className="btn-small" onClick={handleClear}>Clear</button>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12 }}>Convert to</span>
+                <select value={targetFormat} onChange={(e) => setTargetFormat(e.target.value)}>
+                  <option value="">(no conversion)</option>
+                  <option value="pdf">PDF</option>
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="docx">DOCX</option>
+                  <option value="xlsx">XLSX</option>
+                  <option value="csv">CSV</option>
+                </select>
+              </label>
               <button className="btn-primary-large" onClick={downloadLocal}>Save Locally</button>
               <button className="btn-primary-large" onClick={uploadToBackend}>Upload to Backend</button>
             </div>
             {message && <div style={{ marginTop: 8 }}>{message}</div>}
+            {currentFileType === 'pdf' && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                <button className="btn-small" onClick={() => gotoPdfPage(-1)} disabled={pdfPage <= 1}>Prev</button>
+                <div style={{ fontSize: 13 }}>{pdfPage} / {pdfPageCount || '—'}</div>
+                <button className="btn-small" onClick={() => gotoPdfPage(1)} disabled={pdfPage >= (pdfPageCount || 1)}>Next</button>
+              </div>
+            )}
             <div style={{ width: '100%', maxWidth: 900, marginTop: 8 }}>
               <div style={{ height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
                 <div style={{ width: `${uploadProgress}%`, height: '100%', background: '#4caf50' }} />
