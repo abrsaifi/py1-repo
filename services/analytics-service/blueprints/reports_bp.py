@@ -5,7 +5,7 @@ Endpoints for report scheduling, generation, retrieval, and export
 
 from flask import Blueprint, request, jsonify, g, send_file, current_app
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import uuid
 import logging
@@ -196,7 +196,7 @@ def update_report(report_id):
         if 'recipients' in data:
             report.recipients = data['recipients']
         
-        report.updated_at = datetime.utcnow()
+        report.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = report.to_dict()
@@ -352,7 +352,7 @@ def schedule_report(report_id):
         if report.is_scheduled and report.schedule_frequency:
             # Calculate next generation time
             freq = report.schedule_frequency
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             
             if freq == 'daily':
                 report.next_generation_at = now + timedelta(days=1)

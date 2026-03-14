@@ -1,30 +1,41 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
 import ToastProvider from './components/Toast'
 import { NotificationProvider } from './components/Notification'
 import DarkModeProvider from './hooks/useDarkMode.jsx'
 import useAuth from './hooks/useAuth'
-import LandingPage from './pages/LandingPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import DashboardPage from './pages/DashboardPage'
-import MetricsPage from './pages/MetricsPage'
-import ReportsPage from './pages/ReportsPage'
-import ToolsPage from './pages/ToolsPage'
-import ToolPage from './pages/ToolPage'
-import AlertsPage from './pages/AlertsPage'
-import QueryPage from './pages/QueryPage'
-import CustomMetricsPage from './pages/CustomMetricsPage'
-import SettingsPage from './pages/SettingsPage'
-import AdminDashboard from './pages/AdminDashboard'
-import AdvancedAnalyticsPage from './pages/AdvancedAnalyticsPage'
-import UserDashboard from './pages/UserDashboard'
-import SubscriberDashboard from './pages/SubscriberDashboard'
-import UserProfile from './pages/UserProfile'
-import AccountSettings from './pages/AccountSettings'
 import './styles/app.css'
+
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const MetricsPage = lazy(() => import('./pages/MetricsPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const ToolsPage = lazy(() => import('./pages/ToolsPage'))
+const ToolPage = lazy(() => import('./pages/ToolPage'))
+const EditorPage = lazy(() => import('./pages/EditorPage'))
+const AlertsPage = lazy(() => import('./pages/AlertsPage'))
+const QueryPage = lazy(() => import('./pages/QueryPage'))
+const CustomMetricsPage = lazy(() => import('./pages/CustomMetricsPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
+const AdvancedAnalyticsPage = lazy(() => import('./pages/AdvancedAnalyticsPage'))
+const UserDashboard = lazy(() => import('./pages/UserDashboard'))
+const SubscriberDashboard = lazy(() => import('./pages/SubscriberDashboard'))
+const UserProfile = lazy(() => import('./pages/UserProfile'))
+const AccountSettings = lazy(() => import('./pages/AccountSettings'))
+
+function RouteFallback() {
+  return (
+    <div style={{ minHeight: '40vh', display: 'grid', placeItems: 'center' }}>
+      <p>Loading...</p>
+    </div>
+  )
+}
 
 function AppContent() {
   const auth = useAuth()
@@ -35,16 +46,18 @@ function AppContent() {
   }
 
   // DEV MODE: On dev server (localhost:5173), show admin dashboard only if authenticated as admin
-  const isDevServer = window.location.hostname === 'localhost' && window.location.port === '5173'
+  const isDevServer = ['localhost', '127.0.0.1'].includes(window.location.hostname) && window.location.port === '5173'
   
   if (isDevServer && auth.isAuthenticated && auth.user?.role === 'admin') {
     return (
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/" element={<AdminDashboard onTitleChange={setPageTitle} />} />
-          <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
-          <Route path="*" element={<Navigate to="/admin" />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<AdminDashboard onTitleChange={setPageTitle} />} />
+            <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
+            <Route path="*" element={<Navigate to="/admin" />} />
+          </Routes>
+        </Suspense>
       </Router>
     )
   }
@@ -53,10 +66,12 @@ function AppContent() {
   if (auth.isAuthenticated && auth.user?.role === 'admin') {
     return (
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
-          <Route path="*" element={<Navigate to="/admin" />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/admin" element={<AdminDashboard onTitleChange={setPageTitle} />} />
+            <Route path="*" element={<Navigate to="/admin" />} />
+          </Routes>
+        </Suspense>
       </Router>
     )
   }
@@ -72,34 +87,38 @@ function AppContent() {
         pageTitle={pageTitle}
         onTitleChange={setPageTitle}
       >
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
-          <Route path="/register" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
-          <Route path="/forgot-password" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />
-          <Route path="/convert" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/:toolSlug" element={<ToolPage />} />
-          
-          {/* Protected Routes */}
-          <Route path="/dashboard" element={auth.isAuthenticated ? <UserDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/billing" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/subscription" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/dashboard/profile" element={auth.isAuthenticated ? <UserProfile onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/dashboard/account" element={auth.isAuthenticated ? <AccountSettings onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/metrics" element={auth.isAuthenticated ? <MetricsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/reports" element={auth.isAuthenticated ? <ReportsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/dashboards" element={auth.isAuthenticated ? <DashboardPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/alerts" element={auth.isAuthenticated ? <AlertsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/queries" element={auth.isAuthenticated ? <QueryPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/custom-metrics" element={auth.isAuthenticated ? <CustomMetricsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/settings" element={auth.isAuthenticated ? <SettingsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          <Route path="/advanced-analytics" element={auth.isAuthenticated ? <AdvancedAnalyticsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
-          
-          {/* Catch all - redirect to appropriate page */}
-          <Route path="*" element={<Navigate to={auth.isAuthenticated ? '/dashboard' : '/'} />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
+            <Route path="/admin-login" element={auth.isAuthenticated && auth.user?.role === 'admin' ? <Navigate to="/admin" /> : <AdminLoginPage />} />
+            <Route path="/register" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+            <Route path="/forgot-password" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <ForgotPasswordPage />} />
+            <Route path="/convert" element={auth.isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
+            <Route path="/tools" element={<ToolsPage />} />
+            <Route path="/editor" element={<EditorPage />} />
+            <Route path="/:toolSlug" element={<ToolPage />} />
+
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={auth.isAuthenticated ? <UserDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/billing" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/subscription" element={auth.isAuthenticated ? <SubscriberDashboard onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/profile" element={auth.isAuthenticated ? <UserProfile onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/dashboard/account" element={auth.isAuthenticated ? <AccountSettings onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/metrics" element={auth.isAuthenticated ? <MetricsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/reports" element={auth.isAuthenticated ? <ReportsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/dashboards" element={auth.isAuthenticated ? <DashboardPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/alerts" element={auth.isAuthenticated ? <AlertsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/queries" element={auth.isAuthenticated ? <QueryPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/custom-metrics" element={auth.isAuthenticated ? <CustomMetricsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/settings" element={auth.isAuthenticated ? <SettingsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+            <Route path="/advanced-analytics" element={auth.isAuthenticated ? <AdvancedAnalyticsPage onTitleChange={setPageTitle} /> : <Navigate to="/login" />} />
+
+            {/* Catch all - redirect to appropriate page */}
+            <Route path="*" element={<Navigate to={auth.isAuthenticated ? '/dashboard' : '/'} />} />
+          </Routes>
+        </Suspense>
       </MainLayout>
     </Router>
   )

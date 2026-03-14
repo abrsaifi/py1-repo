@@ -42,6 +42,37 @@ python -m app.main
 
 Application will be available at `http://localhost:5000`
 
+### Database Migrations
+Use the real Flask-Migrate / Alembic tree in `migrations/` for schema changes:
+
+```bash
+flask --app manage.py db heads
+flask --app manage.py db current
+flask --app manage.py db migrate -m "describe change"
+flask --app manage.py db upgrade
+```
+
+`manage.py` runs with schema bootstrap and background tasks disabled so migration commands stay isolated from normal startup side effects.
+
+### Seed Development Data
+Use the SQLAlchemy-aware seed module to bootstrap a small local dataset:
+
+```bash
+python -c "from app import create_app; from app.models import db; from database.seed.seeds import seed_database; app=create_app({'ENABLE_BACKGROUND_TASKS': False}); ctx=app.app_context(); ctx.push(); print(seed_database(db)); ctx.pop()"
+```
+
+### Background Workers
+The production async path is Celery-backed. The scripts under `workers/` are compatibility launchers that delegate to the queue topology defined in `app/celery_config.py`.
+
+Common commands:
+
+```bash
+celery -A app.celery_config worker -Q conversions --loglevel=info
+celery -A app.celery_config worker -Q critical --loglevel=info
+celery -A app.celery_config worker -Q maintenance --loglevel=info
+celery -A app.celery_config beat --loglevel=info
+```
+
 ---
 
 ## Project Architecture
@@ -299,6 +330,7 @@ FLASK_DEBUG=1
 
 # Security
 SECRET_KEY=your-secret-key-change-in-production
+BILLING_PROVIDER_WEBHOOK_SECRET=dev-billing-provider-secret
 UPLOAD_API_KEY=optional-api-key
 
 # File Upload
@@ -320,6 +352,8 @@ SESSION_TIMEOUT_MINUTES=60
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_PER_MINUTE=100
 ```
+
+For local provider-event testing, sign the raw JSON payload with HMAC-SHA256 using `BILLING_PROVIDER_WEBHOOK_SECRET` and send the digest in `X-DocPro-Billing-Signature` to `/api/admin/billing/provider-events`.
 
 ### Config File (app/config.py)
 ```python
@@ -347,6 +381,15 @@ pytest tests/test_new_features.py::TestDuplicateRemover -v
 ### Run with Coverage
 ```bash
 pytest tests/ --cov=app --cov-report=html
+```
+
+### Run Tool Runtime Smoke Checks
+```bash
+# Browser-path smoke through the Vite proxy
+python tool_runtime_smoke.py --transport frontend --frontend http://127.0.0.1:5173 --backend http://127.0.0.1:5060
+
+# Backend-direct smoke to isolate Flask/API issues from proxy issues
+python tool_runtime_smoke.py --transport backend --frontend http://127.0.0.1:5173 --backend http://127.0.0.1:5060
 ```
 
 ### Test Individual Function

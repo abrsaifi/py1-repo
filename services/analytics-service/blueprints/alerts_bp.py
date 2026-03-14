@@ -5,7 +5,7 @@ Endpoints for alert configuration, threshold management, and event tracking
 
 from flask import Blueprint, request, jsonify, g, current_app
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import uuid
 import logging
@@ -298,7 +298,7 @@ def acknowledge_alert_event(event_id):
         
         event.status = 'acknowledged'
         event.acknowledged_by = g.user_id
-        event.acknowledged_at = datetime.utcnow()
+        event.acknowledged_at = datetime.now(timezone.utc)
         event.acknowledgment_message = data.get('message')
         
         session.commit()
@@ -340,7 +340,7 @@ def resolve_alert_event(event_id):
         
         event.status = 'resolved'
         event.resolved_by = g.user_id if not data.get('auto_resolved') else 'auto'
-        event.resolved_at = datetime.utcnow()
+        event.resolved_at = datetime.now(timezone.utc)
         event.resolution_message = data.get('message')
         
         session.commit()

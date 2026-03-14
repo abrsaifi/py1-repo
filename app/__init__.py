@@ -1,10 +1,13 @@
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from .config import Config
 from .utils.errors import register_error_handlers
 from .utils.logger_setup import LoggerSetup
+from .db_bootstrap import ensure_feature_tables
 from .models import db
+from .cache_manager import init_cache
 import os
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 
 def create_app(config=None):
@@ -22,9 +25,35 @@ def create_app(config=None):
     # allow overriding from passed config dict
     if config:
         app.config.update(config)
+
+    app.config.setdefault('APP_STARTED_AT', datetime.now(timezone.utc))
+
+    if app.config.get('TESTING'):
+        app.config['ENABLE_BACKGROUND_TASKS'] = False
     
     # Initialize database
     db.init_app(app)
+
+    # Initialize cache early so health checks and cached endpoints use the configured backend.
+    try:
+        init_cache(app)
+        app.logger.info('Cache initialized')
+    except Exception as e:
+        app.logger.warning(f'Cache initialization failed: {str(e)}')
+
+    # Initialize JWT support for protected API routes.
+    try:
+        from flask_jwt_extended import JWTManager
+        app.config['JWT_SECRET_KEY'] = app.config.get('JWT_SECRET_KEY') or app.config.get('SECRET_KEY')
+        app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(
+            seconds=int(app.config.get('JWT_ACCESS_TOKEN_EXPIRES', 60 * 60 * 24))
+        )
+        JWTManager(app)
+        app.logger.info('JWT authentication initialized')
+    except ImportError:
+        app.logger.warning('flask_jwt_extended not installed - JWT auth disabled')
+    except Exception as e:
+        app.logger.warning(f'JWT initialization failed: {str(e)}')
     
     # Initialize Flask-Migrate for database migrations
     try:
@@ -117,6 +146,23 @@ def create_app(config=None):
                 pass
             return response
 
+    # Initialize WebSocket support for real-time collaboration and notifications.
+    try:
+        if app.config.get('ENABLE_WEBSOCKETS', True):
+            from websocket_events import init_websocket
+
+            socketio = init_websocket(app)
+            app.extensions['socketio'] = socketio
+            app.socketio = socketio
+            app.logger.info('Job-update WebSocket handlers attached to active Socket.IO server')
+            app.logger.info('WebSocket server initialized for real-time events')
+        else:
+            app.logger.info('WebSocket initialization disabled by configuration')
+    except ImportError:
+        app.logger.warning('flask_socketio not installed - WebSocket features disabled')
+    except Exception as e:
+        app.logger.warning(f'WebSocket initialization failed: {str(e)}')
+
     # ensure upload directory exists
     try:
         os.makedirs(app.config.get('UPLOAD_CHUNKS_DIR', os.path.join(tempfile.gettempdir(), 'docpro_uploads')), exist_ok=True)
@@ -161,6 +207,24 @@ def create_app(config=None):
     except Exception:
         pass
     try:
+        from .api.routes.phase15_analytics import bp as phase15_analytics_bp
+        app.register_blueprint(phase15_analytics_bp)
+        app.logger.info('Advanced analytics API routes registered at /api/analytics and /api/reports')
+    except Exception as e:
+        app.logger.warning(f'Advanced analytics API registration failed (optional): {str(e)}')
+    try:
+        from .api.routes.phase15_collaboration import bp as phase15_collaboration_bp
+        app.register_blueprint(phase15_collaboration_bp)
+        app.logger.info('Collaboration API routes registered at /api/collaboration, /api/documents, /api/teams, and /api/notifications')
+    except Exception as e:
+        app.logger.warning(f'Collaboration API registration failed (optional): {str(e)}')
+    try:
+        from .api.routes.dashboard_data import bp as dashboard_data_bp
+        app.register_blueprint(dashboard_data_bp)
+        app.logger.info('Dashboard data routes registered at /api/dashboard')
+    except Exception as e:
+        app.logger.warning(f'Dashboard data routes registration failed: {str(e)}')
+    try:
         from .api.routes.tools import bp as tools_bp
         app.register_blueprint(tools_bp, url_prefix='/api')
     except Exception:
@@ -170,6 +234,33 @@ def create_app(config=None):
         app.register_blueprint(auth_bp, url_prefix='/api')
     except Exception:
         pass
+    try:
+        from .api.routes.docs import bp as docs_bp, register_swagger_ui
+        app.register_blueprint(docs_bp)
+        if register_swagger_ui(app):
+            app.logger.info('OpenAPI spec and Swagger UI registered at /api/openapi.json and /api/docs')
+        else:
+            app.logger.info('OpenAPI spec registered at /api/openapi.json')
+    except Exception as e:
+        app.logger.warning(f'API documentation routes registration failed: {str(e)}')
+    try:
+        from .api.routes.account import bp as account_bp
+        app.register_blueprint(account_bp)
+        app.logger.info('Account routes registered at /api/account')
+    except Exception as e:
+        app.logger.warning(f'Account routes registration failed: {str(e)}')
+    try:
+        from .api.routes.cms import bp as cms_bp
+        app.register_blueprint(cms_bp)
+        app.logger.info('CMS routes registered at /api/cms')
+    except Exception as e:
+        app.logger.warning(f'CMS routes registration failed: {str(e)}')
+    try:
+        from .api.routes.aeo import bp as aeo_bp
+        app.register_blueprint(aeo_bp)
+        app.logger.info('AEO routes registered at /api/aeo')
+    except Exception as e:
+        app.logger.warning(f'AEO routes registration failed: {str(e)}')
     # Register scaling routes (Task 7)
     try:
         from .api.routes.scaling import bp as scaling_bp
@@ -215,13 +306,58 @@ def create_app(config=None):
     except Exception:
         pass
     
+    def _route_exists(rule_text):
+        return any(str(rule) == rule_text for rule in app.url_map.iter_rules())
+
+    def _register_direct_health_aliases():
+        def _basic_health_response():
+            return jsonify({
+                'status': 'ok',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'service': 'docpro',
+            }), 200
+
+        def _live_health_response():
+            return jsonify({
+                'status': 'alive',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+            }), 200
+
+        aliases = {
+            '/health': ('direct_health_root', _basic_health_response),
+            '/api/health': ('direct_health_api', _basic_health_response),
+            '/health/liveness': ('direct_health_liveness_root', _live_health_response),
+            '/api/health/live': ('direct_health_liveness_api', _live_health_response),
+            '/healthz': ('direct_healthz_root', _basic_health_response),
+            '/api/healthz': ('direct_healthz_api', _basic_health_response),
+            '/livez': ('direct_livez_root', _live_health_response),
+            '/api/livez': ('direct_livez_api', _live_health_response),
+        }
+
+        for rule_text, (endpoint_name, view_func) in aliases.items():
+            if not _route_exists(rule_text):
+                app.add_url_rule(rule_text, endpoint=endpoint_name, view_func=view_func, methods=['GET'])
+
+    _register_direct_health_aliases()
+
     # INTEGRATION: Initialize background tasks (before error handlers)
-    try:
-        from .startup import init_background_tasks
-        init_background_tasks()
-        app.logger.info('Background tasks initialized')
-    except Exception as e:
-        app.logger.warning(f'Background tasks initialization failed (non-critical): {str(e)}')
+    if app.config.get('SCHEMA_BOOTSTRAP_ENABLED', True):
+        try:
+            ensure_feature_tables(app)
+        except Exception as e:
+            app.logger.warning(f'Feature table bootstrap failed (non-critical): {str(e)}')
+    else:
+        app.logger.info('Schema bootstrap disabled by configuration')
+
+    if app.config.get('ENABLE_BACKGROUND_TASKS', True):
+        try:
+            from .startup import init_background_tasks
+            init_background_tasks()
+            app.logger.info('Background tasks initialized')
+        except Exception as e:
+            app.logger.warning(f'Background tasks initialization failed (non-critical): {str(e)}')
+    else:
+        app.logger.info('Background tasks disabled by configuration')
 
     # INTEGRATION: Register error handlers
     register_error_handlers(app)

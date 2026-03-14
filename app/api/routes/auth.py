@@ -1,16 +1,114 @@
 """Authentication API routes"""
+from datetime import datetime, timezone
+
 from flask import Blueprint, request, jsonify, session
 from app.services.auth import AuthManager
+from app.models import UserSession, db
 from app.utils.logger_enhanced import AuditLogger, OperationLogger
 from functools import wraps
 
+try:
+    from flask_jwt_extended import create_access_token, get_jwt_identity, verify_jwt_in_request
+except ImportError:  # pragma: no cover - optional dependency in some environments
+    create_access_token = None
+    get_jwt_identity = None
+    verify_jwt_in_request = None
+
 bp = Blueprint('auth', __name__)
+
+
+def _describe_device(user_agent):
+    ua = (user_agent or '').lower()
+    browser = 'Browser'
+    platform = 'Desktop'
+
+    if 'edg' in ua:
+        browser = 'Edge'
+    elif 'chrome' in ua:
+        browser = 'Chrome'
+    elif 'firefox' in ua:
+        browser = 'Firefox'
+    elif 'safari' in ua and 'chrome' not in ua:
+        browser = 'Safari'
+
+    if 'iphone' in ua:
+        platform = 'iPhone'
+    elif 'android' in ua:
+        platform = 'Android'
+    elif 'mac os' in ua or 'macintosh' in ua:
+        platform = 'Mac'
+    elif 'windows' in ua:
+        platform = 'Windows'
+    elif 'linux' in ua:
+        platform = 'Linux'
+
+    return f'{browser} on {platform}'
+
+
+def _track_login_session(user_id):
+    active_sessions = UserSession.query.filter_by(user_id=user_id).filter(UserSession.revoked_at.is_(None)).all()
+    for item in active_sessions:
+        item.is_current = False
+
+    session_record = UserSession.create_session(
+        user_id=user_id,
+        device=_describe_device(request.headers.get('User-Agent', '')),
+        location=request.headers.get('X-Forwarded-For', request.remote_addr or 'Unknown location'),
+        ip_address=request.headers.get('X-Forwarded-For', request.remote_addr or 'Unknown IP'),
+        is_current=True,
+    )
+    db.session.add(session_record)
+    db.session.commit()
+
+
+def _revoke_latest_session(user_id):
+    session_record = UserSession.query.filter_by(user_id=user_id).filter(UserSession.revoked_at.is_(None)).order_by(UserSession.last_active_at.desc()).first()
+    if session_record:
+        session_record.revoked_at = datetime.now(timezone.utc)
+        session_record.is_current = False
+        db.session.commit()
+
+
+def _coerce_user_id(user_id):
+    if isinstance(user_id, str) and user_id.isdigit():
+        return int(user_id)
+    return user_id
+
+
+def _build_access_token(user_id, username, email, role):
+    if not create_access_token:
+        return None
+
+    additional_claims = {
+        'role': role or 'user',
+        'username': username,
+        'email': email,
+        'is_admin': (role or 'user') == 'admin'
+    }
+    return create_access_token(identity=str(user_id), additional_claims=additional_claims)
+
+
+def _get_authenticated_user_id():
+    user_id = session.get('user_id')
+    if user_id:
+        return user_id
+
+    if verify_jwt_in_request and get_jwt_identity:
+        try:
+            verify_jwt_in_request(optional=True)
+            jwt_identity = get_jwt_identity()
+            if jwt_identity:
+                return _coerce_user_id(jwt_identity)
+        except Exception:
+            return None
+
+    return None
 
 def login_required(f):
     """Decorator to require login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
+        if not _get_authenticated_user_id():
             return jsonify({'error': 'Unauthorized'}), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -41,11 +139,21 @@ def register():
         
         op_logger.log_success(user_id=user_id)
         AuditLogger.log_action(user_id, 'register', 'user', 'success')
+
+        access_token = _build_access_token(user_id, username, email, 'user')
         
         return jsonify({
             'success': True,
+            'token': access_token,
             'user_id': user_id,
             'api_key': api_key,
+            'user': {
+                'id': user_id,
+                'username': username,
+                'email': email,
+                'role': 'user',
+                'name': username
+            },
             'message': 'Registration successful'
         }), 201
     
@@ -78,16 +186,27 @@ def login():
         session['username'] = username
         
         # Get user info
-        user = AuthManager.get_user_by_id(user_id)
-        api_key = user[4] if user else None
+        user_row = AuthManager.get_user_by_id(user_id)
+        api_key = user_row[3] if user_row else None
+        user_role = user_row[6] if user_row and len(user_row) > 6 else 'user'
+        email = user_row[2] if user_row else ''
+        access_token = _build_access_token(user_id, username, email, user_role)
         
         op_logger.log_success(user_id=user_id)
         AuditLogger.log_action(user_id, 'login', 'auth', 'success')
+        _track_login_session(user_id)
         
         return jsonify({
             'success': True,
+            'token': access_token,
+            'user': {
+                'id': user_id,
+                'username': username,
+                'email': email,
+                'role': user_role,
+                'name': username
+            },
             'user_id': user_id,
-            'username': username,
             'api_key': api_key,
             'message': 'Login successful'
         }), 200
@@ -113,6 +232,7 @@ def logout():
     # Log the action if we have a user_id
     if user_id:
         AuditLogger.log_action(user_id, 'logout', 'auth', 'success')
+        _revoke_latest_session(user_id)
     
     # Clear the session
     session.clear()
@@ -122,17 +242,8 @@ def logout():
 @bp.route('/auth/me', methods=['GET'])
 def me():
     """Get current user info - supports both session and Bearer token"""
-    user_id = session.get('user_id')
-    
-    # If no session, try to get user_id from Bearer token
-    if not user_id:
-        auth_header = request.headers.get('Authorization', '')
-        if auth_header.startswith('Bearer '):
-            # In production, validate the JWT token here
-            # For now, we just accept it (tokens are generated server-side)
-            # Extract user_id from token if needed, or just return 401
-            pass
-    
+    user_id = _get_authenticated_user_id()
+
     if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
     
@@ -154,7 +265,7 @@ def me():
 @login_required
 def reset_api_key():
     """Reset user API key"""
-    user_id = session.get('user_id')
+    user_id = _get_authenticated_user_id()
     op_logger = OperationLogger('reset-api-key')
     
     try:

@@ -65,10 +65,13 @@ def test_watermark_positions():
     if all(results):
         print("[SUCCESS] ALL WATERMARK TESTS PASSED!")
         print("  Watermark functionality is now working correctly.")
-        return 0
     else:
         print("[FAILED] Some watermark tests failed")
-        return 1
+    assert all(results), "Some watermark position tests failed"
 
 if __name__ == '__main__':
-    sys.exit(test_watermark_positions())
+    try:
+        test_watermark_positions()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

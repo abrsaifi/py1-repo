@@ -1,27 +1,32 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
-import { useAuditLogger } from '../services/auditLogger'
+import { adminAPI } from '@shared/api/api'
 
 const ActivityFeed = () => {
-  const { getLogs } = useAuditLogger()
   const [activities, setActivities] = useState([])
+  const [stats, setStats] = useState({ today: 0, critical: 0, warnings: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     loadActivities()
-    // Refresh every 10 seconds
     const interval = setInterval(loadActivities, 10000)
     return () => clearInterval(interval)
   }, [])
 
-  const loadActivities = () => {
-    const logs = getLogs({
-      limit: 50,
-      sortBy: 'timestamp',
-      sortOrder: 'desc'
-    })
-    setActivities(logs)
+  const loadActivities = async () => {
+    try {
+      setError('')
+      const response = await adminAPI.getActivityFeed({ limit: 75, period_days: 30 })
+      setActivities(response.data.entries || [])
+      setStats(response.data.stats || { today: 0, critical: 0, warnings: 0 })
+    } catch (loadError) {
+      setError(loadError.response?.data?.error || 'Failed to load activity feed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getActivityIcon = (action) => {
@@ -65,16 +70,6 @@ const ActivityFeed = () => {
     ? activities
     : activities.filter(a => a.severity === filterType)
 
-  const activityStats = {
-    today: activities.filter(a => {
-      const aDate = new Date(a.timestamp).toDateString()
-      const today = new Date().toDateString()
-      return aDate === today
-    }).length,
-    critical: activities.filter(a => a.severity === 'critical').length,
-    warnings: activities.filter(a => a.severity === 'warning').length
-  }
-
   return (
     <div className="activity-feed">
       <div className="management-header">
@@ -87,21 +82,27 @@ const ActivityFeed = () => {
       <div className="activity-stats">
         <div className="stat-badge">
           <span>Activities Today</span>
-          <span className="badge-value">{activityStats.today}</span>
+          <span className="badge-value">{stats.today || 0}</span>
         </div>
         <div className="stat-badge">
           <span>Critical Events</span>
           <span className="badge-value" style={{ color: '#d32f2f' }}>
-            {activityStats.critical}
+            {stats.critical || 0}
           </span>
         </div>
         <div className="stat-badge">
           <span>Warnings</span>
           <span className="badge-value" style={{ color: '#f57c00' }}>
-            {activityStats.warnings}
+            {stats.warnings || 0}
           </span>
         </div>
       </div>
+
+      {error && (
+        <div className="no-activities">
+          <p><UniversalIcon icon="⚠️" size={16} /> {error}</p>
+        </div>
+      )}
 
       <div className="filter-tabs">
         <button
@@ -131,7 +132,11 @@ const ActivityFeed = () => {
       </div>
 
       <div className="activity-list">
-        {filteredActivities.length > 0 ? (
+        {loading ? (
+          <div className="no-activities">
+            <p><UniversalIcon icon="⏳" size={16} /> Loading activity feed...</p>
+          </div>
+        ) : filteredActivities.length > 0 ? (
           filteredActivities.map(activity => (
             <div
               key={activity.id}
@@ -145,12 +150,12 @@ const ActivityFeed = () => {
 
               <div className="activity-content">
                 <div className="activity-header">
-                  <h4 className="activity-action">{activity.action}</h4>
+                  <h4 className="activity-action">{activity.action.replace(/-/g, ' ')}</h4>
                   <span className="activity-time">{formatTimestamp(activity.timestamp)}</span>
                 </div>
 
                 <div className="activity-details">
-                  <span className="activity-user"><UniversalIcon icon="👤" size={14} /> {activity.userId}</span>
+                  <span className="activity-user"><UniversalIcon icon="👤" size={14} /> {activity.userName || activity.userId || 'system'}</span>
                   {activity.resourceName && (
                     <span className="activity-resource"><UniversalIcon icon="📦" size={14} /> {activity.resourceName}</span>
                   )}
@@ -196,7 +201,7 @@ const ActivityFeed = () => {
       </div>
 
       <div className="activity-footer">
-        <p>Showing {filteredActivities.length} activities • Auto-refreshing every 10 seconds</p>
+        <p>Showing {filteredActivities.length} live backend events • Auto-refreshing every 10 seconds</p>
       </div>
     </div>
   )

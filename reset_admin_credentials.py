@@ -55,7 +55,7 @@ def reset_admin_credentials():
             
             cursor.execute('''
                 UPDATE users 
-                SET password_hash=?, api_key=?, is_active=1
+                SET password_hash=?, api_key=?, is_active=1, role='admin'
                 WHERE id=?
             ''', (password_hash, api_key, admin_id))
             
@@ -71,6 +71,8 @@ def reset_admin_credentials():
             )
             
             if success:
+                cursor.execute("UPDATE users SET role='admin' WHERE id=?", (user_id,))
+                conn.commit()
                 print(f"✓ Admin user created (ID: {user_id})")
             else:
                 print("✗ Failed to create admin user")

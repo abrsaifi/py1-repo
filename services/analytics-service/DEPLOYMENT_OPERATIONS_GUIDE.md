@@ -1,4 +1,7 @@
-# Phase 10 Analytics Service - Deployment & Operations Guide
+# Phase 10 Analytics Service - Historical Deployment & Operations Guide
+
+This guide documents the earlier target analytics-service deployment path.
+In the current workspace, the verified backend runtime is the modular Flask application under `app/`, so the standalone analytics-service startup and deployment steps below should be treated as historical/reference guidance unless the repository is intentionally operated in that split form.
 
 ## Table of Contents
 1. [Quick Start](#quick-start)

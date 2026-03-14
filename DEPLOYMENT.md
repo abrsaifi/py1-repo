@@ -53,6 +53,7 @@ Set these before running:
 # Server
 FLASK_ENV=production              # or 'development'
 SECRET_KEY=your-secret-key        # Change in production!
+BILLING_PROVIDER_WEBHOOK_SECRET=shared-provider-signing-secret
 
 # Uploads
 UPLOAD_MAX_FILE_SIZE=52428800     # 50 MB (bytes)
@@ -66,6 +67,8 @@ RATE_LIMIT_MAX=60                 # requests per window
 # API Key (optional)
 UPLOAD_API_KEY=your-api-key       # If set, required for upload endpoints
 ```
+
+`BILLING_PROVIDER_WEBHOOK_SECRET` must match the shared secret used by the upstream billing provider to sign requests for `/api/admin/billing/provider-events`.
 
 ---
 

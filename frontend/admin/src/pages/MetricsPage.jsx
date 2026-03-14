@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { metricsAPI } from '@shared/api/api'
+import { adminAPI } from '@shared/api/api'
 import MetricCard from '@shared/components/MetricCard'
 import DataTable from '@shared/components/DataTable'
-import BarChart from '@shared/components/BarChart'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import '../styles/pages.css'
 
@@ -20,49 +19,8 @@ export const MetricsPage = ({ onTitleChange }) => {
   const fetchMetrics = async () => {
     try {
       setLoading(true)
-      // Mock data for demo
-      setMetrics([
-        {
-          id: '1',
-          name: 'Total Requests',
-          type: 'system',
-          current: 24532,
-          previous: 21890,
-          change: 12.1,
-        },
-        {
-          id: '2',
-          name: 'API Response Time',
-          type: 'service',
-          current: 145,
-          previous: 152,
-          change: -4.6,
-        },
-        {
-          id: '3',
-          name: 'Error Rate',
-          type: 'system',
-          current: 0.85,
-          previous: 1.02,
-          change: -16.7,
-        },
-        {
-          id: '4',
-          name: 'Active Users',
-          type: 'business',
-          current: 1420,
-          previous: 1250,
-          change: 13.6,
-        },
-        {
-          id: '5',
-          name: 'Cache Hit Rate',
-          type: 'service',
-          current: 94.2,
-          previous: 92.5,
-          change: 1.8,
-        },
-      ])
+      const response = await adminAPI.getAnalyticsOverview({ days: 7 })
+      setMetrics(response.data?.metricRows || [])
     } catch (error) {
       console.error('Failed to fetch metrics:', error)
     } finally {
@@ -70,32 +28,34 @@ export const MetricsPage = ({ onTitleChange }) => {
     }
   }
 
-  const filteredMetrics = filterType === 'all' 
-    ? metrics 
-    : metrics.filter(m => m.type === filterType)
+  const filteredMetrics = filterType === 'all'
+    ? metrics
+    : metrics.filter((metric) => metric.type === filterType)
 
   const columns = [
     { key: 'name', label: 'Metric Name', sortable: true },
     { key: 'type', label: 'Type', sortable: true },
     { key: 'current', label: 'Current Value', sortable: true },
     { key: 'previous', label: 'Previous Value', sortable: true },
-    {
-      key: 'change',
-      label: 'Change',
-      sortable: true,
-      render: (value) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`,
-    },
+    { key: 'changeLabel', label: 'Change', sortable: true },
   ]
+
+  const displayMetrics = filteredMetrics.map((metric) => ({
+    ...metric,
+    current: `${metric.current} ${metric.unit || ''}`.trim(),
+    previous: `${metric.previous} ${metric.unit || ''}`.trim(),
+    changeLabel: `${metric.change > 0 ? '+' : ''}${Number(metric.change || 0).toFixed(1)}%`,
+  }))
 
   return (
     <div className="metrics-page">
       <div className="page-header">
         <div>
           <h2>All Metrics</h2>
-          <p>Monitor and analyze system performance</p>
+          <p>Monitor and analyze live system performance</p>
         </div>
-        <button className="btn btn-primary">
-          <UniversalIcon icon="fas fa-plus" size={20} /> New Metric
+        <button className="btn btn-primary" onClick={fetchMetrics}>
+          <UniversalIcon icon="fas fa-refresh" size={20} /> Refresh Metrics
         </button>
       </div>
 
@@ -116,9 +76,10 @@ export const MetricsPage = ({ onTitleChange }) => {
             key={metric.id}
             title={metric.name}
             value={metric.current}
+            unit={metric.unit}
             trend={Math.round(metric.change)}
             icon="chart-bar"
-            color={Math.round(metric.change) > 0 ? 'green' : 'red'}
+            color={metric.change >= 0 ? 'green' : 'red'}
           />
         ))}
       </div>
@@ -126,17 +87,23 @@ export const MetricsPage = ({ onTitleChange }) => {
       <DataTable
         title="Detailed Metrics"
         columns={columns}
-        data={filteredMetrics}
+        data={displayMetrics}
         loading={loading}
-        onRowClick={setSelectedMetric}
+        onRowClick={(row) => {
+          const metric = filteredMetrics.find((item) => item.id === row.id)
+          setSelectedMetric(metric || row)
+        }}
       />
 
       {selectedMetric && (
-        <div className="metric-detail-modal">
-          <div className="modal-content">
+        <div className="metric-detail-modal" onClick={() => setSelectedMetric(null)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
             <h3>{selectedMetric.name}</h3>
             <p>Type: {selectedMetric.type}</p>
-            <p>Current: {selectedMetric.current}</p>
+            <p>Current: {selectedMetric.current} {selectedMetric.unit}</p>
+            <p>Previous: {selectedMetric.previous} {selectedMetric.unit}</p>
+            <p>Change: {selectedMetric.change > 0 ? '+' : ''}{Number(selectedMetric.change || 0).toFixed(1)}%</p>
+            <p>{selectedMetric.description || 'No additional context available.'}</p>
             <button className="btn btn-secondary" onClick={() => setSelectedMetric(null)}>
               Close
             </button>

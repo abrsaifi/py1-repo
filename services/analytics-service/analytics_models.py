@@ -6,8 +6,7 @@ Comprehensive models for system-wide analytics, metrics, and reporting
 from datetime import datetime
 from enum import Enum
 from sqlalchemy import Column, String, Integer, Float, DateTime, JSON, Boolean, Index, ForeignKey, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 import uuid
 
 Base = declarative_base()
@@ -108,7 +107,7 @@ class SystemMetric(Base):
     
     # Metadata
     tags = Column(JSON, default={})
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
     __table_args__ = (
@@ -133,7 +132,7 @@ class SystemMetric(Base):
             'avg': self.avg_value,
             'count': self.count,
             'tags': self.tags,
-            'metadata': self.metadata,
+            'metadata': self.metadata_json,
         }
 
 
@@ -178,7 +177,7 @@ class ServiceMetric(Base):
     # Timestamps
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
     __table_args__ = (
@@ -266,7 +265,7 @@ class UserActivityMetric(Base):
     # Timestamps
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
     __table_args__ = (
@@ -354,7 +353,7 @@ class BusinessMetric(Base):
     # Timestamps
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
     __table_args__ = (
@@ -567,7 +566,7 @@ class Alert(Base):
     trigger_count = Column(Integer, default=0)
     
     # History
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -630,7 +629,7 @@ class AlertEvent(Base):
     
     # Context
     metric_history = Column(JSON, default=[])  # Historical values
-    metadata = Column(JSON, default={})
+    metadata_json = Column('metadata', JSON, default={})
     
     triggered_at = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)

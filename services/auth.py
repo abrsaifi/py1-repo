@@ -5,7 +5,7 @@ Authentication utilities for user registration, login, and token management.
 import hashlib
 import secrets
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 # Try to use jwt library if available, otherwise use simple token-based auth
@@ -60,8 +60,8 @@ class AuthManager:
             payload = {
                 'user_id': user_id,
                 'username': username,
-                'iat': datetime.utcnow(),
-                'exp': datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+                'iat': datetime.now(timezone.utc),
+                'exp': datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS)
             }
             return jwt.encode(payload, self.secret_key, algorithm='HS256')
         else:
@@ -70,8 +70,8 @@ class AuthManager:
             token_data = {
                 'user_id': user_id,
                 'username': username,
-                'created_at': datetime.utcnow().isoformat(),
-                'expires_at': (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)).isoformat()
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'expires_at': (datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS)).isoformat()
             }
             return token, json.dumps(token_data)
     

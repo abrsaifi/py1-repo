@@ -2,6 +2,7 @@
 from datetime import datetime
 from . import db
 import enum
+from app.utils.datetime_utils import utc_now_naive
 
 class ConversionStatus(enum.Enum):
     PENDING = "pending"
@@ -39,7 +40,7 @@ class Conversion(db.Model):
     error_message = db.Column(db.Text)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False, index=True)
     started_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
     

@@ -1,4 +1,7 @@
-# Analytics Service - Complete Implementation Guide
+# Analytics Service - Historical Implementation Guide
+
+This guide documents the earlier target analytics-service split.
+In the current workspace, the active backend runtime is the modular Flask application under `app/`, so the analytics-service deployment and startup steps below should be treated as historical or reference material unless the repository is intentionally re-split.
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -18,7 +21,7 @@
 
 ## Overview
 
-The Analytics Service is a microservice component of the SaaS platform that provides comprehensive business intelligence, user engagement tracking, revenue analytics, and predictive analytics capabilities.
+The Analytics Service was designed as a standalone microservice component of the SaaS platform that provides comprehensive business intelligence, user engagement tracking, revenue analytics, and predictive analytics capabilities.
 
 **Service Port**: 5005
 **Language**: Python 3.9+

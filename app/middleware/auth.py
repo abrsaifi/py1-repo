@@ -1,22 +1,32 @@
 """Authentication and authorization middleware."""
 from functools import wraps
 from flask import request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 import os
+
+
+def _extract_bearer_token():
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header:
+        return None
+
+    parts = auth_header.split(' ', 1)
+    if len(parts) != 2 or parts[0].lower() != 'bearer' or not parts[1].strip():
+        return None
+
+    return parts[1].strip()
+
+
+def _coerce_user_id(user_id):
+    if isinstance(user_id, str) and user_id.isdigit():
+        return int(user_id)
+    return user_id
 
 def auth_required(f):
     """Decorator to require JWT authentication."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = None
-        
-        # Check for token in Authorization header
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            try:
-                token = auth_header.split(' ')[1]
-            except IndexError:
-                return jsonify({'error': 'Invalid authorization header'}), 401
+        token = _extract_bearer_token()
         
         if not token:
             return jsonify({'error': 'Missing authentication token'}), 401
@@ -26,8 +36,7 @@ def auth_required(f):
             from flask_jwt_extended import decode_token
             
             payload = decode_token(token)
-            # payload should contain user_id
-            request.user_id = payload.get('sub')
+            request.user_id = _coerce_user_id(payload.get('sub'))
             request.current_user = payload
             
         except Exception as e:
@@ -41,15 +50,7 @@ def admin_required(f):
     """Decorator to require admin role."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # First check if authenticated
-        token = None
-        
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            try:
-                token = auth_header.split(' ')[1]
-            except IndexError:
-                return jsonify({'error': 'Invalid authorization header'}), 401
+        token = _extract_bearer_token()
         
         if not token:
             return jsonify({'error': 'Missing authentication token'}), 401
@@ -57,10 +58,9 @@ def admin_required(f):
         try:
             from flask_jwt_extended import decode_token
             from app.models import User
-            from app.models import db
             
             payload = decode_token(token)
-            user_id = payload.get('sub')
+            user_id = _coerce_user_id(payload.get('sub'))
             
             # Fetch user to check role
             user = User.query.get(user_id)
@@ -134,7 +134,7 @@ def rate_limit(max_requests=100, time_window=3600):
             else:
                 key = f"ip_{request.remote_addr}"
             
-            now = datetime.utcnow().timestamp()
+            now = datetime.now(timezone.utc).timestamp()
             
             # Remove old requests outside the time window
             while request_history[key] and request_history[key][0] < now - time_window:

@@ -1,5 +1,8 @@
 # Phase 2 Implementation Summary
 
+This report summarizes the earlier target auth-service plus api-gateway split.
+In the current workspace, the active backend runtime is the modular Flask application under `app/`, so the service-specific paths below should be treated as historical or target-state references.
+
 **Status**: ✅ COMPLETE  
 **Date**: March 4, 2026  
 **Phase**: Database Integration & Auth Service Layer  
@@ -84,7 +87,7 @@
 - `dotmd/DATABASE_AND_AUTH_IMPLEMENTATION.md` (400 lines)
 - `dotmd/BACKEND_SETUP_TESTING.md` (300 lines)
 
-## Architecture Summary
+## Historical Target Architecture Summary
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -259,14 +262,14 @@ cd ProjectTest && python test_auth_service_e2e.py
 ❌ Two-factor authentication  
 ❌ OAuth integration (Google, GitHub, etc.)
 
-## Next Phase (Phase 3)
+## Historical Next Phase (Phase 3)
 
 1. **User Service** - Profile management & conversion history
 2. **Conversion Service** - Job creation & queue management
 3. **Conversion Workers** - Actual file conversion logic
 4. **Billing Service** - Payment processing & subscriptions
 
-Each service will follow the same pattern:
+Each target service was intended to follow the same pattern:
 - SQLAlchemy models for data
 - Flask routes for endpoints
 - PostgreSQL for persistence
@@ -308,7 +311,7 @@ Partially Implemented:
 - ❌ Distributed tracing
 - ❌ Log aggregation (ELK)
 
-## File Structure Recap
+## Historical File Structure Recap
 
 ```
 py1/

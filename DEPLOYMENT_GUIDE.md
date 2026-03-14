@@ -27,9 +27,12 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 # Add to .env:
 SECRET_KEY=<generated-key>
+BILLING_PROVIDER_WEBHOOK_SECRET=<shared-provider-signing-secret>
 FLASK_ENV=production
 DEBUG=0
 ```
+
+Use the same `BILLING_PROVIDER_WEBHOOK_SECRET` value in your billing provider integration when generating the HMAC-SHA256 signature sent in `X-DocPro-Billing-Signature` to `/api/admin/billing/provider-events`.
 
 ### 3. Database Setup
 ```bash

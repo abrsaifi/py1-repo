@@ -10,7 +10,7 @@ import secrets
 import hashlib
 import sys
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def hash_password(password):
@@ -53,7 +53,7 @@ def reset_credentials():
         subscriber_hash = hash_password(subscriber_password)
         
         # Get current timestamp
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         
         # Create new admin user
         print("Creating new admin user...")

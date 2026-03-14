@@ -35,7 +35,7 @@ const ContentManager = () => {
     const fetchTools = async () => {
       try {
         setToolsLoading(true)
-        const response = await fetch('http://localhost:5000/api/tools')
+        const response = await fetch('/api/tools')
         if (response.ok) {
           const data = await response.json()
           setTools(data.tools || [])
@@ -353,7 +353,7 @@ const ContentManager = () => {
 
   const handleToolUpdate = async (toolData) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tools/${toolData.slug}`, {
+      const response = await fetch(`/api/tools/${toolData.slug}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(toolData)
@@ -372,7 +372,7 @@ const ContentManager = () => {
   const handleToolDelete = async (slug) => {
     if (window.confirm('Are you sure you want to delete this tool?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/tools/${slug}`, { method: 'DELETE' })
+        const response = await fetch(`/api/tools/${slug}`, { method: 'DELETE' })
         if (response.ok) {
           alert('✓ Tool deleted successfully!')
           setTools(tools.filter(t => t.slug !== slug))

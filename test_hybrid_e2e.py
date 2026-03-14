@@ -44,18 +44,20 @@ def test_hybrid_conversion_endpoint():
                 if response.content_type and 'pdf' in response.content_type:
                     pdf_size = len(response.data)
                     print(f"[SUCCESS] PDF generated! Size: {pdf_size} bytes")
-                    return True
+                    assert pdf_size > 0, "Generated PDF is empty"
                 else:
                     print(f"[WARN] Response is {response.status_code} but not PDF")
                     data = response.get_data(as_text=True)
                     print(f"[DATA] {data[:200]}")
+                    assert False, f"Expected PDF content type, got {response.content_type}"
             elif response.status_code == 302:
                 print(f"[INFO] Got redirect (302) - likely auth required")
                 print(f"[LOCATION] {response.headers.get('Location')}")
+                assert response.headers.get('Location'), "Redirect response missing Location header"
             else:
                 data = response.get_data(as_text=True)
                 print(f"[ERROR] {data}")
-                return False
+                assert False, f"Unexpected status {response.status_code}: {data[:200]}"
 
 def test_root_endpoint():
     """Test the root / endpoint."""
@@ -66,10 +68,9 @@ def test_root_endpoint():
         
         if response.status_code == 200:
             print(f"[SUCCESS] Root endpoint returns HTML (size: {len(response.data)} bytes)")
-            return True
         else:
             print(f"[ERROR] Unexpected status: {response.status_code}")
-            return False
+        assert response.status_code == 200, f"Unexpected status: {response.status_code}"
 
 if __name__ == '__main__':
     print("=" * 70)
@@ -86,12 +87,16 @@ if __name__ == '__main__':
     
     print("\nTest 1: Root Endpoint")
     print("-" * 70)
-    if not test_root_endpoint():
+    try:
+        test_root_endpoint()
+    except AssertionError:
         success = False
     
     print("\n\nTest 2: Conversion Endpoint (Hybrid Mode)")
     print("-" * 70)
-    if not test_hybrid_conversion_endpoint():
+    try:
+        test_hybrid_conversion_endpoint()
+    except AssertionError:
         success = False
     
     print("\n" + "=" * 70)

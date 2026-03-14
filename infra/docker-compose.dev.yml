@@ -35,6 +35,7 @@ services:
       - FLASK_APP=app.main:app
       - PYTHONUNBUFFERED=1
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - BILLING_PROVIDER_WEBHOOK_SECRET=${BILLING_PROVIDER_WEBHOOK_SECRET:-dev-billing-webhook-secret}
       - DATABASE_URL=${DATABASE_URL:-sqlite:////data/converter.db}
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
     volumes:

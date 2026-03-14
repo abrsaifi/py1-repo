@@ -185,6 +185,21 @@ class ProdConfig(Config):
 app = create_app(ProdConfig)
 ```
 
+### Database Migrations
+The repo now has a real Alembic / Flask-Migrate tree in `migrations/`.
+
+```bash
+# Inspect migration state
+flask --app manage.py db heads
+flask --app manage.py db current
+
+# Create and apply revisions
+flask --app manage.py db migrate -m "describe change"
+flask --app manage.py db upgrade
+```
+
+The older `database/migrations/` folder remains as a lightweight tracking ledger for historical repo workflow.
+
 ---
 
 ## 🧪 Testing

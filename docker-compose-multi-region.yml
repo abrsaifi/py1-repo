@@ -65,6 +65,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-us:5432/docpro
       REDIS_URL: redis://redis-us:6379/0
+      BILLING_PROVIDER_WEBHOOK_SECRET: ${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       REGION_CODE: us
       REGION_ENDPOINT: http://flask-us:5000
       CDN_ENDPOINT: https://docpro-us.your-domain.com
@@ -155,6 +156,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-eu:5432/docpro
       REDIS_URL: redis://redis-eu:6379/0
+      BILLING_PROVIDER_WEBHOOK_SECRET: ${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       REGION_CODE: eu
       REGION_ENDPOINT: http://flask-eu:5000
       CDN_ENDPOINT: https://docpro-eu.your-domain.com
@@ -245,6 +247,7 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-docpro123}@postgres-apac:5432/docpro
       REDIS_URL: redis://redis-apac:6379/0
+      BILLING_PROVIDER_WEBHOOK_SECRET: ${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       REGION_CODE: apac
       REGION_ENDPOINT: http://flask-apac:5000
       CDN_ENDPOINT: https://docpro-apac.your-domain.com

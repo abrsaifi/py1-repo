@@ -8,6 +8,9 @@ const LandingPage = () => {
   const [dragActive, setDragActive] = useState(false)
   const [expandedFAQ, setExpandedFAQ] = useState(null)
 
+  const goToSignup = () => navigate('/register')
+  const goToTools = () => navigate('/tools')
+
   // Drag and drop handlers
   const handleDrag = (e) => {
     e.preventDefault()
@@ -180,12 +183,16 @@ const LandingPage = () => {
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              onClick={goToSignup}
             >
               <div className="upload-content">
                 <UniversalIcon icon="📁" size={48} />
                 <h3>Drag & Drop Your File Here</h3>
                 <p className="upload-text">or</p>
-                <button className="btn-upload">
+                <button className="btn-upload" onClick={(e) => {
+                  e.stopPropagation()
+                  goToSignup()
+                }}>
                   Click to Browse Files
                 </button>
                 <p className="upload-hint">
@@ -246,7 +253,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="features">
+      <section className="features" id="features">
         <div className="section-container">
           <div className="section-header">
             <h2>Why Choose Us?</h2>
@@ -287,7 +294,7 @@ const LandingPage = () => {
       </section>
 
       {/* Tool Categories */}
-      <section className="tools">
+      <section className="tools" id="tools">
         <div className="section-container">
           <div className="section-header">
             <h2>Popular Conversions</h2>
@@ -295,32 +302,32 @@ const LandingPage = () => {
           </div>
 
           <div className="tools-grid">
-            <div className="tool-card">
-              <div className="tool-icon"><UniversalIcon icon="🖸️" size={32} /></div>
+            <div className="tool-card" onClick={goToTools}>
+              <div className="tool-icon"><UniversalIcon icon="🖼️" size={32} /></div>
               <h4>Image Converter</h4>
               <p>JPG, PNG, GIF, WebP, BMP</p>
             </div>
-            <div className="tool-card">
+            <div className="tool-card" onClick={goToTools}>
               <div className="tool-icon"><UniversalIcon icon="📄" size={48} /></div>
               <h4>Document Converter</h4>
               <p>PDF, DOCX, XLSX, PPTX</p>
             </div>
-            <div className="tool-card">
-              <div className="tool-icon"><UniversalIcon icon="📉" size={32} /></div>
+            <div className="tool-card" onClick={goToTools}>
+              <div className="tool-icon"><UniversalIcon icon="🎬" size={32} /></div>
               <h4>Video Converter</h4>
               <p>MP4, AVI, MOV, FLV, MKV</p>
             </div>
-            <div className="tool-card">
+            <div className="tool-card" onClick={goToTools}>
               <div className="tool-icon"><UniversalIcon icon="🎵" size={32} /></div>
               <h4>Audio Converter</h4>
               <p>MP3, WAV, AAC, FLAC, OGG</p>
             </div>
-            <div className="tool-card">
+            <div className="tool-card" onClick={goToTools}>
               <div className="tool-icon"><UniversalIcon icon="🗜️" size={48} /></div>
               <h4>Compression</h4>
               <p>ZIP, RAR, 7Z, TAR</p>
             </div>
-            <div className="tool-card">
+            <div className="tool-card" onClick={goToTools}>
               <div className="tool-icon"><UniversalIcon icon="📜" size={32} /></div>
               <h4>Image Tools</h4>
               <p>Resize, Crop, Compress, Watermark</p>
@@ -328,7 +335,7 @@ const LandingPage = () => {
           </div>
 
           <div className="tools-cta">
-            <button className="btn-primary-large">
+            <button className="btn-primary-large" onClick={goToTools}>
               View All Tools (100+)
             </button>
           </div>
@@ -362,7 +369,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="faq">
+      <section className="faq" id="faq">
         <div className="section-container">
           <div className="section-header">
             <h2>Frequently Asked Questions</h2>
@@ -393,7 +400,7 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="pricing">
+      <section className="pricing" id="pricing">
         <div className="section-container">
           <div className="section-header">
             <h2>Simple, Transparent Pricing</h2>
@@ -413,7 +420,7 @@ const LandingPage = () => {
                 <li>✗ Batch conversion</li>
                 <li>✗ Priority support</li>
               </ul>
-              <button className="btn-secondary">
+              <button className="btn-secondary" onClick={goToSignup}>
                 Get Started
               </button>
             </div>
@@ -430,7 +437,7 @@ const LandingPage = () => {
                 <li>✓ Batch conversion</li>
                 <li>✓ Priority support</li>
               </ul>
-              <button className="btn-primary">
+              <button className="btn-primary" onClick={goToSignup}>
                 Start Free Trial
               </button>
             </div>
@@ -446,7 +453,7 @@ const LandingPage = () => {
                 <li>✓ API access</li>
                 <li>✓ Dedicated support</li>
               </ul>
-              <button className="btn-secondary">
+              <button className="btn-secondary" onClick={() => navigate('/contact')}>
                 Contact Sales
               </button>
             </div>
@@ -462,11 +469,11 @@ const LandingPage = () => {
           <div className="cta-buttons">
             <button 
               className="btn-primary-large"
-              onClick={() => navigate('/convert')}
+              onClick={goToSignup}
             >
               Start Converting Now
             </button>
-            <button className="btn-secondary-large">
+            <button className="btn-secondary-large" onClick={goToTools}>
               View All Tools
             </button>
           </div>
@@ -509,10 +516,10 @@ const LandingPage = () => {
           <div className="footer-section">
             <h4>Follow Us</h4>
             <div className="social-links">
-              <a href="#facebook">Facebook</a>
-              <a href="#twitter">Twitter</a>
-              <a href="#instagram">Instagram</a>
-              <a href="#linkedin">LinkedIn</a>
+              <a href="#facebook" className="social-link" aria-label="Facebook">FB</a>
+              <a href="#twitter" className="social-link" aria-label="Twitter">X</a>
+              <a href="#instagram" className="social-link" aria-label="Instagram">IG</a>
+              <a href="#linkedin" className="social-link" aria-label="LinkedIn">IN</a>
             </div>
           </div>
         </div>

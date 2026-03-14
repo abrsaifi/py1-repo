@@ -3,8 +3,10 @@ Phase 15.1: WebSocket Real-time Features
 Handles real-time collaboration, live notifications, activity feeds, and user presence
 """
 
+from copy import deepcopy
+from flask import current_app, request
 from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Set
 import logging
 
@@ -17,6 +19,179 @@ document_collaborators: Dict[str, Set] = {}  # {document_id: set of user_ids}
 live_notifications: Dict[str, List] = {}  # {user_id: [notifications]}
 activity_feeds: Dict[str, List] = {}  # {room_id: [activities]}
 
+
+class WebSocketManager:
+    """Manages job-watch connections and real-time job update events."""
+
+    def __init__(self):
+        self.sio = None
+        self.connected_clients = {}
+        self.job_watchers = {}
+        self._registered_socketio_id = None
+
+    def reset_state(self):
+        self.connected_clients = {}
+        self.job_watchers = {}
+
+    def track_connection(self, sid):
+        self.connected_clients[sid] = {
+            'user_id': None,
+            'job_ids': [],
+            'connected_at': datetime.now(timezone.utc).isoformat(),
+        }
+
+    def remove_connection(self, sid):
+        if sid not in self.connected_clients:
+            return
+
+        for job_id in list(self.connected_clients[sid].get('job_ids', [])):
+            watchers = self.job_watchers.get(job_id)
+            if watchers is None:
+                continue
+            watchers.discard(sid)
+            if not watchers:
+                del self.job_watchers[job_id]
+
+        del self.connected_clients[sid]
+
+    def register_handlers(self, socketio):
+        if socketio is None:
+            raise ValueError('socketio instance is required')
+
+        socketio_id = id(socketio)
+        self.sio = socketio
+        self.reset_state()
+
+        if self._registered_socketio_id == socketio_id:
+            return self
+
+        self._registered_socketio_id = socketio_id
+
+        @socketio.on('authenticate')
+        def handle_authenticate(data):
+            sid = request.sid
+            user_id = data.get('user_id')
+
+            if sid not in self.connected_clients:
+                self.track_connection(sid)
+
+            self.connected_clients[sid]['user_id'] = user_id
+            logger.info('Client authenticated: %s -> %s', sid, user_id)
+            return {'success': True, 'message': 'Authenticated'}
+
+        @socketio.on('watch_job')
+        def handle_watch_job(data):
+            sid = request.sid
+            job_id = data.get('job_id')
+
+            if not job_id:
+                return {'success': False, 'error': 'job_id required'}
+
+            if sid not in self.connected_clients:
+                self.track_connection(sid)
+
+            if job_id not in self.connected_clients[sid]['job_ids']:
+                self.connected_clients[sid]['job_ids'].append(job_id)
+
+            self.job_watchers.setdefault(job_id, set()).add(sid)
+            logger.info('Client %s watching job %s', sid, job_id)
+            return {'success': True, 'message': f'Watching job {job_id}'}
+
+        @socketio.on('unwatch_job')
+        def handle_unwatch_job(data):
+            sid = request.sid
+            job_id = data.get('job_id')
+
+            if job_id and sid in self.connected_clients:
+                if job_id in self.connected_clients[sid]['job_ids']:
+                    self.connected_clients[sid]['job_ids'].remove(job_id)
+
+                watchers = self.job_watchers.get(job_id)
+                if watchers is not None:
+                    watchers.discard(sid)
+                    if not watchers:
+                        del self.job_watchers[job_id]
+
+                logger.info('Client %s stopped watching job %s', sid, job_id)
+
+            return {'success': True}
+
+        return self
+
+    def broadcast_job_update(self, job_id, data):
+        if self.sio is None:
+            logger.warning('Job update skipped because no Socket.IO server is registered')
+            return
+
+        for sid in list(self.job_watchers.get(job_id, set())):
+            if sid not in self.connected_clients:
+                continue
+            try:
+                self.sio.emit('job_update', {
+                    'job_id': job_id,
+                    'data': data,
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                }, to=sid)
+            except Exception as exc:
+                logger.error('Failed to send update to %s: %s', sid, exc)
+
+    def notify_job_started(self, job_id, job_data):
+        self.broadcast_job_update(job_id, {
+            'event': 'started',
+            'status': 'processing',
+            'progress': 0,
+            'job_data': job_data,
+        })
+
+    def notify_job_progress(self, job_id, progress, message=''):
+        self.broadcast_job_update(job_id, {
+            'event': 'progress',
+            'progress': progress,
+            'message': message,
+        })
+
+    def notify_job_completed(self, job_id, result_data):
+        self.broadcast_job_update(job_id, {
+            'event': 'completed',
+            'status': 'complete',
+            'progress': 100,
+            'result': result_data,
+        })
+
+    def notify_job_error(self, job_id, error_message):
+        self.broadcast_job_update(job_id, {
+            'event': 'error',
+            'status': 'error',
+            'error': error_message,
+        })
+
+    def get_active_connections(self):
+        return len(self.connected_clients)
+
+    def get_watched_jobs(self):
+        return list(self.job_watchers.keys())
+
+    def emit_to_user(self, user_id, event, data):
+        if self.sio is None:
+            return
+        for sid, info in self.connected_clients.items():
+            if info['user_id'] != user_id:
+                continue
+            try:
+                self.sio.emit(event, data, to=sid)
+            except Exception as exc:
+                logger.error('Failed to emit to user %s: %s', user_id, exc)
+
+
+_ws_manager = None
+
+
+def get_websocket_manager():
+    global _ws_manager
+    if _ws_manager is None:
+        _ws_manager = WebSocketManager()
+    return _ws_manager
+
 # ========== WEBSOCKET SETUP ==========
 def init_websocket(app):
     """Initialize WebSocket server with Flask app"""
@@ -26,6 +201,9 @@ def init_websocket(app):
         ping_timeout=10,
         ping_interval=5
     )
+    websocket_manager = get_websocket_manager().register_handlers(socketio)
+    app.extensions['job_websocket_manager'] = websocket_manager
+    app.websocket_manager = websocket_manager
     
     # ========== USER CONNECTION EVENTS ==========
     @socketio.on('connect')
@@ -33,11 +211,14 @@ def init_websocket(app):
         """User connects to WebSocket"""
         try:
             client_id = request.sid
+            websocket_manager = current_app.extensions.get('job_websocket_manager')
+            if websocket_manager is not None:
+                websocket_manager.track_connection(client_id)
             logger.info(f"Client connected: {client_id}")
             emit('connection_response', {
                 'status': 'connected',
                 'client_id': client_id,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
             logger.error(f"Connection error: {e}")
@@ -48,6 +229,9 @@ def init_websocket(app):
         """User disconnects from WebSocket"""
         try:
             client_id = request.sid
+            websocket_manager = current_app.extensions.get('job_websocket_manager')
+            if websocket_manager is not None:
+                websocket_manager.remove_connection(client_id)
             if client_id in active_users:
                 user_info = active_users[client_id]
                 room = user_info.get('room')
@@ -57,13 +241,13 @@ def init_websocket(app):
                     emit('user_left', {
                         'user_id': user_info['user_id'],
                         'username': user_info['username'],
-                        'timestamp': datetime.utcnow().isoformat()
+                        'timestamp': datetime.now(timezone.utc).isoformat()
                     }, to=room)
                     
                     # Log activity
                     log_activity(room, 'user_left', {
                         'username': user_info['username'],
-                        'time': datetime.utcnow().isoformat()
+                        'time': datetime.now(timezone.utc).isoformat()
                     })
                 
                 del active_users[client_id]
@@ -91,7 +275,7 @@ def init_websocket(app):
                 'user_id': user_id,
                 'username': username,
                 'room': room,
-                'connected_at': datetime.utcnow().isoformat()
+                'connected_at': datetime.now(timezone.utc).isoformat()
             }
             
             # Track document collaborators
@@ -107,14 +291,14 @@ def init_websocket(app):
                 'user_id': user_id,
                 'username': username,
                 'active_users': list(document_collaborators.get(room, set())),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, to=room)
             
             # Log activity
             log_activity(room, 'user_joined', {
                 'username': username,
                 'active_count': len(document_collaborators.get(room, set())),
-                'time': datetime.utcnow().isoformat()
+                'time': datetime.now(timezone.utc).isoformat()
             })
             
             logger.info(f"User {username} joined room {room}")
@@ -145,7 +329,7 @@ def init_websocket(app):
                 'room': room,
                 'count': len(active_in_room),
                 'users': active_in_room,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
             logger.error(f"Get active users error: {e}")
@@ -167,7 +351,7 @@ def init_websocket(app):
                 'user_id': user_id,
                 'username': username,
                 'changes': changes,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, to=room, skip_sid=request.sid)
             
             # Log activity
@@ -175,7 +359,7 @@ def init_websocket(app):
                 'document_id': document_id,
                 'username': username,
                 'type': changes.get('type', 'unknown'),
-                'time': datetime.utcnow().isoformat()
+                'time': datetime.now(timezone.utc).isoformat()
             })
             
             logger.info(f"Document {document_id} updated by {username}")
@@ -193,12 +377,12 @@ def init_websocket(app):
             comment = data.get('comment')
             
             comment_obj = {
-                'id': f"comment_{datetime.utcnow().timestamp()}",
+                'id': f"comment_{datetime.now(timezone.utc).timestamp()}",
                 'document_id': document_id,
                 'user_id': user_id,
                 'username': username,
                 'text': comment,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             # Broadcast to all users
@@ -209,7 +393,7 @@ def init_websocket(app):
                 'document_id': document_id,
                 'username': username,
                 'preview': comment[:50] + '...' if len(comment) > 50 else comment,
-                'time': datetime.utcnow().isoformat()
+                'time': datetime.now(timezone.utc).isoformat()
             })
             
             logger.info(f"Comment added to {document_id} by {username}")
@@ -230,7 +414,7 @@ def init_websocket(app):
                 'user_id': user_id,
                 'username': username,
                 'position': position,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, to=room, skip_sid=request.sid)
             
         except Exception as e:
@@ -248,13 +432,13 @@ def init_websocket(app):
             message = data.get('message')
             
             notification = {
-                'id': f"notif_{datetime.utcnow().timestamp()}",
+                'id': f"notif_{datetime.now(timezone.utc).timestamp()}",
                 'type': notification_type,
                 'from': sender_name,
                 'from_id': sender_id,
                 'message': message,
                 'read': False,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             # Store notification
@@ -283,7 +467,7 @@ def init_websocket(app):
             
             emit('notification_marked_read', {
                 'notification_id': notification_id,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
             logger.error(f"Mark read error: {e}")
@@ -300,7 +484,7 @@ def init_websocket(app):
                 'count': len(notifs),
                 'unread': sum(1 for n in notifs if not n.get('read', True)),
                 'notifications': notifs,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
             logger.error(f"Get notifications error: {e}")
@@ -321,7 +505,7 @@ def init_websocket(app):
                 'count': len(recent),
                 'total': len(activities),
                 'activities': recent,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
             logger.error(f"Activity feed error: {e}")
@@ -338,7 +522,7 @@ def init_websocket(app):
             emit('user_typing_indicator', {
                 'user_id': user_id,
                 'username': username,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, to=room, skip_sid=request.sid)
         except Exception as e:
             logger.error(f"Typing indicator error: {e}")
@@ -352,7 +536,7 @@ def init_websocket(app):
             
             emit('user_stopped_typing', {
                 'user_id': user_id,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }, to=room, skip_sid=request.sid)
         except Exception as e:
             logger.error(f"Stop typing error: {e}")
@@ -364,10 +548,10 @@ def init_websocket(app):
             activity_feeds[room] = []
         
         activity = {
-            'id': f"activity_{datetime.utcnow().timestamp()}",
+            'id': f"activity_{datetime.now(timezone.utc).timestamp()}",
             'action': action,
             'details': details,
-            'timestamp': details.get('time', datetime.utcnow().isoformat())
+            'timestamp': details.get('time', datetime.now(timezone.utc).isoformat())
         }
         
         activity_feeds[room].append(activity)

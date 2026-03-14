@@ -1,4 +1,8 @@
-# Backend Setup & Testing Guide - Auth Service
+# Backend Setup & Testing Guide - Historical Auth Service Split
+
+This document describes the older target auth-service plus api-gateway setup.
+In the current workspace, the active backend runtime is the modular Flask application under `app/`, and async work is routed through `app/celery_config.py` plus `app/tasks.py`.
+Use the service-split commands below as reference material rather than the primary way to boot this repository today.
 
 **Complete Setup in 5 Minutes**
 
@@ -28,7 +32,7 @@ docker ps
 # Both postgres_fileconv and redis_fileconv should be listed
 ```
 
-## Step 2: Install Python Dependencies (2 min)
+## Step 2: Install Python Dependencies (Historical Split Setup)
 
 ```bash
 # From project root
@@ -39,7 +43,7 @@ cd ../shared-utils && pip install requests redis pyjwt
 cd ../..
 ```
 
-## Step 3: Start Services (1 min)
+## Step 3: Start Services (Historical Split Setup)
 
 **Open 2 separate terminal windows:**
 
@@ -96,7 +100,7 @@ python main.py
 ============================================================
 ```
 
-## Step 4: Test the System (Optional)
+## Step 4: Test the Historical Split Setup (Optional)
 
 ### Option A: Automated Tests (Recommended)
 
@@ -156,9 +160,9 @@ curl -X POST http://localhost:5000/auth/logout \
   -H "Authorization: Bearer $TOKEN" | python -m json.tool
 ```
 
-## Step 5: Verify Everything Works
+## Step 5: Verify the Historical Split Setup
 
-✅ **You should now have:**
+✅ **If you follow the historical split setup, you should now have:**
 - PostgreSQL database with user accounts
 - Auth service running on port 5001
 - API Gateway running on port 5000

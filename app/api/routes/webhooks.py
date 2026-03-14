@@ -4,7 +4,7 @@ from app.middleware.auth import auth_required
 from app.webhook_service import WebhookService, Webhook, WebhookEvent, WebhookDelivery
 from app.models import db
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 webhooks_bp = Blueprint('webhooks', __name__, url_prefix='/api/webhooks')
 
@@ -219,7 +219,7 @@ def test_webhook(webhook_id):
     # Create test event
     test_payload = {
         'event_type': 'test',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'message': 'This is a test webhook event'
     }
     

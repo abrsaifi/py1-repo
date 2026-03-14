@@ -3,6 +3,7 @@ from app.models import db
 from datetime import datetime, timedelta
 import json
 from enum import Enum
+from app.utils.datetime_utils import utc_now_naive
 
 class RegionStatus(str, Enum):
     """Region operational status."""
@@ -51,8 +52,8 @@ class RegionConfig(db.Model):
     last_replication_check = db.Column(db.DateTime)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     # Relationships
     replicas = db.relationship('RegionReplica', foreign_keys='RegionReplica.primary_region_id', backref='primary_region', lazy='dynamic')
@@ -129,8 +130,8 @@ class RegionReplica(db.Model):
     sync_interval_seconds = db.Column(db.Integer, default=60)
     failover_priority = db.Column(db.Integer, default=100)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     # Relationships
     replica_region = db.relationship('RegionConfig', foreign_keys=[replica_region_id], backref='incoming_replicas')
@@ -166,8 +167,8 @@ class GeoLocation(db.Model):
     accuracy_km = db.Column(db.Float, default=100)  # Geo accuracy in KM
     data_source = db.Column(db.String(50), default='maxmind')  # maxmind, ip2location, etc.
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     __table_args__ = (
         db.Index('idx_geo_country', 'country_code'),
@@ -194,8 +195,8 @@ class GeoRoute(db.Model):
     cache_ttl_seconds = db.Column(db.Integer, default=3600)
     compression_enabled = db.Column(db.Boolean, default=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     __table_args__ = (
         db.Index('idx_route_country', 'country_code'),
@@ -222,7 +223,7 @@ class RegionHealthHistory(db.Model):
     disk_percent = db.Column(db.Float)
     active_connections = db.Column(db.Integer)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, index=True)
     
     __table_args__ = (
         db.Index('idx_health_region_time', 'region_id', 'created_at'),
@@ -275,8 +276,8 @@ class MultiRegionConfig(db.Model):
     alert_email = db.Column(db.String(255))
     slack_webhook = db.Column(db.String(500))
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     def __repr__(self):
         return '<MultiRegionConfig: Multi-region deployment>'
@@ -292,7 +293,7 @@ class RegionFailover(db.Model):
     failover_status = db.Column(db.String(50), default='pending')  # pending, in-progress, completed, rolled-back
     
     # Timing
-    initiated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    initiated_at = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     completed_at = db.Column(db.DateTime)
     duration_seconds = db.Column(db.Integer)
     
@@ -301,7 +302,7 @@ class RegionFailover(db.Model):
     affected_users = db.Column(db.Integer, default=0)
     rollback_performed = db.Column(db.Boolean, default=False)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
     
     # Relationships
     primary_region = db.relationship('RegionConfig', foreign_keys=[primary_region_id], backref='failovers_from')

@@ -1,27 +1,49 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { adminAPI } from '@shared/api/api'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import '../styles/admin.css'
 
 const AutomationCenter = () => {
-  const [stats, setStats] = useState({
-    activeWorkflows: 24,
-    seoAutomation: 8,
-    emailAutomation: 12,
-    alertAutomation: 4
+  const [payload, setPayload] = useState({
+    stats: {
+      activeWorkflows: 0,
+      seoAutomation: 0,
+      emailAutomation: 0,
+      alertAutomation: 0,
+      pausedWorkflows: 0,
+      failedWorkflows: 0,
+    },
+    workflows: [],
   })
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState('')
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [selectedWorkflow, setSelectedWorkflow] = useState(null)
+  const [workflowLogs, setWorkflowLogs] = useState([])
+  const [logsLoading, setLogsLoading] = useState(false)
 
-  const [workflows, setWorkflows] = useState([
-    { id: 'WF-001', name: 'Daily SEO Page Generator', type: 'SEO', status: 'running', executions: 847, lastRun: '2026-03-06 14:50', nextRun: '2026-03-07 00:00' },
-    { id: 'WF-002', name: 'Keyword Ranking Checker', type: 'SEO', status: 'running', executions: 156, lastRun: '2026-03-06 14:45', nextRun: '2026-03-06 16:00' },
-    { id: 'WF-003', name: 'Sitemap Auto-Submit', type: 'SEO', status: 'running', executions: 52, lastRun: '2026-03-06 02:15', nextRun: '2026-03-07 02:00' },
-    { id: 'WF-004', name: 'Conversion Success Email', type: 'Email', status: 'running', executions: 3421, lastRun: '2026-03-06 14:52', nextRun: 'Real-time' },
-    { id: 'WF-005', name: 'Daily Report Newsletter', type: 'Email', status: 'running', executions: 24, lastRun: '2026-03-06 08:00', nextRun: '2026-03-07 08:00' },
-    { id: 'WF-006', name: 'User Signup Welcome', type: 'Email', status: 'running', executions: 1247, lastRun: '2026-03-06 14:35', nextRun: 'Real-time' },
-    { id: 'WF-007', name: 'High Error Rate Alert', type: 'Alert', status: 'running', executions: 12, lastRun: '2026-03-06 13:20', nextRun: 'Real-time' },
-    { id: 'WF-008', name: 'Storage Quota Warning', type: 'Alert', status: 'paused', executions: 0, lastRun: '2026-03-04 15:30', nextRun: 'Paused' },
-    { id: 'WF-009', name: 'Rate Limit Exceeded Alert', type: 'Alert', status: 'failed', executions: 8, lastRun: '2026-03-06 14:10 (Error)', nextRun: 'Retry: 2026-03-06 15:10' },
-    { id: 'WF-010', name: 'Failed Conversion Alert', type: 'Alert', status: 'running', executions: 67, lastRun: '2026-03-06 14:48', nextRun: 'Real-time' },
-  ])
+  useEffect(() => {
+    loadAutomationOverview()
+  }, [])
+
+  const loadAutomationOverview = async (showLoader = true) => {
+    try {
+      if (showLoader) {
+        setLoading(true)
+      }
+      setError('')
+      const response = await adminAPI.getAutomationOverview()
+      setPayload(response.data || { stats: {}, workflows: [] })
+    } catch (err) {
+      console.error('Failed to load automation overview:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load automation overview')
+    } finally {
+      if (showLoader) {
+        setLoading(false)
+      }
+    }
+  }
 
   const getStatusColor = (status) => {
     const colors = {
@@ -41,22 +63,60 @@ const AutomationCenter = () => {
     return colors[type] || '#718096'
   }
 
-  const handlePauseWorkflow = (workflowId) => {
-    alert(`Pausing workflow: ${workflowId}`)
+  const handleToggleWorkflow = async (workflow) => {
+    try {
+      setActionLoading(workflow.id)
+      setMessage('')
+      setError('')
+
+      const response = workflow.status === 'running'
+        ? await adminAPI.pauseAutomationWorkflow(workflow.id)
+        : await adminAPI.resumeAutomationWorkflow(workflow.id)
+
+      setMessage(response.data?.message || 'Workflow updated.')
+      await loadAutomationOverview(false)
+      if (selectedWorkflow?.id === workflow.id) {
+        await handleViewLogs(workflow)
+      }
+    } catch (err) {
+      console.error('Failed to update workflow:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to update workflow')
+    } finally {
+      setActionLoading('')
+    }
   }
 
-  const handleResumeWorkflow = (workflowId) => {
-    alert(`Resuming workflow: ${workflowId}`)
+  const handleViewLogs = async (workflow) => {
+    try {
+      setSelectedWorkflow(workflow)
+      setLogsLoading(true)
+      const response = await adminAPI.getAutomationWorkflowLogs(workflow.id)
+      setWorkflowLogs(response.data?.logs || [])
+    } catch (err) {
+      console.error('Failed to load workflow logs:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load workflow logs')
+      setWorkflowLogs([])
+    } finally {
+      setLogsLoading(false)
+    }
   }
 
-  const handleViewLogs = (workflowId) => {
-    alert(`Opening logs for workflow: ${workflowId}`)
-  }
+  const stats = payload.stats || {}
+  const workflows = payload.workflows || []
 
   return (
     <div className="admin-section">
       <h2><UniversalIcon icon="⚙️" size={24} /> Automation</h2>
-      <p className="section-subtitle">n8n automation workflows - SEO, Email, and Alerts</p>
+      <p className="section-subtitle">Persisted automation workflows for SEO, email, and alert operations</p>
+
+      {error && <div className="alert-banner error">{error}</div>}
+      {message && <div className="alert-banner success">{message}</div>}
+
+      <div className="quick-actions" style={{ marginBottom: '24px' }}>
+        <button className="action-button primary" onClick={() => loadAutomationOverview()} disabled={loading}>
+          <UniversalIcon icon="🔄" size={14} /> {loading ? 'Loading...' : 'Refresh'}
+        </button>
+      </div>
 
       <div className="admin-stats-grid">
         <div className="admin-stat-card metric-primary">
@@ -96,6 +156,26 @@ const AutomationCenter = () => {
         </div>
       </div>
 
+      <div className="admin-stats-grid" style={{ marginTop: '20px' }}>
+        <div className="admin-stat-card metric-info">
+          <UniversalIcon icon="⏸️" size={32} />
+          <div className="stat-content">
+            <h3>Paused Workflows</h3>
+            <p className="stat-value">{stats.pausedWorkflows || 0}</p>
+            <p className="stat-detail">Awaiting operator action</p>
+          </div>
+        </div>
+
+        <div className="admin-stat-card metric-danger">
+          <UniversalIcon icon="❌" size={32} />
+          <div className="stat-content">
+            <h3>Failed Workflows</h3>
+            <p className="stat-value">{stats.failedWorkflows || 0}</p>
+            <p className="stat-detail">Require retry or investigation</p>
+          </div>
+        </div>
+      </div>
+
       <div className="admin-section-content">
         <h3>Automation Workflows</h3>
 
@@ -117,7 +197,10 @@ const AutomationCenter = () => {
               {workflows.map(wf => (
                 <tr key={wf.id} className={`job-row ${wf.status}`}>
                   <td className="job-id"><code>{wf.id}</code></td>
-                  <td><strong>{wf.name}</strong></td>
+                  <td>
+                    <strong>{wf.name}</strong>
+                    <div className="timestamp">{wf.description || 'No description available'}</div>
+                  </td>
                   <td>
                     <span className="format-badge" style={{ background: `linear-gradient(135deg, ${getTypeColor(wf.type)} 0%, ${adjustBrightness(getTypeColor(wf.type), -20)} 100%)`, color: 'white' }}>
                       {wf.type}
@@ -131,14 +214,15 @@ const AutomationCenter = () => {
                     </span>
                   </td>
                   <td><strong>{wf.executions.toLocaleString()}</strong></td>
-                  <td className="timestamp">{wf.lastRun}</td>
-                  <td className="timestamp">{wf.nextRun}</td>
+                  <td className="timestamp">{wf.lastRun || 'Never'}</td>
+                  <td className="timestamp">{wf.nextRun || 'Not scheduled'}</td>
                   <td className="actions">
                     {wf.status === 'running' ? (
                       <button 
                         className="action-btn" 
                         style={{ background: '#f6ad55', color: 'white' }}
-                        onClick={() => handlePauseWorkflow(wf.id)} 
+                        onClick={() => handleToggleWorkflow(wf)} 
+                        disabled={actionLoading === wf.id}
                         title="Pause Workflow"
                       >
                         <UniversalIcon icon="⏸️" size={14} />
@@ -146,7 +230,8 @@ const AutomationCenter = () => {
                     ) : (
                       <button 
                         className="action-btn retry" 
-                        onClick={() => handleResumeWorkflow(wf.id)} 
+                        onClick={() => handleToggleWorkflow(wf)} 
+                        disabled={actionLoading === wf.id}
                         title="Resume Workflow"
                       >
                         <UniversalIcon icon="▶️" size={14} />
@@ -154,7 +239,7 @@ const AutomationCenter = () => {
                     )}
                     <button 
                       className="action-btn logs" 
-                      onClick={() => handleViewLogs(wf.id)} 
+                      onClick={() => handleViewLogs(wf)} 
                       title="View Logs"
                     >
                       <UniversalIcon icon="📋" size={14} />
@@ -172,6 +257,40 @@ const AutomationCenter = () => {
           </div>
         )}
       </div>
+
+      {selectedWorkflow && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-large">
+            <div className="modal-header">
+              <h3>{selectedWorkflow.name} Logs</h3>
+              <button className="close-btn" onClick={() => setSelectedWorkflow(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {logsLoading ? (
+                <p>Loading logs...</p>
+              ) : workflowLogs.length > 0 ? (
+                <div className="table-list">
+                  {workflowLogs.map((entry) => (
+                    <div key={entry.id} className="list-item">
+                      <div className="item-info">
+                        <p className="item-name">{entry.message}</p>
+                        <p className="item-detail">{entry.timestampLabel || entry.timestamp} • {entry.level}</p>
+                      </div>
+                      <div className="item-stat">
+                        <span className="status-badge" style={{ backgroundColor: getStatusColor(entry.status === 'failed' ? 'failed' : selectedWorkflow.status), color: 'white' }}>
+                          {entry.status || entry.level}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No workflow logs available.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

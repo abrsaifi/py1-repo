@@ -192,4 +192,37 @@ export const monitoringAPI = {
   getSystemHealth: () => api.get('/api/monitoring/health'),
 }
 
+// Admin API
+export const adminAPI = {
+  getAnalyticsOverview: (params) => api.get('/api/admin/analytics/overview', { params }),
+  getActivityFeed: (params) => api.get('/api/admin/activity-feed', { params }),
+  getAutomationOverview: () => api.get('/api/admin/automation/overview'),
+  pauseAutomationWorkflow: (workflowId) => api.post(`/api/admin/automation/workflows/${workflowId}/pause`),
+  resumeAutomationWorkflow: (workflowId) => api.post(`/api/admin/automation/workflows/${workflowId}/resume`),
+  getAutomationWorkflowLogs: (workflowId) => api.get(`/api/admin/automation/workflows/${workflowId}/logs`),
+  getConversionMonitoring: (params) => api.get('/api/admin/conversions/monitoring', { params }),
+  getConversions: (params) => api.get('/api/admin/conversions', { params }),
+  getReportSchedules: () => api.get('/api/admin/report-schedules'),
+  createReportSchedule: (data) => api.post('/api/admin/report-schedules', data),
+  updateReportSchedule: (scheduleId, data) => api.put(`/api/admin/report-schedules/${scheduleId}`, data),
+  deleteReportSchedule: (scheduleId) => api.delete(`/api/admin/report-schedules/${scheduleId}`),
+  testReportSchedule: (scheduleId) => api.post(`/api/admin/report-schedules/${scheduleId}/test`),
+  getSecurityOverview: () => api.get('/api/admin/security/overview'),
+  createBlockedIp: (data) => api.post('/api/admin/security/blocked-ips', data),
+  deleteBlockedIp: (blockId) => api.delete(`/api/admin/security/blocked-ips/${blockId}`),
+  updateSecurityRateLimit: (data) => api.put('/api/admin/security/rate-limit', data),
+  getSystemHealth: () => api.get('/api/admin/health'),
+  getWorkers: () => api.get('/api/admin/workers'),
+  getApiMonitoring: () => api.get('/api/admin/api-monitoring'),
+  getUsers: (params) => api.get('/api/admin/users', { params }),
+  getUser: (userId) => api.get(`/api/admin/users/${userId}`),
+  updateUser: (userId, data) => api.put(`/api/admin/users/${userId}`, data),
+  resetUserPassword: (userId, data = {}) => api.post(`/api/admin/users/${userId}/reset-password`, data),
+  resetUserUsage: (userId) => api.post(`/api/admin/users/${userId}/reset-usage`),
+  getRoles: () => api.get('/api/admin/roles'),
+  getStorageOverview: () => api.get('/api/admin/storage/overview'),
+  cleanupStorageUploads: (data) => api.post('/api/admin/storage/cleanup', data),
+  reconcileStorageReferences: () => api.post('/api/admin/storage/reconcile'),
+}
+
 export default api

@@ -33,6 +33,7 @@ torch==2.10.0
 # Web Utilities
 requests==2.32.5
 beautifulsoup4==4.14.3
+imageio-ffmpeg==0.6.0
 
 # HTML to PDF (optional, requires system libs)
 weasyprint==68.1
@@ -85,6 +86,7 @@ flask-swagger-ui==4.11.1
 # Rate Limiting & Security
 Flask-Limiter==4.0.0
 Flask-CORS==4.0.0
+Flask-SocketIO==5.6.1
 Flask-Talisman==1.1.0
 
 # Database & Authentication (Phase 1-2)

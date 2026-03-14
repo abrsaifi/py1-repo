@@ -148,10 +148,13 @@ def test_page_selection():
         print("  - Support for comma and space separators")
         print("  - Support for page ranges (e.g., 5-8)")
         print("  - Mixed format support (e.g., 1, 3-5, 8)")
-        return 0
     else:
         print("[FAILED] Some page selection tests failed")
-        return 1
+    assert all(results), "Some page selection tests failed"
 
 if __name__ == '__main__':
-    sys.exit(test_page_selection())
+    try:
+        test_page_selection()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

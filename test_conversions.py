@@ -8,11 +8,18 @@ from pathlib import Path
 import tempfile
 import os
 
+VERBOSE = __name__ == '__main__'
+
+
+def log(*args, **kwargs):
+    if VERBOSE:
+        print(*args, **kwargs)
+
 def test_imports():
     """Test if all required modules can be imported."""
-    print("=" * 70)
-    print("TESTING MODULE IMPORTS")
-    print("=" * 70)
+    log("=" * 70)
+    log("TESTING MODULE IMPORTS")
+    log("=" * 70)
     
     required_modules = [
         'flask',
@@ -35,26 +42,26 @@ def test_imports():
     for module in required_modules:
         try:
             __import__(module)
-            print(f"✓ {module:25} - OK")
+            log(f"✓ {module:25} - OK")
         except ImportError as e:
-            print(f"✗ {module:25} - FAILED: {e}")
+            log(f"✗ {module:25} - FAILED: {e}")
             failed_imports.append(module)
     
-    print()
-    return len(failed_imports) == 0
+    log()
+    assert not failed_imports, f"Missing required imports: {failed_imports}"
 
 
 def test_server_functions():
     """Test if server.py has all required conversion functions."""
-    print("=" * 70)
-    print("TESTING SERVER CONVERSION FUNCTIONS")
-    print("=" * 70)
+    log("=" * 70)
+    log("TESTING SERVER CONVERSION FUNCTIONS")
+    log("=" * 70)
     
     try:
         import server
     except ImportError as e:
-        print(f"✗ Could not import server module: {e}")
-        return False
+        log(f"✗ Could not import server module: {e}")
+        raise AssertionError(f"Could not import server module: {e}") from e
     
     required_functions = [
         'image_to_pdf',
@@ -76,56 +83,56 @@ def test_server_functions():
     missing_functions = []
     for func_name in required_functions:
         if hasattr(server, func_name):
-            print(f"✓ {func_name:30} - OK")
+            log(f"✓ {func_name:30} - OK")
         else:
-            print(f"✗ {func_name:30} - MISSING")
+            log(f"✗ {func_name:30} - MISSING")
             missing_functions.append(func_name)
     
-    print()
-    return len(missing_functions) == 0
+        log()
+    assert not missing_functions, f"Missing server functions: {missing_functions}"
 
 
 def test_helper_modules():
     """Test if helper modules can be imported and have required functions."""
-    print("=" * 70)
-    print("TESTING HELPER MODULES")
-    print("=" * 70)
+    log("=" * 70)
+    log("TESTING HELPER MODULES")
+    log("=" * 70)
     
     all_ok = True
     
     # Test pdf_handler
     try:
         from pdf_handler import pdf_to_images, images_to_pdf
-        print("✓ pdf_handler.py            - pdf_to_images, images_to_pdf")
+        log("✓ pdf_handler.py            - pdf_to_images, images_to_pdf")
     except ImportError as e:
-        print(f"✗ pdf_handler.py            - FAILED: {e}")
+        log(f"✗ pdf_handler.py            - FAILED: {e}")
         all_ok = False
     
     # Test image_processor
     try:
         from image_processor import convert_to_bw, process_images_to_bw
-        print("✓ image_processor.py        - convert_to_bw, process_images_to_bw")
+        log("✓ image_processor.py        - convert_to_bw, process_images_to_bw")
     except ImportError as e:
-        print(f"✗ image_processor.py        - FAILED: {e}")
+        log(f"✗ image_processor.py        - FAILED: {e}")
         all_ok = False
     
     # Test file_utils
     try:
         from file_utils import save_images_to_temp, cleanup_temp_files
-        print("✓ file_utils.py             - save_images_to_temp, cleanup_temp_files")
+        log("✓ file_utils.py             - save_images_to_temp, cleanup_temp_files")
     except ImportError as e:
-        print(f"✗ file_utils.py             - FAILED: {e}")
+        log(f"✗ file_utils.py             - FAILED: {e}")
         all_ok = False
     
-    print()
-    return all_ok
+    log()
+    assert all_ok, "One or more helper modules failed to import"
 
 
 def test_basic_conversions():
     """Test basic conversion functionality by creating simple test files."""
-    print("=" * 70)
-    print("TESTING BASIC CONVERSION FUNCTIONALITY")
-    print("=" * 70)
+    log("=" * 70)
+    log("TESTING BASIC CONVERSION FUNCTIONALITY")
+    log("=" * 70)
     
     try:
         from PIL import Image
@@ -145,13 +152,13 @@ def test_basic_conversions():
                 
                 result = server.image_to_pdf(test_img_path, test_pdf_path)
                 if os.path.exists(test_pdf_path):
-                    print(f"✓ image_to_pdf              - OK")
+                    log(f"✓ image_to_pdf              - OK")
                     test_results.append(True)
                 else:
-                    print(f"✗ image_to_pdf              - Failed to create output file")
+                    log(f"✗ image_to_pdf              - Failed to create output file")
                     test_results.append(False)
             except Exception as e:
-                print(f"✗ image_to_pdf              - Error: {str(e)[:50]}")
+                log(f"✗ image_to_pdf              - Error: {str(e)[:50]}")
                 test_results.append(False)
             
             # Test 2: PDF to True BW
@@ -169,13 +176,13 @@ def test_basic_conversions():
                 result = server.pdf_to_true_bw(test_pdf_path, output_bw_path)
                 
                 if result and os.path.exists(output_bw_path):
-                    print(f"✓ pdf_to_true_bw            - OK")
+                    log(f"✓ pdf_to_true_bw            - OK")
                     test_results.append(True)
                 else:
-                    print(f"✗ pdf_to_true_bw            - Failed")
+                    log(f"✗ pdf_to_true_bw            - Failed")
                     test_results.append(False)
             except Exception as e:
-                print(f"✗ pdf_to_true_bw            - Error: {str(e)[:50]}")
+                log(f"✗ pdf_to_true_bw            - Error: {str(e)[:50]}")
                 test_results.append(False)
             
             # Test 3: Image Processor (BW conversion)
@@ -184,29 +191,29 @@ def test_basic_conversions():
                 img = Image.new('RGB', (100, 100), color='gray')
                 bw_img = convert_to_bw(img, threshold=128)
                 if bw_img is not None:
-                    print(f"✓ image_processor (B&W)     - OK")
+                    log(f"✓ image_processor (B&W)     - OK")
                     test_results.append(True)
                 else:
-                    print(f"✗ image_processor (B&W)     - Failed")
+                    log(f"✗ image_processor (B&W)     - Failed")
                     test_results.append(False)
             except Exception as e:
-                print(f"✗ image_processor (B&W)     - Error: {str(e)[:50]}")
+                log(f"✗ image_processor (B&W)     - Error: {str(e)[:50]}")
                 test_results.append(False)
             
-            print()
-            return all(test_results)
+            log()
+            assert all(test_results), "One or more basic conversion checks failed"
         
     except Exception as e:
-        print(f"✗ Basic conversion tests    - Error: {e}")
-        print()
-        return False
+        log(f"✗ Basic conversion tests    - Error: {e}")
+        log()
+        raise AssertionError(f"Basic conversion tests failed: {e}") from e
 
 
 def test_app_routes():
     """Test if Flask app routes are properly defined."""
-    print("=" * 70)
-    print("TESTING FLASK APP ROUTES")
-    print("=" * 70)
+    log("=" * 70)
+    log("TESTING FLASK APP ROUTES")
+    log("=" * 70)
     
     try:
         import server
@@ -234,18 +241,18 @@ def test_app_routes():
         missing_routes = []
         for route in required_routes:
             if route in registered_routes:
-                print(f"✓ {route:25} - OK")
+                log(f"✓ {route:25} - OK")
             else:
-                print(f"✗ {route:25} - NOT FOUND")
+                log(f"✗ {route:25} - NOT FOUND")
                 missing_routes.append(route)
         
-        print()
-        return len(missing_routes) == 0
+        log()
+        assert not missing_routes, f"Missing routes: {missing_routes}"
         
     except Exception as e:
-        print(f"✗ Error checking routes: {e}")
-        print()
-        return False
+        log(f"✗ Error checking routes: {e}")
+        log()
+        raise AssertionError(f"Error checking routes: {e}") from e
 
 
 def main():
@@ -258,13 +265,20 @@ def main():
     print("╚" + "=" * 68 + "╝")
     print()
     
-    results = {
-        'Module Imports': test_imports(),
-        'Server Functions': test_server_functions(),
-        'Helper Modules': test_helper_modules(),
-        'Basic Conversions': test_basic_conversions(),
-        'Flask Routes': test_app_routes(),
-    }
+    test_cases = [
+        ('Module Imports', test_imports),
+        ('Server Functions', test_server_functions),
+        ('Helper Modules', test_helper_modules),
+        ('Basic Conversions', test_basic_conversions),
+        ('Flask Routes', test_app_routes),
+    ]
+    results = {}
+    for test_name, test_func in test_cases:
+        try:
+            test_func()
+            results[test_name] = True
+        except AssertionError:
+            results[test_name] = False
     
     print("=" * 70)
     print("TEST SUMMARY")

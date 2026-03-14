@@ -1,7 +1,8 @@
 """Subscription model."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from . import db
 import enum
+from app.utils.datetime_utils import utc_now_naive
 
 class SubscriptionPlan(enum.Enum):
     FREE = "free"
@@ -32,19 +33,20 @@ class Subscription(db.Model):
     auto_renew = db.Column(db.Boolean, default=True)
     
     # Dates
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
-    current_period_start = db.Column(db.DateTime, default=datetime.utcnow)
-    current_period_end = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
-    renewal_date = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
+    started_at = db.Column(db.DateTime, default=utc_now_naive)
+    current_period_start = db.Column(db.DateTime, default=utc_now_naive)
+    current_period_end = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=30))
+    renewal_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=30))
     cancelled_at = db.Column(db.DateTime)
     
     # Usage tracking (current month)
     conversions_used_this_month = db.Column(db.Integer, default=0)
-    last_reset_date = db.Column(db.DateTime, default=datetime.utcnow)
+    last_reset_date = db.Column(db.DateTime, default=utc_now_naive)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
+    invoices = db.relationship('BillingInvoice', backref='subscription', lazy='dynamic', cascade='all, delete-orphan')
     
     def is_trial(self):
         """Check if subscription is in trial period."""
@@ -55,13 +57,13 @@ class Subscription(db.Model):
         """Check if subscription has expired."""
         if not self.is_active:
             return True
-        return datetime.utcnow() > self.current_period_end
+        return datetime.now(timezone.utc) > self.current_period_end
     
     def days_until_renewal(self):
         """Get days until renewal."""
         if self.is_expired():
             return 0
-        delta = self.renewal_date - datetime.utcnow()
+        delta = self.renewal_date - datetime.now(timezone.utc)
         return max(0, delta.days)
     
     def can_convert(self):

@@ -9,11 +9,13 @@ ENV = os.getenv('FLASK_ENV', 'development')
 
 def make_celery(app):
     """Create and configure Celery instance."""
+    broker_url = app.config.get('CELERY_BROKER_URL') or os.getenv('CELERY_BROKER_URL', 'memory://')
+    result_backend = app.config.get('CELERY_RESULT_BACKEND') or os.getenv('CELERY_RESULT_BACKEND', 'cache+memory://')
     
     celery = Celery(
         app.import_name,
-        backend=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/1'),
-        broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+        backend=result_backend,
+        broker=broker_url,
         include=['app.tasks']
     )
     

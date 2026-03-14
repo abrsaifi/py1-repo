@@ -5,7 +5,7 @@ Endpoints for system and service metrics retrieval, aggregation, and analysis
 
 from flask import Blueprint, request, jsonify, g, current_app
 from sqlalchemy import func, and_, or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import logging
 
@@ -322,7 +322,7 @@ def get_engagement_metrics():
         days = int(request.args.get('days', 30))
         
         session = current_app.SessionLocal()
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         metrics = session.query(UserActivityMetric).filter(
             UserActivityMetric.tenant_id == g.tenant_id,

@@ -1,577 +1,432 @@
 import React, { useState, useEffect } from 'react'
-import { UniversalIcon } from '../utils/UniversalIcon'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
-import '../styles/dashboard.css'
+import { useToast } from '../components/Toast'
+import '../styles/user-dashboard-v2.css'
+
+const DEFAULT_STATS = {
+  totalConversions: 0,
+  averageConversionTime: 0,
+  mostUsedTool: 'No conversions yet',
+  filesProcessed: 0,
+  successRate: 0,
+  monthlyConversions: 0,
+  storageUsed: 0,
+  storageTotal: 5,
+}
+
+const DEFAULT_INSIGHTS = {
+  totalConversionsTrend: { text: 'No change vs previous period', direction: 'flat' },
+  averageConversionTimeTrend: { text: 'No change vs previous period', direction: 'flat' },
+  successRateTrend: { text: 'No change vs previous period', direction: 'flat' },
+  monthlyConversionsTrend: { text: 'No change vs previous period', direction: 'flat' },
+  filesProcessedTrend: { text: 'No change vs previous period', direction: 'flat' },
+}
 
 const UserDashboard = () => {
   const navigate = useNavigate()
   const auth = useAuth()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterFormat, setFilterFormat] = useState('all')
-  const [showProfile, setShowProfile] = useState(false)
   const [conversions, setConversions] = useState([])
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [stats, setStats] = useState({
-    totalConversions: 156,
-    conversionsSaved: 2456,
-    averageConversionTime: 3.2,
-    mostUsedTool: 'PDF to DOCX',
-    filesProcessed: 250,
-    successRate: 99.2,
-    monthlyConversions: 42,
-    storageUsed: 2.3,
-    storageTotal: 100
-  })
-  const [profile, setProfile] = useState({
-    joinDate: '2024-01-15',
-    plan: 'Pro',
-    nextBillingDate: '2024-04-15',
-    conversionsThisMonth: 42,
-    tasksCompleted: 156
-  })
+  const [stats, setStats] = useState(DEFAULT_STATS)
+  const [insights, setInsights] = useState(DEFAULT_INSIGHTS)
+  const [storageBreakdown, setStorageBreakdown] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  // Redirect if not authenticated - check immediately without loading state to prevent flicker
+  const loadDashboard = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/dashboard/user', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load dashboard')
+      }
+
+      const payload = await response.json()
+      setStats({ ...DEFAULT_STATS, ...(payload.stats || {}) })
+      setInsights({ ...DEFAULT_INSIGHTS, ...(payload.insights || {}) })
+      setConversions(payload.conversions || [])
+      setStorageBreakdown(payload.storageBreakdown || [])
+      setError(null)
+    } catch (loadError) {
+      console.error('Failed to load user dashboard:', loadError)
+      setError(loadError.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const downloadFile = async (url, fallbackName) => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || 'Download failed')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = fallbackName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(objectUrl)
+      addToast({ type: 'success', title: 'Download started', message: fallbackName })
+    } catch (downloadError) {
+      addToast({ type: 'error', title: 'Download failed', message: downloadError.message })
+    }
+  }
+
+  const downloadConversion = (conversion) => {
+    if (!conversion.can_download) {
+      addToast({ type: 'warning', title: 'File unavailable', message: 'This conversion output is no longer available for download' })
+      return
+    }
+
+    downloadFile(`/api/dashboard/conversions/${conversion.id}/download`, conversion.filename)
+  }
+
+  const downloadAllConversions = () => {
+    downloadFile('/api/dashboard/conversions/download-all', 'docpro-conversions.zip')
+  }
+
+  const cleanupOldFiles = async () => {
+    try {
+      const response = await fetch('/api/dashboard/conversions/cleanup-old', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ older_than_days: 7 }),
+      })
+
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Cleanup failed')
+      }
+
+      setConversions((current) => current.map((item) => ({ ...item, can_download: false })))
+      addToast({ type: 'success', title: 'Storage cleaned', message: payload.message || 'Old files removed' })
+      loadDashboard()
+    } catch (cleanupError) {
+      addToast({ type: 'error', title: 'Cleanup failed', message: cleanupError.message })
+    }
+  }
+
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user) {
       navigate('/login', { replace: true })
     }
   }, [auth.isAuthenticated, auth.user, navigate])
 
-  // Fetch stats and conversion history from API
   useEffect(() => {
-    if (!auth.isAuthenticated) return // Skip if not authenticated
-    
-    const fetchStats = async () => {
-      try {
-        setLoading(true)
-        
-        // Mock conversion data
-        const mockConversions = [
-          { id: 1, filename: 'document.pdf', from: 'PDF', to: 'DOCX', date: '2024-03-06', time: '14:30', status: 'completed', size: '2.4 MB', duration: 2.1 },
-          { id: 2, filename: 'photo.jpg', from: 'JPG', to: 'PNG', date: '2024-03-06', time: '10:15', status: 'completed', size: '1.8 MB', duration: 1.5 },
-          { id: 3, filename: 'spreadsheet.xlsx', from: 'XLSX', to: 'PDF', date: '2024-03-05', time: '16:45', status: 'completed', size: '0.8 MB', duration: 3.8 },
-          { id: 4, filename: 'presentation.pptx', from: 'PPTX', to: 'PDF', date: '2024-03-05', time: '14:20', status: 'completed', size: '4.2 MB', duration: 5.2 },
-          { id: 5, filename: 'image.png', from: 'PNG', to: 'JPG', date: '2024-03-04', time: '09:30', status: 'completed', size: '0.6 MB', duration: 0.8 },
-        ]
-        setConversions(mockConversions)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+    if (!auth.isAuthenticated) {
+      return
     }
 
-    fetchStats()
+    loadDashboard()
   }, [auth.isAuthenticated])
 
-  const handleNewConversion = () => {
-    navigate('/')
-  }
-
-  const downloadConversion = (filename) => {
-    console.log('Downloading:', filename)
-    // Implement download logic
-  }
-
-  const filteredConversions = conversions.filter(c => 
+  const filteredConversions = conversions.filter(c =>
     (c.filename.toLowerCase().includes(searchQuery.toLowerCase()) || searchQuery === '') &&
     (filterFormat === 'all' || c.from.toLowerCase() === filterFormat.toLowerCase())
   )
 
+  const navItems = [
+    { id: 'overview', icon: '▦', label: 'Overview' },
+    { id: 'history', icon: '☰', label: 'History' },
+    { id: 'storage', icon: '◉', label: 'Storage' },
+    { id: 'performance', icon: '↗', label: 'Performance' },
+  ]
+
+  const storagePercent = stats.storageTotal ? ((stats.storageUsed / stats.storageTotal) * 100).toFixed(1) : '0.0'
+
   if (loading) {
-    return (
-      <div className="user-dashboard loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading your dashboard...</p>
-        </div>
-      </div>
-    )
+    return <div className="udb-root"><div className="udb-content">Loading dashboard...</div></div>
   }
 
   if (error) {
-    return (
-      <div className="user-dashboard error">
-        <div className="error-container">
-          <h2>⚠️ Error Loading Dashboard</h2>
-          <p>{error}</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
+    return <div className="udb-root"><div className="udb-content">{error}</div></div>
   }
 
   return (
-    <div className="user-dashboard enhanced">
-      {/* Enhanced Top Navigation Bar */}
-      <nav className="dashboard-topnav v2">
-        <div className="topnav-left">
-          <h1>🎯 Dashboard</h1>
-          <div className="breadcrumb">
-            <span>Home</span>
-            <span className="divider">/</span>
-            <span className="active">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span>
-          </div>
-        </div>
-        <div className="topnav-right">
-          <button className="btn-icon notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
-            🔔
-            <span className="notification-badge">3</span>
-          </button>
-          <button className="btn-primary" onClick={handleNewConversion}>
-            ➕ New Conversion
-          </button>
-          <div className="profile-menu-wrapper">
-            <button 
-              className="profile-button"
-              onClick={() => setShowProfile(!showProfile)}
-              title="Profile menu"
-            >
-              <span className="profile-avatar">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</span>
-              <span className="profile-name">{auth.user?.username}</span>
-            </button>
-            
-            {showProfile && (
-              <div className="profile-dropdown">
-                <div className="profile-header">
-                  <div className="profile-avatar-large">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</div>
-                  <div>
-                    <p className="profile-name-large"><strong>{auth.user?.username}</strong></p>
-                    <p className="text-muted">{auth.user?.email}</p>
-                  </div>
-                </div>
-                <hr />
-                <button className="dropdown-item" onClick={() => navigate('/profile')}>
-                  👤 View Profile
-                </button>
-                <button className="dropdown-item" onClick={() => navigate('/settings')}>
-                  ⚙️ Settings
-                </button>
-                <button className="dropdown-item" onClick={() => navigate('/billing')}>
-                  💳 Billing
-                </button>
-                <button className="dropdown-item" onClick={() => navigate('/api-keys')}>
-                  🔑 API Keys
-                </button>
-                <hr />
-                <button className="dropdown-item logout" onClick={auth.logout}>
-                  🚪 Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
+    <div className="udb-root">
 
-      {/* Notifications Panel */}
-      {showNotifications && (
-        <div className="notifications-panel">
-          <div className="notifications-header">
-            <h3>Notifications</h3>
-            <button className="btn-icon" onClick={() => setShowNotifications(false)}>✕</button>
-          </div>
-          <div className="notifications-list">
-            <div className="notification-item">
-              <span className="notification-icon">✅</span>
-              <div>
-                <p className="notification-title">Conversion Completed</p>
-                <p className="notification-meta">Your PDF conversion finished in 2.1s</p>
-              </div>
-            </div>
-            <div className="notification-item">
-              <span className="notification-icon">💾</span>
-              <div>
-                <p className="notification-title">Storage Warning</p>
-                <p className="notification-meta">You've used 2.3GB of 100GB storage</p>
-              </div>
-            </div>
-            <div className="notification-item">
-              <span className="notification-icon">🎉</span>
-              <div>
-                <p className="notification-title">Achievement Unlocked</p>
-                <p className="notification-meta">You've completed 150 conversions!</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Body: Sidebar + Main ─────────────────────── */}
+      <div className="udb-body">
 
-      {/* Enhanced Navigation Tabs */}
-      <div className="dashboard-nav sticky v2">
-        <div className="nav-container">
-          <button 
-            className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-            title="Overview dashboard"
-          >
-            📊 Overview
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-            title="Conversion history"
-          >
-            📜 History
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'storage' ? 'active' : ''}`}
-            onClick={() => setActiveTab('storage')}
-            title="Storage management"
-          >
-            💾 Storage
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'performance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('performance')}
-            title="Performance metrics"
-          >
-            ⚡ Performance
-          </button>
-        </div>
-      </div>
-
-      <div className="dashboard-container v2">
-        {/* Enhanced Sidebar */}
-        <aside className="dashboard-sidebar v2">
-          {/* Profile Card */}
-          <div className="sidebar-card profile-card">
-            <div className="profile-section">
-              <div className="avatar-large">{auth.user?.username?.[0]?.toUpperCase() || '👤'}</div>
-              <h3>{auth.user?.username}</h3>
-              <p className="text-muted">{auth.user?.email}</p>
-              <div className="profile-badge pro">{profile.plan} Plan</div>
+        {/* Sidebar */}
+        <aside className="udb-sidebar">
+          {/* Profile card */}
+          <div className="udb-profile-card">
+            <div className="udb-pc-avatar">
+              {auth.user?.username?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div className="profile-details">
-              <div className="detail-item">
-                <span className="label">Member Since</span>
-                <span className="value">{profile.joinDate}</span>
-              </div>
-              <div className="detail-item">
-                <span className="label">Next Billing</span>
-                <span className="value">{profile.nextBillingDate}</span>
-              </div>
-            </div>
-            <button className="btn-secondary btn-block">Edit Profile</button>
+            <div className="udb-pc-name">{auth.user?.username}</div>
+            <div className="udb-pc-email">{auth.user?.email || 'user@docpro.app'}</div>
+            <span className="udb-plan-badge">Pro Plan</span>
           </div>
 
-          {/* Plan Card */}
-          <div className="sidebar-card plan-card">
-            <div className="card-header">📋 Current Plan</div>
-            <div className="plan-info">
-              <div className="plan-badge pro">{profile.plan}</div>
-              <p className="plan-desc">Full access to all converters</p>
-              <div className="plan-features">
-                <div className="feature">✅ Unlimited conversions</div>
-                <div className="feature">✅ 100GB storage</div>
-                <div className="feature">✅ Priority support</div>
-              </div>
+          {/* Navigation */}
+          <nav className="udb-sidenav">
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                className={`udb-sidenav-item${activeTab === item.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(item.id)}
+              >
+                <span className="udb-si-icon">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          {/* Storage widget */}
+          <div className="udb-storage-widget">
+            <div className="udb-sw-header">
+              <span>Storage</span>
+              <span className="udb-sw-value">{stats.storageUsed} / {stats.storageTotal} GB</span>
             </div>
-            <button className="btn-link btn-block">Upgrade Plan →</button>
+            <div className="udb-sw-bar">
+              <div className="udb-sw-fill" style={{ width: `${storagePercent}%` }} />
+            </div>
+            <div className="udb-sw-pct">{storagePercent}% used</div>
           </div>
 
-          {/* Storage Card */}
-          <div className="sidebar-card storage-card">
-            <div className="card-header">💾 Storage</div>
-            <div className="storage-visual">
-              <div className="storage-bar">
-                <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
-              </div>
-              <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB</p>
-              <p className="storage-percent">{((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used</p>
-            </div>
-          </div>
-
-          {/* Quick Stats Card */}
-          <div className="sidebar-card stats-card">
-            <div className="card-header">📈 This Month</div>
-            <div className="quick-stat">
-              <div className="stat-number">{profile.conversionsThisMonth}</div>
-              <div className="stat-label">Conversions</div>
-            </div>
-            <div className="quick-stat">
-              <div className="stat-number">{stats.successRate}%</div>
-              <div className="stat-label">Success Rate</div>
-            </div>
+          {/* Quick links */}
+          <div className="udb-quick-links">
+            <div className="udb-ql-title">Quick Links</div>
+            <button className="udb-ql-item" onClick={() => navigate('/')}>📄 Convert a File</button>
+            <button className="udb-ql-item" onClick={() => navigate('/dashboard/account')}>🔑 API Keys</button>
+            <button className="udb-ql-item" onClick={() => navigate('/settings')}>⚙️ Settings</button>
           </div>
         </aside>
 
-        {/* Enhanced Main Content */}
-        <main className="dashboard-main v2">
+        {/* Main content */}
+        <main className="udb-main">
+
+          {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
-            <>
-              {/* Hero Stats Section */}
-              <section className="stats-section hero-stats">
-                <h2 className="section-title">Your Activity Overview</h2>
-                <div className="stats-grid v2">
-                  <div className="stat-card premium">
-                    <div className="stat-header">
-                      <span className="stat-icon">📋</span>
-                      <span className="stat-label">Total Conversions</span>
-                    </div>
-                    <div className="stat-content">
-                      <div className="stat-value">{stats.totalConversions}</div>
-                      <div className="stat-change positive">↑ 12 this month</div>
-                    </div>
-                  </div>
+            <div className="udb-content">
 
-                  <div className="stat-card premium">
-                    <div className="stat-header">
-                      <span className="stat-icon">⚡</span>
-                      <span className="stat-label">Avg Speed</span>
-                    </div>
-                    <div className="stat-content">
-                      <div className="stat-value">{stats.averageConversionTime}s</div>
-                      <div className="stat-change positive">↑ Faster than last week</div>
-                    </div>
-                  </div>
-
-                  <div className="stat-card premium">
-                    <div className="stat-header">
-                      <span className="stat-icon">💾</span>
-                      <span className="stat-label">Storage Saved</span>
-                    </div>
-                    <div className="stat-content">
-                      <div className="stat-value">{(stats.conversionsSaved / 1024).toFixed(1)} GB</div>
-                      <div className="stat-change positive">↑ Growing daily</div>
-                    </div>
-                  </div>
-
-                  <div className="stat-card premium">
-                    <div className="stat-header">
-                      <span className="stat-icon">🏆</span>
-                      <span className="stat-label">Most Used</span>
-                    </div>
-                    <div className="stat-content">
-                      <div className="stat-value text-sm">{stats.mostUsedTool}</div>
-                      <div className="stat-change">{stats.filesProcessed} files</div>
-                    </div>
-                  </div>
+              <div className="udb-stats-grid">
+                <div className="udb-stat-card" data-color="blue">
+                  <div className="udb-sc-label">Total Conversions</div>
+                  <div className="udb-sc-value">{stats.totalConversions}</div>
+                  <div className={`udb-sc-trend ${insights.totalConversionsTrend.direction === 'down' ? 'down' : 'up'}`}>{insights.totalConversionsTrend.text}</div>
                 </div>
-              </section>
-
-              {/* Recent Activity */}
-              <section className="recent-activity v2">
-                <div className="section-header">
-                  <h2>📌 Recent Conversions</h2>
-                  <button className="btn-link" onClick={() => setActiveTab('history')}>
-                    View All →
-                  </button>
+                <div className="udb-stat-card" data-color="violet">
+                  <div className="udb-sc-label">Avg. Speed</div>
+                  <div className="udb-sc-value">{stats.averageConversionTime}s</div>
+                  <div className={`udb-sc-trend ${insights.averageConversionTimeTrend.direction === 'down' ? 'down' : 'up'}`}>{insights.averageConversionTimeTrend.text}</div>
                 </div>
+                <div className="udb-stat-card" data-color="emerald">
+                  <div className="udb-sc-label">Success Rate</div>
+                  <div className="udb-sc-value">{stats.successRate}%</div>
+                  <div className={`udb-sc-trend ${insights.successRateTrend.direction === 'down' ? 'down' : 'up'}`}>{insights.successRateTrend.text}</div>
+                </div>
+                <div className="udb-stat-card" data-color="amber">
+                  <div className="udb-sc-label">This Month</div>
+                  <div className="udb-sc-value">{stats.monthlyConversions}</div>
+                  <div className={`udb-sc-trend ${insights.monthlyConversionsTrend.direction === 'down' ? 'down' : 'up'}`}>{insights.monthlyConversionsTrend.text}</div>
+                </div>
+              </div>
 
-                {conversions.length === 0 ? (
-                  <div className="empty-state">
-                    <span className="empty-icon">📂</span>
-                    <p>No conversions yet</p>
-                    <button className="btn-primary" onClick={handleNewConversion}>
-                      Start Your First Conversion
+              <div className="udb-section">
+                <div className="udb-section-head">
+                  <h2 className="udb-section-title">Recent Conversions</h2>
+                  <button className="udb-link-btn" onClick={() => setActiveTab('history')}>View all →</button>
+                </div>
+                <div className="udb-conv-list">
+                  {conversions.slice(0, 5).map(c => (
+                    <div key={c.id} className="udb-conv-row">
+                      <span className="udb-conv-file-icon">📄</span>
+                      <div className="udb-conv-info">
+                        <div className="udb-conv-name">{c.filename}</div>
+                        <div className="udb-conv-meta">
+                          <span className="udb-fmt">{c.from}</span>
+                          <span className="udb-arrow">→</span>
+                          <span className="udb-fmt">{c.to}</span>
+                          <span className="udb-sep">·</span>
+                          <span>{c.size}</span>
+                          <span className="udb-sep">·</span>
+                          <span>{c.duration}s</span>
+                        </div>
+                      </div>
+                      <div className="udb-conv-date">{c.date}</div>
+                      <span className="udb-status-pill">✓ Done</span>
+                      <button className="udb-dl-btn" title="Download" onClick={() => downloadConversion(c)} disabled={!c.can_download}>↓</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="udb-section">
+                <h2 className="udb-section-title">Quick Actions</h2>
+                <div className="udb-action-grid">
+                  {[
+                    { icon: '➕', title: 'New Conversion', desc: 'Convert any file format', action: () => navigate('/') },
+                    { icon: '📖', title: 'Documentation', desc: 'Browse tools and usage guides', action: () => navigate('/tools') },
+                    { icon: '💬', title: 'Support', desc: 'Email the support team', action: () => { addToast({ type: 'info', title: 'Opening support', message: 'Launching your mail client for support@docpro.app' }); window.location.href = 'mailto:support@docpro.app' } },
+                    { icon: '🔌', title: 'API Access', desc: 'Manage API keys and access', action: () => navigate('/dashboard/account') },
+                  ].map((a, i) => (
+                    <button key={i} className="udb-action-card" onClick={a.action}>
+                      <span className="udb-ac-icon">{a.icon}</span>
+                      <span className="udb-ac-title">{a.title}</span>
+                      <span className="udb-ac-desc">{a.desc}</span>
                     </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── HISTORY TAB ── */}
+          {activeTab === 'history' && (
+            <div className="udb-content">
+              <div className="udb-section">
+                <h2 className="udb-section-title">Conversion History</h2>
+
+                <div className="udb-history-controls">
+                  <input
+                    type="text"
+                    className="udb-search"
+                    placeholder="🔍  Search by filename…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                  <select
+                    className="udb-filter"
+                    value={filterFormat}
+                    onChange={e => setFilterFormat(e.target.value)}
+                  >
+                    <option value="all">All Formats</option>
+                    <option value="pdf">PDF</option>
+                    <option value="jpg">JPG</option>
+                    <option value="xlsx">XLSX</option>
+                    <option value="pptx">PPTX</option>
+                  </select>
+                </div>
+
+                {filteredConversions.length === 0 ? (
+                  <div className="udb-empty">
+                    <div className="udb-empty-icon">🔍</div>
+                    <div>No matching conversions</div>
+                    <div className="udb-empty-sub">Try adjusting your filters</div>
                   </div>
                 ) : (
-                  <div className="conversion-list v2">
-                    {conversions.slice(0, 5).map((conversion) => (
-                      <div key={conversion.id} className="conversion-item v2">
-                        <div className="conversion-left">
-                          <span className="file-icon">📄</span>
-                          <div className="conversion-details">
-                            <div className="conversion-name">{conversion.filename}</div>
-                            <div className="conversion-meta">
-                              <span className="format-badge">{conversion.from}</span>
-                              <span className="arrow">→</span>
-                              <span className="format-badge">{conversion.to}</span>
-                              <span className="spacer">•</span>
-                              <span className="size">{conversion.size}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="conversion-right">
-                          <div className="conversion-time">{conversion.date}</div>
-                          <button 
-                            className="btn-icon download"
-                            onClick={() => downloadConversion(conversion.filename)}
-                            title="Download file"
-                          >
-                            ⬇️
-                          </button>
-                        </div>
+                  <div className="udb-table">
+                    <div className="udb-table-head">
+                      <span>File</span>
+                      <span>Format</span>
+                      <span>Date & Time</span>
+                      <span>Size</span>
+                      <span>Duration</span>
+                      <span></span>
+                    </div>
+                    {filteredConversions.map(c => (
+                      <div key={c.id} className="udb-table-row">
+                        <span className="udb-table-file">{c.filename}</span>
+                        <span>{c.from} → {c.to}</span>
+                        <span>{c.date} {c.time}</span>
+                        <span>{c.size}</span>
+                        <span>{c.duration}s</span>
+                        <button className="udb-dl-btn" title="Download" onClick={() => downloadConversion(c)} disabled={!c.can_download}>↓</button>
                       </div>
                     ))}
                   </div>
                 )}
-              </section>
-
-              {/* Quick Actions */}
-              <section className="quick-actions v2">
-                <h2 className="section-title">⚡ Quick Actions</h2>
-                <div className="actions-grid v2">
-                  <button className="action-card" onClick={handleNewConversion}>
-                    <span className="action-icon">➕</span>
-                    <span className="action-title">New Conversion</span>
-                    <span className="action-desc">Start converting</span>
-                  </button>
-                  <a href="#docs" className="action-card">
-                    <span className="action-icon">📖</span>
-                    <span className="action-title">Documentation</span>
-                    <span className="action-desc">Learn how to use</span>
-                  </a>
-                  <a href="#support" className="action-card">
-                    <span className="action-icon">💬</span>
-                    <span className="action-title">Contact Support</span>
-                    <span className="action-desc">Get help fast</span>
-                  </a>
-                  <a href="#api" className="action-card">
-                    <span className="action-icon">🔌</span>
-                    <span className="action-title">API Reference</span>
-                    <span className="action-desc">Integrate with API</span>
-                  </a>
+                <div className="udb-table-footer">
+                  Showing {filteredConversions.length} of {conversions.length} conversions
                 </div>
-              </section>
-            </>
+              </div>
+            </div>
           )}
 
-          {activeTab === 'history' && (
-            <section className="history-section v2">
-              <h2>📜 Conversion History</h2>
-              
-              <div className="history-controls">
-                <div className="search-box">
-                  <input 
-                    type="text" 
-                    placeholder="🔍 Search by filename..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
-                <select 
-                  value={filterFormat}
-                  onChange={(e) => setFilterFormat(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Formats</option>
-                  <option value="pdf">PDF</option>
-                  <option value="jpg">JPG</option>
-                  <option value="xlsx">XLSX</option>
-                  <option value="pptx">PPTX</option>
-                </select>
-              </div>
+          {/* ── STORAGE TAB ── */}
+          {activeTab === 'storage' && (
+            <div className="udb-content">
+              <div className="udb-section">
+                <h2 className="udb-section-title">Storage Management</h2>
 
-              {filteredConversions.length === 0 ? (
-                <div className="empty-state">
-                  <p>🔍 No conversions found</p>
-                  <p className="text-muted">Try adjusting your filters</p>
-                </div>
-              ) : (
-                <div className="conversion-table">
-                  <div className="table-header">
-                    <div className="col-file">File</div>
-                    <div className="col-format">Format</div>
-                    <div className="col-date">Date</div>
-                    <div className="col-size">Size</div>
-                    <div className="col-duration">Duration</div>
-                    <div className="col-actions">Actions</div>
+                <div className="udb-storage-card">
+                  <div className="udb-storage-info">
+                    <span className="udb-storage-used">{stats.storageUsed} GB</span>
+                    <span className="udb-storage-of">of {stats.storageTotal} GB used</span>
                   </div>
-                  {filteredConversions.map((conversion) => (
-                    <div key={conversion.id} className="table-row">
-                      <div className="col-file">{conversion.filename}</div>
-                      <div className="col-format">{conversion.from} → {conversion.to}</div>
-                      <div className="col-date">{conversion.date} {conversion.time}</div>
-                      <div className="col-size">{conversion.size}</div>
-                      <div className="col-duration">{conversion.duration}s</div>
-                      <div className="col-actions">
-                        <button 
-                          className="btn-icon"
-                          onClick={() => downloadConversion(conversion.filename)}
-                        >
-                          ⬇️
-                        </button>
+                  <div className="udb-storage-bar-lg">
+                    <div className="udb-storage-fill-lg" style={{ width: `${storagePercent}%` }} />
+                  </div>
+                  <div className="udb-storage-pct">{storagePercent}%</div>
+                </div>
+
+                <div className="udb-breakdown-grid">
+                  {(storageBreakdown.length ? storageBreakdown : [
+                    { label: 'No files yet', size: '0 B', pct: 0 },
+                  ]).map((item, index) => (
+                    <div key={item.label} className="udb-breakdown-item">
+                      <div className="udb-bd-color" style={{ background: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b'][index % 4] }} />
+                      <div className="udb-bd-info">
+                        <span>{item.label}</span>
+                        <span className="udb-bd-size">{item.size}</span>
+                      </div>
+                      <div className="udb-bd-bar">
+                        <div style={{ width: `${item.pct}%`, background: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b'][index % 4], height: '100%', borderRadius: '4px' }} />
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
-              
-              <div className="history-footer">
-                Showing {filteredConversions.length} of {conversions.length} conversions
-              </div>
-            </section>
-          )}
 
-          {activeTab === 'storage' && (
-            <section className="storage-section v2">
-              <h2>💾 Storage Management</h2>
-              <div className="storage-details">
-                <div className="storage-main">
-                  <div className="storage-info">
-                    <div className="storage-bar large">
-                      <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
-                    </div>
-                    <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB ({((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used)</p>
-                    
-                    <div className="storage-breakdown">
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar documents"></div>
-                        <div className="breakdown-label">Documents (0.8 GB)</div>
-                      </div>
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar images"></div>
-                        <div className="breakdown-label">Images (0.9 GB)</div>
-                      </div>
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar pdfs"></div>
-                        <div className="breakdown-label">PDFs (0.6 GB)</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="storage-actions">
-                  <button className="btn-secondary">🗑️ Clear Old Files</button>
-                  <button className="btn-secondary">📥 Download All</button>
-                  <button className="btn-primary">⭐ Upgrade Storage</button>
-                </div>
-
-                <div className="storage-note">
-                  <p><strong>💡 Tip:</strong> Keep your storage organized by regularly deleting old conversions you no longer need.</p>
+                <div className="udb-storage-actions">
+                  <button className="udb-btn-secondary" onClick={cleanupOldFiles}>🗑️ Clear Old Files</button>
+                  <button className="udb-btn-secondary" onClick={downloadAllConversions} disabled={!conversions.some(item => item.can_download)}>📥 Download All</button>
+                  <button className="udb-new-btn" onClick={() => navigate('/billing')}>⭐ Upgrade Storage</button>
                 </div>
               </div>
-            </section>
+            </div>
           )}
 
+          {/* ── PERFORMANCE TAB ── */}
           {activeTab === 'performance' && (
-            <section className="performance-section v2">
-              <h2>⚡ Performance Metrics</h2>
-              <div className="performance-grid">
-                <div className="performance-card">
-                  <h3>Average Conversion Speed</h3>
-                  <div className="metric-display">{stats.averageConversionTime}s</div>
-                  <div className="metric-trend positive">↓ 0.5s faster than last week</div>
-                </div>
-                <div className="performance-card">
-                  <h3>Success Rate</h3>
-                  <div className="metric-display">{stats.successRate}%</div>
-                  <div className="metric-trend positive">↑ 0.3% improvement</div>
-                </div>
-                <div className="performance-card">
-                  <h3>Total Files Processed</h3>
-                  <div className="metric-display">{stats.filesProcessed}</div>
-                  <div className="metric-trend">→ Steady performance</div>
-                </div>
-                <div className="performance-card">
-                  <h3>This Month Activity</h3>
-                  <div className="metric-display">{profile.conversionsThisMonth}</div>
-                  <div className="metric-trend positive">↑ 42% vs last month</div>
+            <div className="udb-content">
+              <div className="udb-section">
+                <h2 className="udb-section-title">Performance Metrics</h2>
+                <div className="udb-perf-grid">
+                  {[
+                    { title: 'Avg. Conversion Speed', value: `${stats.averageConversionTime}s`, trend: insights.averageConversionTimeTrend.text, up: insights.averageConversionTimeTrend.direction !== 'down' },
+                    { title: 'Success Rate', value: `${stats.successRate}%`, trend: insights.successRateTrend.text, up: insights.successRateTrend.direction !== 'down' },
+                    { title: 'Files Processed', value: stats.filesProcessed, trend: insights.filesProcessedTrend.text, up: insights.filesProcessedTrend.direction === 'up' ? true : insights.filesProcessedTrend.direction === 'down' ? false : null },
+                    { title: 'Monthly Activity', value: stats.monthlyConversions, trend: insights.monthlyConversionsTrend.text, up: insights.monthlyConversionsTrend.direction !== 'down' },
+                  ].map((m, i) => (
+                    <div key={i} className="udb-perf-card">
+                      <div className="udb-perf-title">{m.title}</div>
+                      <div className="udb-perf-value">{m.value}</div>
+                      <div className={`udb-perf-trend ${m.up === true ? 'up' : m.up === false ? 'down' : ''}`}>
+                        {m.trend}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </section>
+            </div>
           )}
+
         </main>
       </div>
     </div>

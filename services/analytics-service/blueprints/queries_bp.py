@@ -4,7 +4,7 @@ Endpoints for saved queries, query builder, and execution
 """
 
 from flask import Blueprint, request, jsonify, g, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import uuid
 import logging
@@ -263,7 +263,7 @@ def execute_query(query_id):
             
             # Update execution stats
             query.execution_count = (query.execution_count or 0) + 1
-            query.last_executed_at = datetime.utcnow()
+            query.last_executed_at = datetime.now(timezone.utc)
             if query.avg_execution_time_ms:
                 query.avg_execution_time_ms = (
                     (query.avg_execution_time_ms * (query.execution_count - 1) + execution_time_ms) /

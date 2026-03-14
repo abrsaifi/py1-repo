@@ -1,6 +1,7 @@
 # Project Structure Overview
 
-This document visualizes the complete new project structure.
+This document visualizes the target monorepo structure captured during the restructuring work.
+The currently active backend runtime in this workspace is the modular Flask package under `app/`, while some `services/` entries are design artifacts or service-specific subprojects rather than the primary runtime path.
 
 ## Complete Directory Tree
 
@@ -39,7 +40,7 @@ file-converter-saas/
 │       ├── src/
 │       └── package.json
 │
-├── 🔧 services/                                # Microservices
+├── 🔧 services/                                # Historical/target service split artifacts
 │   │
 │   ├── api-gateway/                            # API Gateway (Main Entry Point)
 │   │   ├── main.py                             # Entry point
@@ -111,9 +112,9 @@ file-converter-saas/
 │       │   └── reports.py
 │       └── requirements.txt
 │
-├── 🚀 workers/                                 # Background Workers
+├── 🚀 workers/                                 # Compatibility Launchers for Celery Queues
 │   │
-│   ├── conversion-workers/                     # CPU-Intensive Conversions
+│   ├── conversion-workers/                     # Launchers/Adapters for conversion queues
 │   │   ├── __init__.py
 │   │   ├── pdf_worker.py                       # PDF conversions
 │   │   ├── image_worker.py                     # Image conversions
@@ -121,12 +122,12 @@ file-converter-saas/
 │   │   ├── compress_worker.py                  # Compression
 │   │   └── requirements.txt
 │   │
-│   ├── cleanup-worker/                         # File Retention
+│   ├── cleanup-worker/                         # Launcher for maintenance queue
 │   │   ├── __init__.py
 │   │   ├── delete_expired_files.py
 │   │   └── requirements.txt
 │   │
-│   └── priority-worker/                        # Premium Queue
+│   └── priority-worker/                        # Launcher for critical queue
 │       ├── __init__.py
 │       ├── priority_queue.py
 │       └── requirements.txt
@@ -262,7 +263,7 @@ Total Files: ~500+
 Client-facing applications. Currently web + PWA, extensible for mobile.
 
 ### `services/`
-Independent microservices, each with its own:
+Reference service decomposition, each with its own:
 - Routes/handlers
 - Database models (logical ownership)
 - Tests

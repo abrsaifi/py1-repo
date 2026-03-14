@@ -30,6 +30,21 @@ MIGRATIONS = {
         'status': 'pending',
         'tables': ['file_metadata']
     },
+    '20260313_180000_phase15_persistence': {
+        'description': 'Add persisted Phase 15 analytics reports and collaboration tables',
+        'status': 'tracked',
+        'tables': [
+            'analytics_reports',
+            'collaboration_documents',
+            'document_shares',
+            'document_comments',
+            'collaboration_teams',
+            'team_memberships',
+            'collaboration_notifications',
+            'notification_preferences',
+            'collaboration_activity_logs'
+        ]
+    },
 }
 
 

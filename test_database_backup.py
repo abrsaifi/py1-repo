@@ -16,7 +16,7 @@ def test_database_backup_setup():
         print(f"  ✓ backups/ directory exists")
     else:
         print(f"  ✗ backups/ directory missing")
-        return False
+        assert False, "backups/ directory missing"
     
     # Test 2: Check database file exists
     print("\n[2] Checking database...")
@@ -31,8 +31,9 @@ def test_database_backup_setup():
     print("\n[3] Checking app/startup.py...")
     if os.path.exists('app/startup.py'):
         print(f"  ✓ app/startup.py exists")
-        
-        startup_code = open('app/startup.py').read()
+
+        with open('app/startup.py') as startup_file:
+            startup_code = startup_file.read()
         checks = [
             ('init_background_tasks function', 'def init_background_tasks'),
             ('Daily backup task', 'daily_backup'),
@@ -52,26 +53,27 @@ def test_database_backup_setup():
                 startup_ok = False
         
         if not startup_ok:
-            return False
+            assert False, "app/startup.py is missing expected backup task integration"
     else:
         print(f"  ✗ app/startup.py does not exist")
-        return False
+        assert False, "app/startup.py does not exist"
     
     # Test 4: Check integration in app/__init__.py
     print("\n[4] Checking integration in app/__init__.py...")
-    init_code = open('app/__init__.py').read()
+    with open('app/__init__.py') as init_file:
+        init_code = init_file.read()
     
     if 'from .startup import init_background_tasks' in init_code:
         print(f"  ✓ startup module imported")
     else:
         print(f"  ✗ startup module not imported")
-        return False
+        assert False, "startup module not imported in app/__init__.py"
     
     if 'init_background_tasks()' in init_code:
         print(f"  ✓ background tasks initialized in app factory")
     else:
         print(f"  ✗ background tasks not initialized")
-        return False
+        assert False, "background tasks not initialized in app factory"
     
     # Test 5: Test imports
     print("\n[5] Testing imports...")
@@ -83,7 +85,7 @@ def test_database_backup_setup():
         print(f"  ✓ create_task_manager function available")
     except Exception as e:
         print(f"  ✗ Import failed: {e}")
-        return False
+        raise AssertionError(f"app.startup import failed: {e}") from e
     
     # Test 6: Check background task manager availability
     print("\n[6] Testing background task manager...")
@@ -94,7 +96,7 @@ def test_database_backup_setup():
         print(f"  ℹ Manager class: {manager.__class__.__name__}")
     except Exception as e:
         print(f"  ✗ Background task manager failed: {e}")
-        return False
+        raise AssertionError(f"Background task manager failed: {e}") from e
     
     # Test 7: Check DatabaseManager
     print("\n[7] Testing DatabaseManager...")
@@ -111,7 +113,7 @@ def test_database_backup_setup():
                 print(f"  ⚠ DatabaseManager.{method}() not found")
     except Exception as e:
         print(f"  ✗ DatabaseManager check failed: {e}")
-        return False
+        raise AssertionError(f"DatabaseManager check failed: {e}") from e
     
     # Summary
     print("\n" + "="*60)
@@ -122,9 +124,11 @@ def test_database_backup_setup():
     print("  • Weekly cleanup of old backups (>30 days)")
     print("  • Weekly database optimization")
     print("  • Hourly temp file cleanup")
-    return True
 
 
 if __name__ == '__main__':
-    success = test_database_backup_setup()
-    sys.exit(0 if success else 1)
+    try:
+        test_database_backup_setup()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

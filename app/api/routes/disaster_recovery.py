@@ -4,7 +4,7 @@ Endpoints for backup management, recovery, monitoring, and testing
 """
 
 from flask import Blueprint, jsonify, request, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 bp = Blueprint('disaster_recovery', __name__, url_prefix='/api/disaster-recovery')
@@ -32,7 +32,7 @@ def create_backup():
                 'status': 'success',
                 'message': 'Backup created',
                 'backup_file': backup_file,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({
@@ -140,7 +140,7 @@ def cleanup_old_backups():
             'freed_bytes': freed_bytes,
             'freed_mb': round(freed_bytes / (1024 * 1024), 2),
             'retention_days': retention_days,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }), 200
     except Exception as e:
         logger.error(f"Backup cleanup failed: {e}")
@@ -329,7 +329,7 @@ def get_recovery_plan(recovery_type):
         
         plan = recovery_plans[recovery_type]
         plan['recovery_type'] = recovery_type
-        plan['timestamp'] = datetime.utcnow().isoformat()
+        plan['timestamp'] = datetime.now(timezone.utc).isoformat()
         
         return jsonify({
             'status': 'success',
@@ -348,7 +348,7 @@ def backup_service_health():
     """
     try:
         from app.disaster_recovery_manager import get_backup_manager
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         backup_manager = get_backup_manager()
         backups = backup_manager.get_backup_history(limit=1)
@@ -363,7 +363,7 @@ def backup_service_health():
         
         latest_backup = backups[0]
         backup_time = datetime.fromisoformat(latest_backup['timestamp'])
-        age_hours = (datetime.utcnow() - backup_time).total_seconds() / 3600
+        age_hours = (datetime.now(timezone.utc) - backup_time).total_seconds() / 3600
         
         # Determine health based on backup age
         if age_hours < 24:

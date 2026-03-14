@@ -1,5 +1,8 @@
 # Phase 3: User Service Implementation - Complete
 
+This summary records the earlier target user-service decomposition.
+In the current workspace, the active backend runtime remains the modular Flask package under `app/`, with this service-specific material preserved as historical implementation guidance.
+
 **Date**: March 4, 2026  
 **Status**: ✅ COMPLETE  
 **Lines of Code**: 2,000+  
@@ -10,7 +13,7 @@
 
 ## Executive Summary
 
-Phase 3 implements the **User Service**, a comprehensive microservice for managing user profiles, preferences, activity tracking, and usage statistics. The service integrates seamlessly with the Authentication Service (Phase 2) and API Gateway, providing a complete user account management solution.
+Phase 3 documented the **User Service**, a comprehensive target microservice for managing user profiles, preferences, activity tracking, and usage statistics. The service was intended to integrate with the Authentication Service (Phase 2) and API Gateway as part of the historical split architecture.
 
 ### What Was Completed
 

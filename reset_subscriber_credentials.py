@@ -55,7 +55,7 @@ def reset_subscriber_credentials():
             
             cursor.execute('''
                 UPDATE users 
-                SET password_hash=?, api_key=?, is_active=1
+                SET password_hash=?, api_key=?, is_active=1, role='subscriber'
                 WHERE id=?
             ''', (password_hash, api_key, subscriber_id))
             
@@ -71,6 +71,8 @@ def reset_subscriber_credentials():
             )
             
             if success:
+                cursor.execute("UPDATE users SET role='subscriber' WHERE id=?", (user_id,))
+                conn.commit()
                 print(f"✓ Subscriber user created (ID: {user_id})")
             else:
                 print("✗ Failed to create subscriber user")

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { metricsAPI } from '@shared/api/api'
+import { adminAPI } from '@shared/api/api'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import MetricCard from '@shared/components/MetricCard'
 import LineChart from '@shared/components/LineChart'
@@ -8,81 +8,37 @@ import '../styles/pages.css'
 
 export const DashboardPage = ({ onTitleChange }) => {
   const [metrics, setMetrics] = useState([])
+  const [requestVolume, setRequestVolume] = useState({ labels: [], datasets: [] })
+  const [dailyDistribution, setDailyDistribution] = useState({ labels: [], datasets: [] })
+  const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState('24h')
+  const [timeRange, setTimeRange] = useState('7d')
+  const [lastUpdated, setLastUpdated] = useState('')
 
   useEffect(() => {
     onTitleChange('Dashboard')
-    fetchMetrics()
   }, [onTitleChange])
+
+  useEffect(() => {
+    fetchMetrics()
+  }, [timeRange])
 
   const fetchMetrics = async () => {
     try {
       setLoading(true)
-      const response = await metricsAPI.getSystemMetrics()
-      // Mock data for demo
-      setMetrics([
-        {
-          _id: '1',
-          metric_name: 'Total Requests',
-          value: 24532,
-          unit: 'requests',
-          aggregation_level: 'daily',
-          trend: 12,
-        },
-        {
-          _id: '2',
-          metric_name: 'API Response Time',
-          value: 145,
-          unit: 'ms',
-          aggregation_level: 'hourly',
-          trend: -5,
-        },
-        {
-          _id: '3',
-          metric_name: 'Error Rate',
-          value: 0.85,
-          unit: '%',
-          aggregation_level: 'hourly',
-          trend: -2,
-        },
-        {
-          _id: '4',
-          metric_name: 'Database Connections',
-          value: 128,
-          unit: 'active',
-          aggregation_level: 'real-time',
-          trend: 3,
-        },
-      ])
+      const days = timeRange === '1h' ? 1 : timeRange === '24h' ? 1 : timeRange === '7d' ? 7 : 30
+      const response = await adminAPI.getAnalyticsOverview({ days })
+      const payload = response.data || {}
+      setMetrics(payload.metrics || [])
+      setRequestVolume(payload.charts?.requestVolume || { labels: [], datasets: [] })
+      setDailyDistribution(payload.charts?.dailyDistribution || { labels: [], datasets: [] })
+      setAlerts(payload.alerts || [])
+      setLastUpdated(payload.generatedAt || '')
     } catch (error) {
-      console.error('Failed to fetch metrics:', error)
+      console.error('Failed to fetch dashboard analytics:', error)
     } finally {
       setLoading(false)
     }
-  }
-
-  const lineChartData = {
-    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-    datasets: [
-      {
-        label: 'Requests',
-        data: [3500, 4200, 3800, 5100, 4600, 5200],
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      },
-    ],
-  }
-
-  const barChartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        label: 'Daily Requests',
-        data: [120000, 135000, 128000, 152000, 148000, 95000, 82000],
-        backgroundColor: '#8b5cf6',
-      },
-    ],
   }
 
   return (
@@ -90,7 +46,10 @@ export const DashboardPage = ({ onTitleChange }) => {
       <div className="page-header">
         <div>
           <h2>Analytics Overview</h2>
-          <p>Real-time metrics and performance data</p>
+          <p>
+            Real-time metrics and performance data
+            {lastUpdated ? ` • Last updated ${lastUpdated.replace('T', ' ').slice(0, 19)}` : ''}
+          </p>
         </div>
         <div className="filter-controls">
           <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
@@ -99,7 +58,7 @@ export const DashboardPage = ({ onTitleChange }) => {
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
           </select>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={fetchMetrics}>
             <UniversalIcon icon="fas fa-refresh" size={16} /> Refresh
           </button>
         </div>
@@ -112,7 +71,7 @@ export const DashboardPage = ({ onTitleChange }) => {
             title={metric.metric_name}
             value={metric.value}
             unit={metric.unit}
-            trend={metric.trend}
+            trend={Math.round(metric.trend || 0)}
             icon="chart-line"
             color="blue"
           />
@@ -122,33 +81,37 @@ export const DashboardPage = ({ onTitleChange }) => {
       <div className="charts-section">
         <div className="chart-container">
           <LineChart
-            title="Request Volume Over Time"
-            labels={lineChartData.labels}
-            datasets={lineChartData.datasets}
+            title="Conversion Volume Over Time"
+            labels={requestVolume.labels}
+            datasets={requestVolume.datasets}
           />
         </div>
 
         <div className="chart-container">
           <BarChart
-            title="Daily Request Distribution"
-            labels={barChartData.labels}
-            datasets={barChartData.datasets}
+            title="Completed Conversion Distribution"
+            labels={dailyDistribution.labels}
+            datasets={dailyDistribution.datasets}
           />
         </div>
       </div>
 
       <div className="alerts-preview">
         <h3>Recent Alerts</h3>
-        <div className="alert-item">
-          <div className="alert-icon warning">
-            <UniversalIcon icon="fas fa-exclamation-triangle" size={20} />
+        {loading && <p>Loading dashboard alerts...</p>}
+        {!loading && alerts.length === 0 && <p>No active alerts.</p>}
+        {!loading && alerts.map((alert) => (
+          <div className="alert-item" key={alert.id}>
+            <div className={`alert-icon ${alert.severity || 'warning'}`}>
+              <UniversalIcon icon="fas fa-exclamation-triangle" size={20} />
+            </div>
+            <div className="alert-content">
+              <h4>{alert.name}</h4>
+              <p>{alert.metric}</p>
+              <span className="alert-time">{alert.lastTriggered || 'Live signal'}</span>
+            </div>
           </div>
-          <div className="alert-content">
-            <h4>High CPU Usage Detected</h4>
-            <p>CPU usage exceeded 85% threshold</p>
-            <span className="alert-time">2 minutes ago</span>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )

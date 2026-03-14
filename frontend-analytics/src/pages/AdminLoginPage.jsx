@@ -28,7 +28,7 @@ const AdminLoginPage = () => {
       }
 
       // API call to authenticate admin
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -81,7 +81,7 @@ const AdminLoginPage = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify-totp', {
+      const response = await fetch('/api/auth/verify-totp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, totpCode })
@@ -276,13 +276,13 @@ const AdminLoginPage = () => {
             )}
 
             <div className="admin-security-info">
-              <h3><UniversalIcon icon="🔐" size={24} /> Security Features</h3>
+              <h3>Security Features</h3>
               <ul>
-                <li>✓ Admin-only access control</li>
-                <li>✓ Two-factor authentication (2FA)</li>
-                <li>✓ All actions logged for audit trail</li>
-                <li>✓ IP address monitoring</li>
-                <li>✓ Session timeout protection</li>
+                <li>Admin-only access control</li>
+                <li>Two-factor authentication (2FA)</li>
+                <li>All actions logged for audit trail</li>
+                <li>IP address monitoring</li>
+                <li>Session timeout protection</li>
               </ul>
             </div>
           </div>

@@ -4,7 +4,7 @@ Pytest configuration and shared fixtures for analytics service tests
 
 import pytest
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 @pytest.fixture(scope="session")
@@ -40,9 +40,9 @@ def sample_metric_data():
         'metric_name': 'test_metric',
         'metric_type': 'gauge',
         'aggregation_level': 'hour',
-        'timestamp': datetime.utcnow(),
-        'period_start': datetime.utcnow() - timedelta(hours=1),
-        'period_end': datetime.utcnow(),
+        'timestamp': datetime.now(timezone.utc),
+        'period_start': datetime.now(timezone.utc) - timedelta(hours=1),
+        'period_end': datetime.now(timezone.utc),
         'value': 50.0,
         'min_value': 40.0,
         'max_value': 60.0,
@@ -55,8 +55,8 @@ def sample_service_metric():
     return {
         'tenant_id': 'test-tenant-001',
         'service_name': 'test-service',
-        'period_start': datetime.utcnow() - timedelta(hours=1),
-        'period_end': datetime.utcnow(),
+        'period_start': datetime.now(timezone.utc) - timedelta(hours=1),
+        'period_end': datetime.now(timezone.utc),
         'response_time_p50': 100.0,
         'response_time_p95': 250.0,
         'response_time_p99': 500.0,
@@ -136,7 +136,7 @@ def pagination_params():
 @pytest.fixture
 def time_range_params():
     """Test time range parameters"""
-    end_time = datetime.utcnow()
+    end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=7)
     return {
         'start_time': start_time.isoformat(),

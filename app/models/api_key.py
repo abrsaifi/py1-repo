@@ -1,7 +1,8 @@
 """API Key model for programmatic access."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from . import db
 import secrets
+from app.utils.datetime_utils import utc_now_naive
 
 class APIKey(db.Model):
     """User API keys for programmatic access."""
@@ -30,8 +31,8 @@ class APIKey(db.Model):
     expires_at = db.Column(db.DateTime)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     @staticmethod
     def generate_key():
@@ -53,14 +54,14 @@ class APIKey(db.Model):
         )
         
         if expires_in_days:
-            api_key.expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+            api_key.expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
         
         return api_key
     
     def is_expired(self):
         """Check if API key is expired."""
         if self.expires_at:
-            return datetime.utcnow() > self.expires_at
+            return datetime.now(timezone.utc) > self.expires_at
         return False
     
     def is_valid(self):
@@ -73,7 +74,7 @@ class APIKey(db.Model):
     
     def record_usage(self):
         """Record that this key was used."""
-        self.last_used_at = datetime.utcnow()
+        self.last_used_at = datetime.now(timezone.utc)
         self.usage_count += 1
     
     def to_dict(self, include_full_key=False):

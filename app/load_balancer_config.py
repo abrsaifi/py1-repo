@@ -119,23 +119,23 @@ class CircuitBreaker:
     
     def record_failure(self):
         """Record failed request"""
-        from datetime import datetime
+        from datetime import datetime, timezone
         self.failure_count += 1
-        self.last_failure_time = datetime.utcnow()
+        self.last_failure_time = datetime.now(timezone.utc)
         
         if self.failure_count >= self.failure_threshold:
             self.state = self.STATE_OPEN
     
     def can_attempt_request(self):
         """Check if request should be attempted"""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         if self.state == self.STATE_CLOSED:
             return True
         
         if self.state == self.STATE_OPEN:
             # Try to recover after timeout
-            if (datetime.utcnow() - self.last_failure_time > 
+            if (datetime.now(timezone.utc) - self.last_failure_time > 
                 timedelta(seconds=self.recovery_timeout)):
                 self.state = self.STATE_HALF_OPEN
                 self.failure_count = 0

@@ -1,37 +1,17 @@
-from flask import Blueprint, Response, current_app
-import datetime
+from flask import Blueprint, Response, current_app, jsonify
+
+from app.middleware.auth import admin_required
+from app.services.action_artifact_service import ActionArtifactService
+from app.services.seo_service import SEOService
 
 bp = Blueprint('seo', __name__)
 
 
 @bp.route('/sitemap.xml', methods=['GET'])
 def sitemap():
-    """Generate a simple XML sitemap for the site and tool pages."""
+    """Generate a sitemap for public CMS and tool pages."""
     site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
-    lastmod = datetime.datetime.utcnow().isoformat() + 'Z'
-
-    # Mirror the tool slugs from tools list — keep in sync with tools.py
-    slugs = [
-        'jpg-to-png','png-to-jpg','webp-to-png','image-to-pdf',
-        'pdf-to-docx','docx-to-pdf','pdf-to-excel','excel-to-pdf',
-        'pdf-to-pptx','pptx-to-pdf','csv-to-excel','pdf-to-image',
-        'compress-pdf','merge-pdf','split-pdf','mp3-to-wav','mp4-to-webm'
-    ]
-
-    urlset = [
-        f"  <url>\n    <loc>{site_url}/</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>"
-    ]
-
-    for s in slugs:
-        urlset.append(
-            f"  <url>\n    <loc>{site_url}/{s}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
-        )
-
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    xml += '\n'.join(urlset)
-    xml += '\n</urlset>'
-
+    xml = SEOService.build_sitemap_xml(site_url)
     return Response(xml, mimetype='application/xml')
 
 
@@ -48,3 +28,38 @@ def robots():
         f'Sitemap: {site_url}/sitemap.xml'
     ]
     return Response('\n'.join(lines) + '\n', mimetype='text/plain')
+
+
+@bp.route('/api/seo/summary', methods=['GET'])
+@admin_required
+def seo_summary():
+    site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
+    return jsonify({'summary': SEOService.get_dashboard_summary(site_url)}), 200
+
+
+@bp.route('/api/seo/pages', methods=['GET'])
+@admin_required
+def seo_pages():
+    site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
+    return jsonify({'pages': SEOService.get_dashboard_pages(site_url)}), 200
+
+
+@bp.route('/api/seo/actions/generate', methods=['POST'])
+@admin_required
+def generate_pages_action():
+    site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
+    return jsonify(ActionArtifactService.refresh_seo(site_url)), 200
+
+
+@bp.route('/api/seo/actions/submit-sitemap', methods=['POST'])
+@admin_required
+def submit_sitemap_action():
+    site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
+    return jsonify(ActionArtifactService.submit_sitemap(site_url)), 200
+
+
+@bp.route('/api/seo/actions/reindex', methods=['POST'])
+@admin_required
+def reindex_action():
+    site_url = current_app.config.get('SITE_URL', 'http://localhost:3000')
+    return jsonify(ActionArtifactService.queue_reindex(site_url)), 200

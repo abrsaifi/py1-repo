@@ -8,7 +8,7 @@ Run with: python ProjectTest/test_user_service_e2e.py
 import requests
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configuration
 AUTH_SERVICE_URL = 'http://localhost:5001'
@@ -434,7 +434,7 @@ def run_all_tests():
     """Run all test cases"""
     
     print_header("USER SERVICE END-TO-END TESTS")
-    print(f"Execution Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}\n")
+    print(f"Execution Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n")
     
     tests = [
         ("Auth Service Health", test_1_auth_service_health),

@@ -5,7 +5,7 @@ Endpoints for dashboard CRUD operations, widget management, and configuration
 
 from flask import Blueprint, request, jsonify, g, current_app
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import uuid
 import logging
@@ -144,7 +144,7 @@ def get_dashboard(dashboard_id):
         
         # Update view count
         dashboard.view_count = (dashboard.view_count or 0) + 1
-        dashboard.last_viewed_at = datetime.utcnow()
+        dashboard.last_viewed_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -191,7 +191,7 @@ def update_dashboard(dashboard_id):
         if 'is_public' in data:
             dashboard.is_public = data['is_public']
         
-        dashboard.updated_at = datetime.utcnow()
+        dashboard.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -292,7 +292,7 @@ def add_widget(dashboard_id):
         }
         
         dashboard.widgets.append(widget)
-        dashboard.updated_at = datetime.utcnow()
+        dashboard.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -336,7 +336,7 @@ def update_widget(dashboard_id, widget_id):
             return jsonify({'error': 'Not Found', 'message': 'Widget not found'}), 404
         
         dashboard.widgets = widgets
-        dashboard.updated_at = datetime.utcnow()
+        dashboard.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -369,7 +369,7 @@ def delete_widget(dashboard_id, widget_id):
             return jsonify({'error': 'Not Found', 'message': 'Widget not found'}), 404
         
         dashboard.widgets = widgets
-        dashboard.updated_at = datetime.utcnow()
+        dashboard.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -417,7 +417,7 @@ def share_dashboard(dashboard_id):
         if 'groups' in data:
             dashboard.shared_with_groups = data['groups']
         
-        dashboard.updated_at = datetime.utcnow()
+        dashboard.updated_at = datetime.now(timezone.utc)
         session.commit()
         
         result = dashboard.to_dict()
@@ -472,7 +472,7 @@ def refresh_dashboard_data(dashboard_id):
             session.close()
             return jsonify({'error': 'Not Found', 'message': 'Dashboard not found'}), 404
         
-        dashboard.last_refreshed_at = datetime.utcnow()
+        dashboard.last_refreshed_at = datetime.now(timezone.utc)
         session.commit()
         session.close()
         

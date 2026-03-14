@@ -3,10 +3,334 @@
  * Dynamically renders icons from different react-icons packs
  */
 import React from 'react';
-import * as FaIcons from 'react-icons/fa';
-import * as BsIcons from 'react-icons/bs';
-import * as FiIcons from 'react-icons/fi';
+import {
+  FaArrowDown,
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowUp,
+  FaBan,
+  FaBars,
+  FaBell,
+  FaBellSlash,
+  FaBrain,
+  FaCalendar,
+  FaChartArea,
+  FaChartBar,
+  FaChartLine,
+  FaChartPie,
+  FaCheck,
+  FaCheckCircle,
+  FaChevronDown,
+  FaChevronLeft,
+  FaChevronRight,
+  FaChevronUp,
+  FaClipboardList,
+  FaCog,
+  FaCogs,
+  FaCreditCard,
+  FaCube,
+  FaCubes,
+  FaDatabase,
+  FaDownload,
+  FaExchangeAlt,
+  FaExclamationCircle,
+  FaExclamationTriangle,
+  FaEye,
+  FaEyeSlash,
+  FaFacebook,
+  FaFile,
+  FaFileAlt,
+  FaFilter,
+  FaFlask,
+  FaFolder,
+  FaGithub,
+  FaGitlab,
+  FaGoogle,
+  FaHeart,
+  FaHeartbeat,
+  FaHome,
+  FaImage,
+  FaInfoCircle,
+  FaLinkedin,
+  FaList,
+  FaLock,
+  FaMicrochip,
+  FaMinus,
+  FaMusic,
+  FaPause,
+  FaPlay,
+  FaPlug,
+  FaPlus,
+  FaQuestionCircle,
+  FaRedo,
+  FaSave,
+  FaSearch,
+  FaSearchPlus,
+  FaShieldAlt,
+  FaSignInAlt,
+  FaSignOutAlt,
+  FaSlidersH,
+  FaSort,
+  FaSpinner,
+  FaStar,
+  FaStarHalfAlt,
+  FaStop,
+  FaStream,
+  FaSync,
+  FaTachometerAlt,
+  FaTh,
+  FaTimes,
+  FaTimesCircle,
+  FaTrash,
+  FaTwitter,
+  FaUnlock,
+  FaUpload,
+  FaUser,
+  FaUserCircle,
+  FaUserCog,
+  FaUserTie,
+  FaUsers,
+  FaVideo,
+} from 'react-icons/fa';
+import {
+  BsBox,
+  BsCloud,
+  BsCloudPlus,
+  BsFile,
+  BsFileExcel,
+  BsFileImage,
+  BsFilePdf,
+  BsFileText,
+  BsFileWord,
+  BsMoon,
+  BsSun,
+} from 'react-icons/bs';
+import {
+  FiActivity,
+  FiAlertCircle,
+  FiAlertTriangle,
+  FiArrowUpRight,
+  FiAward,
+  FiBarChart2,
+  FiBell,
+  FiBook,
+  FiBox,
+  FiCalendar,
+  FiCamera,
+  FiCheck,
+  FiCheckCircle,
+  FiClipboard,
+  FiClock,
+  FiCloud,
+  FiCpu,
+  FiDisc,
+  FiDollarSign,
+  FiEdit,
+  FiFeather,
+  FiFile,
+  FiFilm,
+  FiFilter,
+  FiFolder,
+  FiGlobe,
+  FiImage,
+  FiInbox,
+  FiLink,
+  FiLock,
+  FiMail,
+  FiMapPin,
+  FiMessageCircle,
+  FiMinimize2,
+  FiMonitor,
+  FiMusic,
+  FiPackage,
+  FiPlus,
+  FiPrinter,
+  FiRefreshCw,
+  FiSave,
+  FiScissors,
+  FiSearch,
+  FiSettings,
+  FiShield,
+  FiShuffle,
+  FiSliders,
+  FiSmartphone,
+  FiStar,
+  FiTarget,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiUnlock,
+  FiUsers,
+  FiVideo,
+  FiWifi,
+  FiX,
+  FiZap,
+} from 'react-icons/fi';
 import iconMappingModule from './iconMapping';
+
+const faIcons = {
+  FaArrowDown,
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowUp,
+  FaBan,
+  FaBars,
+  FaBell,
+  FaBellSlash,
+  FaBrain,
+  FaCalendar,
+  FaChartArea,
+  FaChartBar,
+  FaChartLine,
+  FaChartPie,
+  FaCheck,
+  FaCheckCircle,
+  FaChevronDown,
+  FaChevronLeft,
+  FaChevronRight,
+  FaChevronUp,
+  FaClipboardList,
+  FaCog,
+  FaCogs,
+  FaCreditCard,
+  FaCube,
+  FaCubes,
+  FaDatabase,
+  FaDownload,
+  FaExchangeAlt,
+  FaExclamationCircle,
+  FaExclamationTriangle,
+  FaEye,
+  FaEyeSlash,
+  FaFacebook,
+  FaFile,
+  FaFileAlt,
+  FaFilter,
+  FaFlask,
+  FaFolder,
+  FaGithub,
+  FaGitlab,
+  FaGoogle,
+  FaHeart,
+  FaHeartbeat,
+  FaHome,
+  FaImage,
+  FaInfoCircle,
+  FaLinkedin,
+  FaList,
+  FaLock,
+  FaMicrochip,
+  FaMinus,
+  FaMusic,
+  FaPause,
+  FaPlay,
+  FaPlug,
+  FaPlus,
+  FaQuestionCircle,
+  FaRedo,
+  FaSave,
+  FaSearch,
+  FaSearchPlus,
+  FaShieldAlt,
+  FaSignInAlt,
+  FaSignOutAlt,
+  FaSlidersH,
+  FaSort,
+  FaSpinner,
+  FaStar,
+  FaStarHalfAlt,
+  FaStop,
+  FaStream,
+  FaSync,
+  FaTachometerAlt,
+  FaTh,
+  FaTimes,
+  FaTimesCircle,
+  FaTrash,
+  FaTwitter,
+  FaUnlock,
+  FaUpload,
+  FaUser,
+  FaUserCircle,
+  FaUserCog,
+  FaUserTie,
+  FaUsers,
+  FaVideo,
+};
+
+const bsIcons = {
+  BsBox,
+  BsCloud,
+  BsCloudPlus,
+  BsFile,
+  BsFileExcel,
+  BsFileImage,
+  BsFilePdf,
+  BsFileText,
+  BsFileWord,
+  BsMoon,
+  BsSun,
+};
+
+const fiIcons = {
+  FiActivity,
+  FiAlertCircle,
+  FiAlertTriangle,
+  FiArrowUpRight,
+  FiAward,
+  FiBarChart2,
+  FiBell,
+  FiBook,
+  FiBox,
+  FiCalendar,
+  FiCamera,
+  FiCheck,
+  FiCheckCircle,
+  FiClipboard,
+  FiClock,
+  FiCloud,
+  FiCpu,
+  FiDisc,
+  FiDollarSign,
+  FiEdit,
+  FiFeather,
+  FiFile,
+  FiFilm,
+  FiFilter,
+  FiFolder,
+  FiGlobe,
+  FiImage,
+  FiInbox,
+  FiLink,
+  FiLock,
+  FiMail,
+  FiMapPin,
+  FiMessageCircle,
+  FiMinimize2,
+  FiMonitor,
+  FiMusic,
+  FiPackage,
+  FiPlus,
+  FiPrinter,
+  FiRefreshCw,
+  FiSave,
+  FiScissors,
+  FiSearch,
+  FiSettings,
+  FiShield,
+  FiShuffle,
+  FiSliders,
+  FiSmartphone,
+  FiStar,
+  FiTarget,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiUnlock,
+  FiUsers,
+  FiVideo,
+  FiWifi,
+  FiX,
+  FiZap,
+};
 
 /**
  * Universal icon component that handles Font Awesome, Bootstrap, and Emoji icons
@@ -31,7 +355,7 @@ export const UniversalIcon = ({
   if (icon.startsWith('fas ') || icon.startsWith('far ') || icon.startsWith('fal ') || icon.startsWith('fad ')) {
     const mapping = iconMappingModule.fontAwesomeMap[icon];
     if (mapping && mapping.pack === 'fa') {
-      const IconComponent = FaIcons[mapping.name];
+      const IconComponent = faIcons[mapping.name];
       if (IconComponent) {
         return (
           <IconComponent 
@@ -51,7 +375,7 @@ export const UniversalIcon = ({
   if (icon.startsWith('bi ') || icon.startsWith('bi-')) {
     const mapping = iconMappingModule.bootstrapIconMap[icon];
     if (mapping && mapping.pack === 'bs') {
-      const IconComponent = BsIcons[mapping.name];
+      const IconComponent = bsIcons[mapping.name];
       if (IconComponent) {
         return (
           <IconComponent 
@@ -71,7 +395,7 @@ export const UniversalIcon = ({
   if (iconMappingModule.emojiIconMap[icon]) {
     const mapping = iconMappingModule.emojiIconMap[icon];
     if (mapping.pack === 'fi') {
-      const IconComponent = FiIcons[mapping.name];
+      const IconComponent = fiIcons[mapping.name];
       if (IconComponent) {
         return (
           <IconComponent 
@@ -102,7 +426,7 @@ export const UniversalIcon = ({
 export const FontAwesomeIcon = ({ icon, size = 24, color = 'currentColor', ...props }) => {
   const mapping = iconMappingModule.fontAwesomeMap[icon];
   if (mapping && mapping.pack === 'fa') {
-    const IconComponent = FaIcons[mapping.name];
+    const IconComponent = faIcons[mapping.name];
     if (IconComponent) {
       return <IconComponent size={size} color={color} {...props} />;
     }
@@ -116,7 +440,7 @@ export const FontAwesomeIcon = ({ icon, size = 24, color = 'currentColor', ...pr
 export const BootstrapIcon = ({ icon, size = 24, color = 'currentColor', ...props }) => {
   const mapping = iconMappingModule.bootstrapIconMap[icon];
   if (mapping && mapping.pack === 'bs') {
-    const IconComponent = BsIcons[mapping.name];
+    const IconComponent = bsIcons[mapping.name];
     if (IconComponent) {
       return <IconComponent size={size} color={color} {...props} />;
     }
@@ -130,7 +454,7 @@ export const BootstrapIcon = ({ icon, size = 24, color = 'currentColor', ...prop
 export const EmojiIcon = ({ emoji, size = 24, color = 'currentColor', ...props }) => {
   const mapping = iconMappingModule.emojiIconMap[emoji];
   if (mapping && mapping.pack === 'fi') {
-    const IconComponent = FiIcons[mapping.name];
+    const IconComponent = fiIcons[mapping.name];
     if (IconComponent) {
       const featherStyle = {
         color: color,

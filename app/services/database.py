@@ -1,5 +1,5 @@
 """Database models for persistence layer"""
-from datetime import datetime
+from datetime import datetime, timezone
 import sqlite3
 import json
 from pathlib import Path
@@ -9,6 +9,11 @@ import time
 
 # Database path
 DB_PATH = Path(__file__).parent.parent.parent / 'docpro_database.db'
+
+
+def _sqlite_timestamp():
+    """Return an explicit ISO timestamp string for SQLite writes."""
+    return datetime.now(timezone.utc).isoformat()
 
 def init_db():
     """Initialize database with tables"""
@@ -24,9 +29,16 @@ def init_db():
             password_hash TEXT NOT NULL,
             api_key TEXT UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1
+            is_active BOOLEAN DEFAULT 1,
+            role TEXT DEFAULT 'user'
         )
     ''')
+    # Add role column to existing databases that don't have it
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     
     # Conversion history table
     cursor.execute('''
@@ -132,7 +144,7 @@ class DatabaseManager:
             INSERT INTO conversion_history 
             (user_id, operation_type, input_file, file_size_input, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (user_id, operation_type, input_file, file_size_input, status, datetime.now()))
+        ''', (user_id, operation_type, input_file, file_size_input, status, _sqlite_timestamp()))
         conn.commit()
         record_id = cursor.lastrowid
         conn.close()
@@ -147,7 +159,7 @@ class DatabaseManager:
             UPDATE conversion_history 
             SET status=?, output_file=?, file_size_output=?, error_message=?, duration_ms=?, completed_at=?
             WHERE id=?
-        ''', (status, output_file, file_size_output, error_message, duration_ms, datetime.now(), record_id))
+        ''', (status, output_file, file_size_output, error_message, duration_ms, _sqlite_timestamp(), record_id))
         conn.commit()
         conn.close()
     
@@ -182,13 +194,13 @@ class DatabaseManager:
                     SET success_count=success_count+1, total_files_processed=total_files_processed+1,
                         total_data_processed_mb=total_data_processed_mb+?, updated_at=?
                     WHERE operation_type=?
-                ''', (file_size_mb, datetime.now(), operation_type))
+                ''', (file_size_mb, _sqlite_timestamp(), operation_type))
             else:
                 cursor.execute('''
                     UPDATE analytics 
                     SET failure_count=failure_count+1, updated_at=?
                     WHERE operation_type=?
-                ''', (datetime.now(), operation_type))
+                ''', (_sqlite_timestamp(), operation_type))
         else:
             if success:
                 cursor.execute('''

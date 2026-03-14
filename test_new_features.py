@@ -41,10 +41,9 @@ def test_watermark_rotation():
         
         if result and os.path.exists(output_pdf):
             print("  PASS: Rotation and scale applied")
-            return True
         else:
             print("  FAIL: Rotation/scale test")
-            return False
+        assert result and os.path.exists(output_pdf), "Rotation/scale watermark test failed"
 
 def test_redaction():
     """Test redaction feature"""
@@ -70,10 +69,9 @@ def test_redaction():
         
         if result and os.path.exists(output_pdf):
             print("  PASS: Redaction completed")
-            return True
         else:
             print("  FAIL: Redaction test")
-            return False
+        assert result and os.path.exists(output_pdf), "Redaction test failed"
 
 def test_text_to_pdf():
     """Test text to PDF conversion"""
@@ -95,11 +93,11 @@ With spacing between them."""
             if len(output_doc) > 0:
                 print("  PASS: Text to PDF conversion")
                 output_doc.close()
-                return True
+                return
             output_doc.close()
         
         print("  FAIL: Text to PDF test")
-        return False
+        assert False, "Text to PDF test failed"
 
 def test_html_to_pdf():
     """Test HTML to PDF conversion"""
@@ -119,11 +117,11 @@ def test_html_to_pdf():
             if len(output_doc) > 0:
                 print("  PASS: HTML to PDF conversion")
                 output_doc.close()
-                return True
+                return
             output_doc.close()
         
         print("  FAIL: HTML to PDF test")
-        return False
+        assert False, "HTML to PDF test failed"
 
 def test_metadata_removal():
     """Test metadata removal"""
@@ -131,6 +129,7 @@ def test_metadata_removal():
     
     with tempfile.TemporaryDirectory() as tmpdir:
         input_pdf = os.path.join(tmpdir, 'test.pdf')
+        input_with_metadata_pdf = os.path.join(tmpdir, 'test_with_metadata.pdf')
         output_pdf = os.path.join(tmpdir, 'clean.pdf')
         
         create_test_pdf(input_pdf)
@@ -142,11 +141,11 @@ def test_metadata_removal():
             'author': 'Secret Author',
             'subject': 'Confidential'
         })
-        doc.save(input_pdf)
+        doc.save(input_with_metadata_pdf)
         doc.close()
         
         # Remove metadata
-        result = pdf_remove_metadata(input_pdf, output_pdf)
+        result = pdf_remove_metadata(input_with_metadata_pdf, output_pdf)
         
         if result and os.path.exists(output_pdf):
             # Verify metadata is removed
@@ -156,10 +155,10 @@ def test_metadata_removal():
             
             if metadata.get('title', '') == '' or metadata.get('author', '') == '':
                 print("  PASS: Metadata removed successfully")
-                return True
+                return
         
         print("  FAIL: Metadata removal test")
-        return False
+        assert False, "Metadata removal test failed"
 
 def test_watermark_all_positions():
     """Test watermark at all 8 positions with rotation"""
@@ -182,10 +181,9 @@ def test_watermark_all_positions():
         
         if passed == len(positions):
             print(f"  PASS: All {len(positions)} positions tested")
-            return True
         else:
             print(f"  FAIL: Only {passed}/{len(positions)} positions passed")
-            return False
+        assert passed == len(positions), f"Only {passed}/{len(positions)} positions passed"
 
 if __name__ == '__main__':
     print("=" * 50)
@@ -193,13 +191,21 @@ if __name__ == '__main__':
     print("=" * 50)
     
     try:
+        tests = [
+            test_watermark_rotation,
+            test_redaction,
+            test_text_to_pdf,
+            test_html_to_pdf,
+            test_metadata_removal,
+            test_watermark_all_positions,
+        ]
         results = []
-        results.append(test_watermark_rotation())
-        results.append(test_redaction())
-        results.append(test_text_to_pdf())
-        results.append(test_html_to_pdf())
-        results.append(test_metadata_removal())
-        results.append(test_watermark_all_positions())
+        for test_func in tests:
+            try:
+                test_func()
+                results.append(True)
+            except AssertionError:
+                results.append(False)
         
         print("=" * 50)
         passed = sum(results)

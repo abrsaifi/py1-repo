@@ -1,6 +1,6 @@
 """Webhook system for event delivery and integration."""
 from app.models import db
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import json
 import hmac
@@ -8,6 +8,7 @@ import hashlib
 import requests
 from functools import wraps
 from flask import current_app
+from app.utils.datetime_utils import utc_now_naive
 
 class EventType(Enum):
     """Available webhook events."""
@@ -30,7 +31,7 @@ class WebhookEvent(db.Model):
     resource_id = db.Column(db.String(255))
     resource_type = db.Column(db.String(50))
     payload = db.Column(db.JSON, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, index=True)
     
     def to_dict(self):
         return {
@@ -56,8 +57,8 @@ class Webhook(db.Model):
     active = db.Column(db.Boolean, default=True, index=True)
     max_retries = db.Column(db.Integer, default=5)
     retry_delay = db.Column(db.Integer, default=60)  # seconds
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     
     def to_dict(self):
         return {
@@ -104,7 +105,7 @@ class WebhookDelivery(db.Model):
     error = db.Column(db.Text)
     delivered_at = db.Column(db.DateTime, index=True)
     next_retry_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
     
     def to_dict(self):
         return {
@@ -229,7 +230,7 @@ class WebhookService:
             delivery.response_body = response.text[:1000]  # Limit stored response
             
             if response.status_code in [200, 201, 202, 204]:
-                delivery.delivered_at = datetime.utcnow()
+                delivery.delivered_at = datetime.now(timezone.utc)
                 db.session.commit()
                 return True
             else:
@@ -249,7 +250,7 @@ class WebhookService:
         """Schedule webhook retry."""
         if delivery.attempt < webhook.max_retries:
             delivery.attempt += 1
-            delivery.next_retry_at = datetime.utcnow() + timedelta(
+            delivery.next_retry_at = datetime.now(timezone.utc) + timedelta(
                 seconds=webhook.retry_delay * (2 ** (delivery.attempt - 1))  # Exponential backoff
             )
         else:
@@ -261,7 +262,7 @@ class WebhookService:
         """Retry pending webhook deliveries (run as scheduled task)."""
         pending = WebhookDelivery.query.filter(
             (WebhookDelivery.delivered_at == None) &
-            ((WebhookDelivery.next_retry_at == None) | (WebhookDelivery.next_retry_at <= datetime.utcnow()))
+            ((WebhookDelivery.next_retry_at == None) | (WebhookDelivery.next_retry_at <= datetime.now(timezone.utc)))
         ).all()
         
         for delivery in pending:

@@ -1,22 +1,43 @@
-"""
-Cleanup Worker
-Handles automatic deletion of expired files based on retention policies.
-"""
+"""Compatibility launcher for the Celery-backed upload cleanup queue."""
 
-import os
 import logging
-from datetime import datetime, timedelta
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 
 class CleanupWorker:
-    """Worker for file cleanup and retention management"""
+    """Compatibility adapter for maintenance cleanup tasks."""
 
     def __init__(self):
         self.worker_id = os.getenv('WORKER_ID', 'cleanup-worker-1')
         self.retention_days = int(os.getenv('FILE_RETENTION_DAYS', 30))
         self.batch_size = int(os.getenv('CLEANUP_BATCH_SIZE', 100))
+
+    @staticmethod
+    def _build_app():
+        from app import create_app
+
+        return create_app({
+            'ENABLE_BACKGROUND_TASKS': False,
+            'LOG_LEVEL': 'WARNING',
+        })
+
+    def _submit_task(self, task_name, queue='maintenance'):
+        app = self._build_app()
+        celery_app = getattr(app, 'celery', None)
+        if celery_app is None:
+            raise RuntimeError('Celery is not configured for this environment')
+        with app.app_context():
+            return celery_app.send_task(task_name, queue=queue)
 
     def cleanup_expired_files(self):
         """
@@ -27,18 +48,13 @@ class CleanupWorker:
         """
         try:
             logger.info(f"Starting cleanup job, retention: {self.retention_days} days")
-            
-            # TODO: Implement cleanup logic
-            # 1. Query database for files older than retention period
-            # 2. Delete files from storage in batches
-            # 3. Delete database records
-            # 4. Log cleanup activity
-            # 5. Send notifications if configured
+            result = self._submit_task('app.tasks.cleanup_old_uploads')
             
             stats = {
-                'files_deleted': 0,
-                'storage_freed_mb': 0,
-                'timestamp': datetime.utcnow().isoformat()
+                'status': 'queued',
+                'task_id': result.id,
+                'queue': 'maintenance',
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             logger.info(f"Cleanup completed: {stats}")
@@ -57,13 +73,9 @@ class CleanupWorker:
         """
         try:
             logger.info("Scanning for orphaned files")
-            
-            # TODO: Implement orphan detection and cleanup
-            # 1. List all files in storage
-            # 2. Check for corresponding database records
-            # 3. Delete files without records
-            
-            return 0
+            result = self._submit_task('app.tasks.cleanup_old_uploads')
+            logger.info(f"Queued orphan cleanup audit as task {result.id}")
+            return 1
             
         except Exception as e:
             logger.error(f"Orphan cleanup failed: {str(e)}")
@@ -77,8 +89,20 @@ class CleanupWorker:
             run_interval_hours: How often to run cleanup (default: hourly)
         """
         logger.info(f"Cleanup worker {self.worker_id} started (interval: {run_interval_hours}h)")
-        # TODO: Implement periodic scheduler
-        pass
+        command = [
+            sys.executable,
+            '-m',
+            'celery',
+            '-A',
+            'app.celery_config',
+            'worker',
+            '-Q',
+            'maintenance',
+            '--hostname',
+            f'{self.worker_id}@%h',
+            '--loglevel=info',
+        ]
+        return subprocess.call(command, cwd=str(ROOT_DIR))
 
 
 if __name__ == '__main__':

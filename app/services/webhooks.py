@@ -1,7 +1,7 @@
 """Webhook system for DocPro"""
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 import sqlite3
 from pathlib import Path
 from app.utils.logger_enhanced import get_logger
@@ -129,7 +129,7 @@ class WebhookManager:
             
             response = requests.post(url, json={
                 'event': event_type,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'data': payload
             }, headers=headers, timeout=10)
             

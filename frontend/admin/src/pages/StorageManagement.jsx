@@ -1,61 +1,102 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { adminAPI } from '@shared/api/api'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import '../styles/admin.css'
 
 const StorageManagement = () => {
-  const [stats, setStats] = useState({
-    totalStorageUsed: '487.2 GB',
-    tempFileCount: 3847,
-    avgFileSize: '24.5 MB',
-    cleanupSchedule: 'Daily at 2:00 AM'
+  const [payload, setPayload] = useState({
+    stats: {
+      totalStorageUsed: '0 B',
+      tempFileCount: 0,
+      avgFileSize: '0 B',
+      cleanupSchedule: 'Not configured',
+    },
+    buckets: [],
   })
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState('')
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [lastUpdated, setLastUpdated] = useState('')
 
-  const [storageData] = useState([
-    { id: 'BUCKET-001', name: 'Uploads', used: '285 GB', files: 12450, lastCleanup: '2026-03-06 02:15', orphans: 123 },
-    { id: 'BUCKET-002', name: 'Temporary', used: '98 GB', files: 3847, lastCleanup: '2026-03-06 02:15', orphans: 456 },
-    { id: 'BUCKET-003', name: 'Processing', used: '67 GB', files: 2891, lastCleanup: '2026-03-05 22:30', orphans: 234 },
-    { id: 'BUCKET-004', name: 'Archives', used: '37.2 GB', files: 1205, lastCleanup: '2026-03-04 14:45', orphans: 12 },
-  ])
+  useEffect(() => {
+    loadStorageOverview()
+  }, [])
 
-  const handleManualCleanup = () => {
-    alert('Starting manual cleanup of temporary files...')
+  const loadStorageOverview = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const response = await adminAPI.getStorageOverview()
+      setPayload(response.data || { stats: {}, buckets: [] })
+      setLastUpdated(response.data?.generatedAt || '')
+    } catch (err) {
+      console.error('Failed to load storage overview:', err)
+      setError(err.message || 'Failed to load storage overview')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDeleteOrphanFiles = () => {
-    alert('Scanning and deleting orphaned files...')
+  const handleManualCleanup = async () => {
+    try {
+      setActionLoading('cleanup')
+      setMessage('')
+      const response = await adminAPI.cleanupStorageUploads({})
+      setMessage(response.data?.message || 'Cleanup completed.')
+      await loadStorageOverview()
+    } catch (err) {
+      console.error('Failed to clean upload staging:', err)
+      setError(err.message || 'Failed to clean upload staging')
+    } finally {
+      setActionLoading('')
+    }
   }
 
-  const handleInspectBucket = (bucketName) => {
-    alert(`Inspecting storage bucket: ${bucketName}`)
+  const handleReconcileStorage = async () => {
+    try {
+      setActionLoading('reconcile')
+      setMessage('')
+      const response = await adminAPI.reconcileStorageReferences()
+      setMessage(response.data?.message || 'Storage reconciliation completed.')
+      await loadStorageOverview()
+    } catch (err) {
+      console.error('Failed to reconcile storage references:', err)
+      setError(err.message || 'Failed to reconcile storage references')
+    } finally {
+      setActionLoading('')
+    }
   }
 
-  const getStoragePercentage = (used, total) => {
-    const usedNum = parseFloat(used)
-    const totalNum = parseFloat(total)
-    return Math.round((usedNum / totalNum) * 100)
-  }
+  const stats = payload.stats || {}
 
   return (
     <div className="admin-section">
       <h2><UniversalIcon icon="💾" size={24} /> Files & Storage</h2>
-      <p className="section-subtitle">Manage temporary files and storage buckets</p>
+      <p className="section-subtitle">
+        Live storage usage and cleanup controls
+        {lastUpdated ? ` • Last updated ${lastUpdated.replace('T', ' ').slice(0, 19)}` : ''}
+      </p>
+
+      {error && <div className="alert-banner error">{error}</div>}
+      {message && <div className="alert-banner success">{message}</div>}
 
       <div className="admin-stats-grid">
         <div className="admin-stat-card metric-primary">
           <UniversalIcon icon="💿" size={32} />
           <div className="stat-content">
             <h3>Total Storage Used</h3>
-            <p className="stat-value">{stats.totalStorageUsed}</p>
-            <p className="stat-detail">1.2 TB available</p>
+            <p className="stat-value">{stats.totalStorageUsed || '0 B'}</p>
+            <p className="stat-detail">Tracked application storage</p>
           </div>
         </div>
 
         <div className="admin-stat-card metric-warning">
           <UniversalIcon icon="📋" size={32} />
           <div className="stat-content">
-            <h3>Temporary File Count</h3>
-            <p className="stat-value">{stats.tempFileCount}</p>
-            <p className="stat-detail">Pending cleanup</p>
+            <h3>Upload Staging Files</h3>
+            <p className="stat-value">{stats.tempFileCount || 0}</p>
+            <p className="stat-detail">Chunked upload artifacts</p>
           </div>
         </div>
 
@@ -63,90 +104,82 @@ const StorageManagement = () => {
           <UniversalIcon icon="📊" size={32} />
           <div className="stat-content">
             <h3>Average File Size</h3>
-            <p className="stat-value">{stats.avgFileSize}</p>
-            <p className="stat-detail">Mean across all files</p>
+            <p className="stat-value">{stats.avgFileSize || '0 B'}</p>
+            <p className="stat-detail">Across tracked files</p>
           </div>
         </div>
 
         <div className="admin-stat-card metric-success">
           <UniversalIcon icon="📅" size={32} />
           <div className="stat-content">
-            <h3>Storage Cleanup Schedule</h3>
-            <p className="stat-value">{stats.cleanupSchedule}</p>
-            <p className="stat-detail">Automatic cleanup</p>
+            <h3>Cleanup Schedule</h3>
+            <p className="stat-value">{stats.cleanupSchedule || 'Not configured'}</p>
+            <p className="stat-detail">Upload staging retention</p>
           </div>
         </div>
       </div>
 
       <div className="quick-actions" style={{ marginTop: '30px', marginBottom: '30px' }}>
-        <button className="action-button primary" onClick={handleManualCleanup} title="Run cleanup now">
-          <UniversalIcon icon="🧹" size={14} /> Manual Cleanup
+        <button className="action-button primary" onClick={handleManualCleanup} disabled={actionLoading === 'cleanup' || loading} title="Purge stale upload staging directories">
+          <UniversalIcon icon="🧹" size={14} /> {actionLoading === 'cleanup' ? 'Cleaning...' : 'Cleanup Upload Staging'}
         </button>
-        <button className="action-button primary" onClick={handleDeleteOrphanFiles} title="Delete orphaned files">
-          <UniversalIcon icon="🗑️" size={14} /> Delete Orphan Files
+        <button className="action-button primary" onClick={handleReconcileStorage} disabled={actionLoading === 'reconcile' || loading} title="Clear stale conversion file references">
+          <UniversalIcon icon="🗑️" size={14} /> {actionLoading === 'reconcile' ? 'Reconciling...' : 'Clear Stale References'}
+        </button>
+        <button className="action-button primary" onClick={loadStorageOverview} disabled={loading} title="Refresh storage metrics">
+          <UniversalIcon icon="🔄" size={14} /> {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
 
       <div className="admin-section-content">
-        <h3>Storage Buckets</h3>
+        <h3>Storage Areas</h3>
 
         <div className="jobs-table-wrapper">
           <table className="jobs-table">
             <thead>
               <tr>
-                <th>Bucket ID</th>
-                <th>Bucket Name</th>
+                <th>Area ID</th>
+                <th>Name</th>
                 <th>Used Space</th>
                 <th>File Count</th>
-                <th>Orphaned Files</th>
-                <th>Last Cleanup</th>
-                <th>Actions</th>
+                <th>Stale Records</th>
+                <th>Cleanup Candidates</th>
+                <th>Last Updated</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {storageData.map(bucket => {
-                const percentage = getStoragePercentage(bucket.used, '1024')
-                return (
-                  <tr key={bucket.id} className="job-row">
-                    <td className="job-id"><code>{bucket.id}</code></td>
-                    <td><strong>{bucket.name}</strong></td>
-                    <td>
-                      <span className="format-badge" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                        {bucket.used}
-                      </span>
-                    </td>
-                    <td><strong>{bucket.files.toLocaleString()}</strong></td>
-                    <td>
-                      {bucket.orphans > 0 ? (
-                        <span className="status-badge" style={{ backgroundColor: '#f97316', color: 'white' }}>
-                          <UniversalIcon icon="⚠️" size={14} /> {bucket.orphans}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#11998e', fontWeight: '600' }}><UniversalIcon icon="✓" size={14} /> 0</span>
-                      )}
-                    </td>
-                    <td className="timestamp">{bucket.lastCleanup}</td>
-                    <td className="actions">
-                      <button 
-                        className="action-btn logs" 
-                        onClick={() => handleInspectBucket(bucket.name)} 
-                        title="Inspect Bucket"
-                      >
-                        <UniversalIcon icon="🔍" size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+              {(payload.buckets || []).map((bucket) => (
+                <tr key={bucket.id} className={`job-row ${bucket.status}`}>
+                  <td className="job-id"><code>{bucket.id}</code></td>
+                  <td>
+                    <strong>{bucket.name}</strong>
+                    <div className="timestamp">{bucket.path || 'Path unavailable'}</div>
+                  </td>
+                  <td>
+                    <span className="format-badge" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                      {bucket.usedLabel}
+                    </span>
+                  </td>
+                  <td><strong>{bucket.files}</strong></td>
+                  <td>{bucket.orphaned}</td>
+                  <td>{bucket.cleanupCandidates}</td>
+                  <td className="timestamp">{bucket.lastUpdated ? bucket.lastUpdated.replace('T', ' ').slice(0, 19) : 'No activity'}</td>
+                  <td>
+                    <span className="status-badge" style={{ backgroundColor: bucket.status === 'healthy' ? '#11998e' : '#f6ad55', color: 'white' }}>
+                      {bucket.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {!loading && (!payload.buckets || payload.buckets.length === 0) && (
+                <tr>
+                  <td colSpan="8">No storage areas available</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-
-        {storageData.length === 0 && (
-          <div className="no-data">
-            <p>No storage buckets available</p>
-          </div>
-        )}
       </div>
     </div>
   )

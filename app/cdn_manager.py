@@ -2,7 +2,7 @@
 import logging
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Tuple, Optional, List
 from app.models import db
 from app.models.multi_region import GeoRoute
@@ -259,7 +259,7 @@ class CloudFrontManager:
                         'Quantity': len(paths),
                         'Items': paths
                     },
-                    'CallerReference': str(datetime.utcnow().timestamp())
+                    'CallerReference': str(datetime.now(timezone.utc).timestamp())
                 }
             )
             
@@ -355,9 +355,9 @@ class CDNManager:
         """Get cacheable URL for resource."""
         # Add cache buster parameter or hash
         import hashlib
-        from datetime import datetime
+        from datetime import datetime, timezone
         
-        year_week = datetime.utcnow().isocalendar()
+        year_week = datetime.now(timezone.utc).isocalendar()
         cache_key = hashlib.md5(f'{path}{year_week[0]}{year_week[1]}'.encode()).hexdigest()[:8]
         
         return f'{path}?cache={cache_key}'

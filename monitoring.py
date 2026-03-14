@@ -5,7 +5,7 @@ Setup for Phase 15 - Advanced Features & Monitoring
 
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import time
 from flask import request, g
@@ -40,7 +40,7 @@ class MonitoringSetup:
                 self.metrics['slow_requests'].append({
                     'endpoint': request.endpoint,
                     'duration': elapsed,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
             
             # Add timing header
@@ -51,7 +51,7 @@ class MonitoringSetup:
     def log_error(self, error_type, message, context=None):
         """Log error for monitoring"""
         error_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': error_type,
             'message': message,
             'context': context or {},
@@ -88,7 +88,7 @@ class StructuredLogger:
     def log(level, message, **extra):
         """Log with structured JSON format"""
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': level.upper(),
             'message': message,
             'request_id': getattr(g, 'request_id', None),
@@ -102,7 +102,7 @@ class StructuredLogger:
     def log_api_request(method, path, status_code, duration_ms, **extra):
         """Log API request"""
         return {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': 'INFO',
             'event': 'api_request',
             'method': method,
@@ -117,7 +117,7 @@ class StructuredLogger:
     def log_error(error_type, message, traceback=None, **extra):
         """Log error with full context"""
         return {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': 'ERROR',
             'event': 'error',
             'error_type': error_type,
@@ -206,7 +206,7 @@ class AlertingSystem:
                 'severity': 'high',
                 'alert': 'error_rate_high',
                 'message': f'Error rate is {current_rate:.2f}%',
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'action': 'Investigate error logs and slow requests'
             }
         return None
@@ -219,7 +219,7 @@ class AlertingSystem:
                 'severity': 'medium',
                 'alert': 'slow_requests',
                 'message': f'{len(slow_requests)} slow requests detected',
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'action': 'Optimize slow endpoints or database queries'
             }
         return None
@@ -231,7 +231,7 @@ class AlertingSystem:
             'severity': 'medium',
             'alert': 'recurring_error',
             'message': f'Error type {error_type} occurred {occurrence_threshold} times',
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'action': f'Fix {error_type} errors'
         }
 
@@ -241,7 +241,7 @@ def get_system_health():
     """Get current system health status"""
     return {
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'checks': {
             'api': 'online',
             'database': 'online',
@@ -298,7 +298,7 @@ def init_monitoring(app):
             'success': True,
             'metrics': metrics,
             'alerts': [a for a in alerts if a is not None],
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }, 200
     
     return monitoring

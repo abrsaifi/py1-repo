@@ -804,17 +804,17 @@ Monitor task execution via Celery:
 
 ```bash
 # Start Celery worker with logging
-celery -A app.celery worker -l info
+celery -A app.celery_config worker -l info
 
 # Start Celery Beat scheduler
-celery -A app.celery beat -l info
+celery -A app.celery_config beat -l info
 
 # Monitor tasks in real-time
-celery -A app.celery events
+celery -A app.celery_config events
 
 # View task history
-celery -A app.celery inspect active
-celery -A app.celery inspect registered
+celery -A app.celery_config inspect active
+celery -A app.celery_config inspect registered
 ```
 
 ---
@@ -893,13 +893,13 @@ psql -U postgres -c "SELECT * FROM pg_stat_replication;"
 # - Already done: task_routes configured for queues
 
 # 2. Start Celery worker
-celery -A app.celery worker -l info -Q conversions,emails,maintenance,critical &
+celery -A app.celery_config worker -l info -Q conversions,emails,maintenance,critical &
 
 # 3. Start Celery Beat (scheduler)
-celery -A app.celery beat -l info &
+celery -A app.celery_config beat -l info &
 
 # 4. Verify tasks registered
-celery -A app.celery inspect registered
+celery -A app.celery_config inspect registered
 
 # Should show:
 # backup_database_full
@@ -991,7 +991,7 @@ psql -d docpro_test < /tmp/test-backup/backup_*.sql
 
 ```bash
 # 1. Verify Celery tasks execute on schedule
-celery -A app.celery events &
+celery -A app.celery_config events &
 # Watch for task executions at scheduled times
 
 # 2. Verify replication health check runs every 5 minutes

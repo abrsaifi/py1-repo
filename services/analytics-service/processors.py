@@ -4,7 +4,7 @@ Handles calculation, aggregation, and persistence of analytics metrics
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from analytics_models import (
     SystemMetric, ServiceMetric, UserActivityMetric, BusinessMetric,
@@ -78,7 +78,7 @@ class SystemMetricProcessor(MetricsProcessor):
             metric_type = raw_metrics.get('metric_type', 'gauge')
             values = raw_metrics.get('values', [])
             
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             
             # Calculate aggregations for different time periods
             for aggregation_level in ['minute', 'hour', 'day']:
@@ -157,7 +157,7 @@ class ServiceMetricProcessor(MetricsProcessor):
             # Calculate error rates
             error_rate = (failed / request_count * 100) if request_count > 0 else 0
             
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             period_start = now - timedelta(hours=1)
             
             metric = ServiceMetric(
@@ -246,7 +246,7 @@ class UserActivityMetricProcessor(MetricsProcessor):
             # Process device metrics
             device_metrics = period_data.get('device_metrics', {})
             
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             period_start = datetime.fromisoformat(period_data.get('period_start', now.isoformat()))
             
             metric = UserActivityMetric(
@@ -324,7 +324,7 @@ class BusinessMetricProcessor(MetricsProcessor):
             churn_rate = float(financial_data.get('churn_rate', 0))
             retention_rate = 100 - churn_rate
             
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             period_start = datetime.fromisoformat(financial_data.get('period_start', now.isoformat()))
             
             metric = BusinessMetric(
@@ -377,7 +377,7 @@ class MetricsAggregator:
         Aggregate minutely metrics to hourly
         """
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             hour_ago = now - timedelta(hours=1)
             
             # Query minutely metrics
@@ -429,7 +429,7 @@ class MetricsAggregator:
         Remove old metrics based on retention policy
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
             
             deleted = self.session.query(SystemMetric).filter(
                 SystemMetric.tenant_id == tenant_id,

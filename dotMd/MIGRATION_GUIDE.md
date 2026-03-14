@@ -1,6 +1,7 @@
-# Migration Guide: From Monolith to Microservices
+# Migration Guide: From Monolith to Target Service Split
 
-This guide explains how to migrate your existing file converter code to the new enterprise SaaS architecture.
+This guide captures the historical target migration from the original monolith to a service-split SaaS architecture.
+In the current workspace, the verified runtime has instead converged on a modular Flask package under `app/`, with the service-split material retained as reference guidance.
 
 ## What Changed?
 
@@ -15,7 +16,7 @@ app.py (everything here)
 └── Workers
 ```
 
-### After (Microservices)
+### After (Target Service Split)
 ```
 services/
 ├── api-gateway/       # Routes only
@@ -25,12 +26,14 @@ services/
 └── billing-service/   # Payments only
 
 workers/
-├── conversion-workers/# Actual conversions
-├── cleanup-worker/    # File cleanup
-└── priority-worker/   # Premium users
+├── conversion-workers/# Compatibility launchers for Celery queues
+├── cleanup-worker/    # Compatibility launcher for maintenance queue
+└── priority-worker/   # Compatibility launcher for premium queue routing
 ```
 
 ## Key Architectural Changes
+
+Note: these sections describe the intended target decomposition. The current runtime uses the `app/` package plus Celery queues rather than a fully separated live service mesh.
 
 ### 1. **Separation of Concerns**
 - **Before**: One Flask app handling everything
@@ -38,7 +41,7 @@ workers/
 
 ### 2. **Asynchronous Processing**
 - **Before**: Conversions in request-response cycle (blocking)
-- **After**: Jobs queued immediately, workers process asynchronously
+- **After**: Jobs queued immediately through `app/celery_config.py`, with execution in `app/tasks.py`
 
 ### 3. **Shared Code**
 - **Before**: Code duplication across services
@@ -118,31 +121,15 @@ def convert():
     return {'job_id': job.id}  # Returns in < 100ms!
 ```
 
-**Worker** (`workers/conversion-workers/pdf_worker.py`):
+**Compatibility launcher** (`workers/conversion-workers/pdf_worker.py`):
 ```python
 def process_job(job):
-    try:
-        input_file = storage.get(job.input_file)
-        
-        # Actual conversion (happens here)
-        output = convert_to_pdf(input_file)
-        
-        # Save output
-        output_id = storage.save(output)
-        
-        # Update job
-        job.output_file = output_id
-        job.status = 'COMPLETED'
-        job.save()
-        
-        # Notify user (WebSocket)
-        notify_user(job.user_id, {'status': 'completed', 'job_id': job.id})
-        
-    except Exception as e:
-        job.status = 'FAILED'
-        job.error_message = str(e)
-        job.save()
+    conversion_id = job.conversion_id
+    app = create_app({'ENABLE_BACKGROUND_TASKS': False})
+    app.celery.send_task('app.tasks.process_pdf', args=[conversion_id], queue='conversions')
 ```
+
+The actual task execution lives in `app/tasks.py`; the standalone worker scripts now preserve old entrypoints and queue names without duplicating conversion logic.
 
 ### Step 3: User Data Endpoints
 **Old Code** (`app.py`):
@@ -199,7 +186,7 @@ All read same database, but **services own their data** (logical separation).
 # Old (monolith)
 ONE connection pool for everything
 
-# New (microservices)
+# New (target service split)
 Each service has its own connection pool
 → Better resource management
 → Easier to scale different services differently
@@ -259,7 +246,7 @@ def test_pdf_worker():
 python app.py  # Everything runs here
 ```
 
-### After (microservices)
+### After (target service split)
 ```bash
 # Terminal 1
 python -m services.api_gateway.main      # :5000

@@ -75,11 +75,14 @@ def test_file_upload_routes():
         print("The file upload issues have been fixed:")
         print("  • /convert now accepts 'files' field (was 'pdf_file')")
         print("  • /convert-to-pdf now accepts 'files' field (was 'file')")
-        return 0
     else:
         print("✗ Some tests failed")
-        return 1
+    assert all(test_results), "Some file upload route tests failed"
 
 
 if __name__ == '__main__':
-    sys.exit(test_file_upload_routes())
+    try:
+        test_file_upload_routes()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

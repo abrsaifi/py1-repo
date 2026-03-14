@@ -3,7 +3,7 @@ Disaster Recovery Manager
 Handles automated backups, replication monitoring, recovery procedures
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 import logging
 import json
@@ -33,7 +33,7 @@ class BackupManager:
         Returns: (success, backup_path, error_message)
         """
         try:
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_file = f"{self.backup_dir}/full_backup_{timestamp}.sql.gz"
             
             # Build pg_dump command
@@ -166,7 +166,7 @@ class BackupManager:
             # Record restore in manifest
             self._add_to_manifest({
                 'type': 'restore',
-                'timestamp': datetime.utcnow().strftime("%Y%m%d_%H%M%S"),
+                'timestamp': datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
                 'from_backup': backup_file,
                 'target_database': target_database,
                 'status': 'completed',
@@ -245,7 +245,7 @@ class BackupManager:
                 with open(self.backup_manifest, 'r') as f:
                     manifest = json.load(f)
             
-            entry['recorded_at'] = datetime.utcnow().isoformat()
+            entry['recorded_at'] = datetime.now(timezone.utc).isoformat()
             manifest.append(entry)
             
             with open(self.backup_manifest, 'w') as f:
@@ -275,7 +275,7 @@ class BackupManager:
         Returns: (deleted_count, freed_bytes)
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
             deleted_count = 0
             freed_bytes = 0
             
@@ -315,7 +315,7 @@ class ReplicationMonitor:
         """
         try:
             status = {
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'primary_healthy': False,
                 'standby_healthy': False,
                 'replication_lag_bytes': None,
@@ -359,7 +359,7 @@ class ReplicationMonitor:
             
         except Exception as e:
             logger.error(f"Replication status check failed: {e}")
-            return {'error': str(e), 'timestamp': datetime.utcnow().isoformat()}
+            return {'error': str(e), 'timestamp': datetime.now(timezone.utc).isoformat()}
     
     def _get_current_lsn(self, config: Dict, is_standby: bool = False) -> Optional[str]:
         """Get current LSN (Log Sequence Number) from database"""
@@ -441,12 +441,12 @@ class RecoveryPlanner:
         backups = self.backup_manager.get_backup_history(limit=1)
         
         if not backups:
-            latest_backup_time = datetime.utcnow()
+            latest_backup_time = datetime.now(timezone.utc)
         else:
             latest_backup_time = datetime.fromisoformat(backups[0]['timestamp'])
         
         # Time since last backup
-        time_since_backup = datetime.utcnow() - latest_backup_time
+        time_since_backup = datetime.now(timezone.utc) - latest_backup_time
         
         return {
             'rto_estimate': {

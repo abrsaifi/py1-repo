@@ -9,7 +9,7 @@ import time
 import uuid
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import deque
 from werkzeug.utils import secure_filename
 from flask import request
@@ -137,7 +137,7 @@ def parse_page_numbers(pages_input):
     
     # Split by comma or space
     import re
-    tokens = re.split('[,\s]+', pages_input.strip())
+    tokens = re.split(r'[,\s]+', pages_input.strip())
     
     for token in tokens:
         if not token:
@@ -266,7 +266,7 @@ def log_history(operation, files, status='success', message=''):
         conn = sqlite3.connect(HISTORY_DB)
         c = conn.cursor()
         c.execute('INSERT INTO history (timestamp, operation, files, status, message) VALUES (?, ?, ?, ?, ?)',
-                  (datetime.utcnow().isoformat(), operation, json.dumps(files), status, message))
+                  (datetime.now(timezone.utc).isoformat(), operation, json.dumps(files), status, message))
         conn.commit()
         conn.close()
     except Exception:

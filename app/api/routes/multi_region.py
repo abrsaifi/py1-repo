@@ -1,7 +1,7 @@
 """Multi-region deployment REST API endpoints."""
 from flask import Blueprint, jsonify, request, current_app
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.models import db
 from app.models.multi_region import (
     RegionConfig, RegionReplica, GeoRoute, RegionHealthHistory,
@@ -117,7 +117,7 @@ def update_region(region_code):
             if hasattr(region, key) and key not in ['id', 'created_at']:
                 setattr(region, key, value)
         
-        region.updated_at = datetime.utcnow()
+        region.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         
         logger.info(f'Region updated: {region.region_code}')
@@ -495,7 +495,7 @@ def update_multi_region_config():
             if hasattr(config, key):
                 setattr(config, key, value)
         
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         
         logger.info('Multi-region configuration updated')

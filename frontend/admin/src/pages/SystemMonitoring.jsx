@@ -3,46 +3,74 @@ import { UniversalIcon } from '@shared/utils/UniversalIcon'
 
 const SystemMonitoring = () => {
   const [metrics, setMetrics] = useState({
-    cpuUsage: 35,
-    memoryUsage: 62,
-    diskUsage: 45,
-    apiResponseTime: 145,
-    activeUsers: 28,
-    requestsPerSecond: 42,
-    errorRate: 0.5,
-    uptime: 99.98
+    cpuUsage: 0,
+    memoryUsage: 0,
+    diskUsage: 0,
+    apiResponseTime: 0,
+    activeUsers: 0,
+    requestsPerSecond: 0,
+    errorRate: 0,
+    uptimeSeconds: 0,
   })
 
   const [systemStatus, setSystemStatus] = useState({
-    database: 'healthy',
-    api: 'healthy',
-    cache: 'healthy',
-    storage: 'healthy'
+    database: 'unknown',
+    api: 'unknown',
+    cache: 'unknown',
+    workers: 'unknown',
+    storage: 'unknown'
   })
 
-  const [alerts, setAlerts] = useState([
-    { id: 1, type: 'warning', message: 'Memory usage exceeded 60%', time: '5 minutes ago' },
-    { id: 2, type: 'info', message: 'Scheduled backup completed successfully', time: '2 hours ago' },
-    { id: 3, type: 'error', message: 'API endpoint /reports experiencing slow response times', time: '1 hour ago' }
-  ])
+  const [alerts, setAlerts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState('')
 
   useEffect(() => {
+    loadSystemHealth()
     const interval = setInterval(() => {
-      updateMetrics()
-    }, 5000)
+      loadSystemHealth()
+    }, 15000)
     return () => clearInterval(interval)
   }, [])
 
-  const updateMetrics = () => {
-    setMetrics(prev => ({
-      ...prev,
-      cpuUsage: Math.max(20, Math.min(80, prev.cpuUsage + (Math.random() - 0.5) * 10)),
-      memoryUsage: Math.max(40, Math.min(90, prev.memoryUsage + (Math.random() - 0.5) * 5)),
-      diskUsage: Math.max(30, Math.min(70, prev.diskUsage + (Math.random() - 0.5) * 3)),
-      apiResponseTime: Math.max(100, Math.min(500, prev.apiResponseTime + (Math.random() - 0.5) * 50)),
-      requestsPerSecond: Math.max(30, Math.min(100, prev.requestsPerSecond + (Math.random() - 0.5) * 20)),
-      errorRate: Math.max(0, Math.min(5, prev.errorRate + (Math.random() - 0.5) * 1))
-    }))
+  const loadSystemHealth = async () => {
+    try {
+      setError('')
+      const response = await fetch('/api/admin/health', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      })
+
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load system health')
+      }
+
+      setMetrics({
+        cpuUsage: Number(payload.metrics?.cpuUsage || 0),
+        memoryUsage: Number(payload.metrics?.memoryUsage || 0),
+        diskUsage: Number(payload.metrics?.diskUsage || 0),
+        apiResponseTime: Number(payload.metrics?.apiResponseTime || 0),
+        activeUsers: Number(payload.metrics?.activeUsers || 0),
+        requestsPerSecond: Number(payload.metrics?.requestsPerSecond || 0),
+        errorRate: Number(payload.metrics?.errorRate || 0),
+        uptimeSeconds: Number(payload.metrics?.uptimeSeconds || 0),
+      })
+      setSystemStatus({
+        database: payload.components?.database?.status || 'unknown',
+        api: payload.components?.api?.status || 'unknown',
+        cache: payload.components?.cache?.status || 'unknown',
+        workers: payload.components?.workers?.status || 'unknown',
+        storage: payload.components?.storage?.status || 'unknown',
+      })
+      setAlerts(payload.alerts || [])
+      setLastUpdated(payload.timestamp || '')
+    } catch (loadError) {
+      console.error('Failed to load system health:', loadError)
+      setError(loadError.message || 'Failed to load system health')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getHealthStatus = (value, thresholds) => {
@@ -55,8 +83,13 @@ const SystemMonitoring = () => {
     switch (status) {
       case 'healthy':
         return '#4caf50'
+      case 'degraded':
       case 'warning':
+      case 'unknown':
+      case 'not_configured':
         return '#ff9800'
+      case 'offline':
+      case 'unhealthy':
       case 'critical':
         return '#f44336'
       default:
@@ -68,14 +101,34 @@ const SystemMonitoring = () => {
     setAlerts(alerts.filter(alert => alert.id !== id))
   }
 
+  const formatUptime = (uptimeSeconds) => {
+    const totalSeconds = Number(uptimeSeconds || 0)
+    const days = Math.floor(totalSeconds / 86400)
+    const hours = Math.floor((totalSeconds % 86400) / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    if (days > 0) return `${days}d ${hours}h`
+    if (hours > 0) return `${hours}h ${minutes}m`
+    return `${minutes}m`
+  }
+
   return (
     <div className="system-monitoring">
       <div className="management-header">
         <h2><UniversalIcon icon="📡" size={24} /> System Monitoring</h2>
         <div className="header-actions">
-          <span className="refresh-indicator"><UniversalIcon icon="🜢" size={14} /> Live</span>
+          <span className="refresh-indicator"><UniversalIcon icon="🜢" size={14} /> {loading ? 'Loading' : 'Live'}</span>
         </div>
       </div>
+
+      {error ? (
+        <div className="no-data" style={{ marginBottom: '20px', border: '1px solid #fed7d7', background: '#fff5f5', color: '#c53030' }}>
+          <p>{error}</p>
+        </div>
+      ) : null}
+
+      {lastUpdated ? (
+        <p className="section-subtitle" style={{ marginTop: '-6px' }}>Last updated: {lastUpdated.replace('T', ' ').slice(0, 19)}</p>
+      ) : null}
 
       <div className="monitoring-grid">
         <div className="metric-card">
@@ -187,8 +240,8 @@ const SystemMonitoring = () => {
 
         <div className="metric-card">
           <h4>System Uptime</h4>
-          <div className="metric-value">{metrics.uptime.toFixed(2)}%</div>
-          <p className="metric-detail">Last 30 days</p>
+          <div className="metric-value">{formatUptime(metrics.uptimeSeconds)}</div>
+          <p className="metric-detail">Process uptime</p>
         </div>
       </div>
 
@@ -203,7 +256,7 @@ const SystemMonitoring = () => {
               />
               <div className="service-info">
                 <h5>{service.charAt(0).toUpperCase() + service.slice(1)}</h5>
-                <p className="status-text">{status.charAt(0).toUpperCase() + status.slice(1)}</p>
+                <p className="status-text">{status.replace('_', ' ')}</p>
               </div>
             </div>
           ))}
@@ -223,7 +276,7 @@ const SystemMonitoring = () => {
                 </div>
                 <div className="alert-content">
                   <p className="alert-message">{alert.message}</p>
-                  <p className="alert-time">{alert.time}</p>
+                  <p className="alert-time">{String(alert.time || '').replace('T', ' ').slice(0, 19)}</p>
                 </div>
                 <button
                   className="alert-close"

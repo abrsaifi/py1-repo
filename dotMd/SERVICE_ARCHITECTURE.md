@@ -2,16 +2,17 @@
 
 ## Overview
 
-This document describes the enterprise-ready microservices architecture for the file converter SaaS application.
+This document describes the target service-oriented architecture captured during the repo restructuring work.
+The active backend runtime in this workspace is the modular Flask application under `app/`, not a fully separated live microservices deployment.
 
 ## Core Principles
 
 ### 1. **Separation of Concerns**
-Each microservice has a single, well-defined responsibility:
+The target service decomposition assigns a single, well-defined responsibility to each service:
 - **Auth Service**: Only handles authentication
 - **Conversion Service**: Only manages jobs (doesn't do conversions)
 - **User Service**: Only manages user data
-- **Workers**: Only perform conversions (off the main thread)
+- **Workers**: Compatibility launchers and queue-specific entrypoints for background jobs
 
 ### 2. **Stateless Services**
 - Each service instance can be scaled independently
@@ -24,13 +25,15 @@ Each microservice has a single, well-defined responsibility:
 - Version support for backward compatibility
 
 ### 4. **Asynchronous Processing**
-- Long-running conversions happen in background workers
+- Long-running conversions run through Celery-backed background queues
 - Users get immediate feedback via job IDs
 - Results available when ready
 
 ## Service Details
 
 ### API Gateway
+
+Historical/target role in the service decomposition:
 **Responsibility**: Traffic routing, validation, rate limiting
 
 **Key Routes**:
@@ -46,6 +49,8 @@ Each microservice has a single, well-defined responsibility:
 - Request Logging
 
 ### Auth Service
+
+Historical/target role in the service decomposition:
 **Responsibility**: User authentication and token management
 
 **Endpoints**:
@@ -60,6 +65,8 @@ Each microservice has a single, well-defined responsibility:
 - `auth_tokens` - Active tokens
 
 ### Conversion Service
+
+Historical/target role in the service decomposition:
 **Responsibility**: Job orchestration (NOT actual conversion)
 
 **Endpoints**:
@@ -206,10 +213,9 @@ user-service:5002
 conversion-service:5003
 billing-service:5004
 analytics-service:5005
-pdf-worker:workers
-image-worker:workers
-doc-worker:workers
-cleanup-worker:workers
+celery-conversions-worker:workers
+celery-critical-worker:workers
+celery-maintenance-worker:workers
 ```
 
 ### Environment Variables

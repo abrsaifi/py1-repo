@@ -15,16 +15,14 @@ def test_imports():
         print("  ✓ Error handlers imported")
     except Exception as e:
         print(f"  ✗ Error handler import failed: {e}")
-        return False
+        raise AssertionError(f"Error handler import failed: {e}") from e
     
     try:
         from app.utils.logger_setup import LoggerSetup
         print("  ✓ Logger setup imported")
     except Exception as e:
         print(f"  ✗ Logger setup import failed: {e}")
-        return False
-    
-    return True
+        raise AssertionError(f"Logger setup import failed: {e}") from e
 
 
 def test_logging_setup():
@@ -51,13 +49,11 @@ def test_logging_setup():
             print(f"  ✓ Log file created at logs/test_app.log")
         else:
             print(f"  ⚠ Log file not yet created (normal if not written)")
-        
-        return True
     except Exception as e:
         print(f"  ✗ Logging setup failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Logging setup failed: {e}") from e
 
 
 def test_error_handlers():
@@ -76,13 +72,11 @@ def test_error_handlers():
             print(f"  ✓ Number of error handler specs: {len(app.error_handler_spec)}")
         else:
             print(f"  ⚠ No error handlers found (might be registered globally)")
-        
-        return True
     except Exception as e:
         print(f"  ✗ Error handler registration failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Error handler registration failed: {e}") from e
 
 
 def test_server_initialization():
@@ -98,13 +92,11 @@ def test_server_initialization():
         # Check error handlers
         if app.error_handler_spec:
             print(f"  ✓ Error handlers registered: {len(app.error_handler_spec)} specs")
-        
-        return True
     except Exception as e:
         print(f"  ✗ Server initialization failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Server initialization failed: {e}") from e
 
 
 def test_app_factory():
@@ -121,13 +113,11 @@ def test_app_factory():
         # Check error handlers
         if app.error_handler_spec:
             print(f"  ✓ Error handlers registered: {len(app.error_handler_spec)} specs")
-        
-        return True
     except Exception as e:
         print(f"  ✗ App factory failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"App factory failed: {e}") from e
 
 
 def test_health_endpoint():
@@ -151,13 +141,11 @@ def test_health_endpoint():
                 print(f"  ✓ Health endpoints are registered")
             else:
                 print(f"  ⚠ No health endpoints found")
-        
-        return True
     except Exception as e:
         print(f"  ✗ Health endpoint test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Health endpoint test failed: {e}") from e
 
 
 def main():
@@ -166,13 +154,21 @@ def main():
     print("Step 2 Integration Tests")
     print("="*60)
     
+    test_cases = [
+        ('imports', test_imports),
+        ('logging', test_logging_setup),
+        ('errors', test_error_handlers),
+        ('server', test_server_initialization),
+        ('factory', test_app_factory),
+        ('health', test_health_endpoint),
+    ]
     results = {}
-    results['imports'] = test_imports()
-    results['logging'] = test_logging_setup()
-    results['errors'] = test_error_handlers()
-    results['server'] = test_server_initialization()
-    results['factory'] = test_app_factory()
-    results['health'] = test_health_endpoint()
+    for name, test_func in test_cases:
+        try:
+            test_func()
+            results[name] = True
+        except AssertionError:
+            results[name] = False
     
     # Summary
     print("\n" + "="*60)

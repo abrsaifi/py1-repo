@@ -1,10 +1,11 @@
 # File Converter SaaS - Enterprise Architecture
 
-This is the structured README for the completely redesigned file converter application using a scalable SaaS infrastructure architecture.
+This document is a reference architecture for the broader SaaS decomposition work in the repository.
+The current production-oriented runtime in this workspace remains the modular Flask application under `app/`, with background processing through `app/celery_config.py` and `app/tasks.py`.
 
 ## 🏗 Architecture Overview
 
-The project is organized as a **monorepo** with clear separation of concerns:
+The repository contains a mix of active runtime code and historical/target monorepo structure artifacts:
 
 ```
 file-converter-saas/
@@ -12,7 +13,7 @@ file-converter-saas/
 │   ├── web/                   # Desktop + PWA frontend
 │   └── admin-panel/           # Admin dashboard
 │
-├── services/                  # Microservices
+├── services/                  # Historical/target service split artifacts
 │   ├── api-gateway/           # API entry point
 │   ├── auth-service/          # Authentication
 │   ├── user-service/          # User dashboard
@@ -20,10 +21,10 @@ file-converter-saas/
 │   ├── billing-service/       # Payments
 │   └── analytics-service/     # Metrics & tracking
 │
-├── workers/                   # Background workers
-│   ├── conversion-workers/    # CPU-intensive conversions
-│   ├── cleanup-worker/        # File retention
-│   └── priority-worker/       # Premium user queue
+├── workers/                   # Compatibility launchers for Celery queues
+│   ├── conversion-workers/    # Launchers/adapters for the conversions queue
+│   ├── cleanup-worker/        # Launcher/adapter for the maintenance queue
+│   └── priority-worker/       # Launcher/adapter for the critical queue
 │
 ├── packages/                  # Shared code
 │   ├── shared-models/         # Data structures
@@ -50,9 +51,9 @@ file-converter-saas/
 ## 🎯 Key Benefits of This Architecture
 
 ### 1. **Scalability**
-- Workers scale independently based on load
-- Each service can have different resource requirements
-- Horizontal scaling with load balancing
+- Celery workers scale independently based on load
+- The modular Flask package can be extended behind load balancing
+- Historical service split docs remain useful for future decomposition
 
 ### 2. **Reliability**
 - Service isolation prevents cascading failures
@@ -69,7 +70,9 @@ file-converter-saas/
 - Shared utilities reduce code duplication
 - Centralized configuration management
 
-## 📦 Services Breakdown
+## 📦 Reference Service Breakdown
+
+These sections describe the intended service decomposition, not the current single-runtime deployment shape.
 
 ### API Gateway (`services/api-gateway/`)
 - Central entry point for all requests
@@ -110,22 +113,24 @@ file-converter-saas/
 ## 🔧 Workers
 
 ### Conversion Workers (`workers/conversion-workers/`)
-Four specialized workers handle different file types:
+The `workers/` tree is kept as a compatibility layer for older scripts and deployment notes.
+The live background-processing path is the package Celery app in `app/celery_config.py` with tasks in `app/tasks.py`.
+The compatibility launchers map to the shared Celery queues instead of implementing a separate worker system.
 
-- **PDF Worker** - Document to PDF conversions
-- **Image Worker** - Image format conversions
-- **Document Worker** - Office document conversions (DOCX, XLSX, PPTX)
-- **Compression Worker** - File compression and archiving
+- **PDF Worker** - launches the `conversions` queue and dispatches `app.tasks.process_pdf`
+- **Image Worker** - launches the `conversions` queue and dispatches `app.tasks.process_image`
+- **Document Worker** - launches the `conversions` queue and dispatches `app.tasks.convert_file`
+- **Compression Worker** - launches the `maintenance` queue and dispatches `app.tasks.long_running_operation`
 
 ### Cleanup Worker (`workers/cleanup-worker/`)
-- Automatic file deletion based on retention policy
-- Orphaned file detection
-- Storage optimization
+- Compatibility launcher for maintenance cleanup tasks
+- Queues `app.tasks.cleanup_old_uploads`
+- Uses the shared `maintenance` Celery queue
 
 ### Priority Worker (`workers/priority-worker/`)
-- Handles premium user jobs with SLA guarantees
-- Tier-based queue management
-- Performance monitoring
+- Compatibility launcher for premium routing
+- Sends premium jobs to the shared `critical` Celery queue
+- Keeps older worker entrypoints usable without maintaining a second async stack
 
 ## 📊 Shared Packages
 

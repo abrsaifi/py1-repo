@@ -70,7 +70,7 @@ def test_enhanced_watermark():
                 'color': (0.5, 0.5, 0.5),
                 'fontname': 'helv',
                 'position': 'diagonal',
-                'all_pages': False
+                'pages': [0]
             }
         }
     ]
@@ -132,10 +132,13 @@ def test_enhanced_watermark():
         print("  - Custom colors (Gray, Black, Red, Blue, Green)")
         print("  - Apply to all pages or first page only")
         print("  - Opacity control (0.1-0.9)")
-        return 0
     else:
         print("[FAILED] Some enhanced watermark tests failed")
-        return 1
+    assert all(results), "Some enhanced watermark tests failed"
 
 if __name__ == '__main__':
-    sys.exit(test_enhanced_watermark())
+    try:
+        test_enhanced_watermark()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

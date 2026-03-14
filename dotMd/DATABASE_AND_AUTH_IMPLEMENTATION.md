@@ -1,4 +1,4 @@
-# Database Integration & Auth Service Implementation
+# Historical Database Integration & Auth Service Implementation
 
 **Status**: ✅ COMPLETE  
 **Date**: March 4, 2026  
@@ -6,7 +6,8 @@
 
 ## Overview
 
-This phase implements the core infrastructure for the SaaS microservices: PostgreSQL database connectivity, authentication service, and Redis caching/queuing system.
+This phase documents the earlier target service-split architecture for PostgreSQL connectivity, authentication, and Redis-backed queueing.
+In the current workspace, the verified runtime is the modular Flask package under `app/`, with the old auth-service and api-gateway material preserved as historical implementation guidance.
 
 ## What Was Implemented
 

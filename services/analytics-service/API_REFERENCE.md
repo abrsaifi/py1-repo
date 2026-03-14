@@ -1,6 +1,6 @@
 """
-Phase 10 Analytics Service - Complete API Reference
-Comprehensive documentation for all 101+ endpoints, models, and configurations
+Phase 10 Analytics Service - Historical API Reference
+Comprehensive documentation for the earlier standalone analytics-service endpoint set, models, and configurations
 """
 
 # ============================================================================
@@ -9,10 +9,12 @@ Comprehensive documentation for all 101+ endpoints, models, and configurations
 
 ## Overview
 
-The Phase 10 Analytics Service is a comprehensive microservice for collecting, 
+The Phase 10 Analytics Service was designed as a comprehensive microservice for collecting, 
 processing, and querying analytics data. It provides 101+ RESTful endpoints 
 organized across 7 blueprint modules with support for multi-tenancy, 
 authentication, and complex metric aggregations.
+
+In the current workspace, the active backend runtime is the modular Flask application under `app/`, so this document should be read as historical/reference API material for the earlier split-service design.
 
 **Service Details:**
 - Port: 5009

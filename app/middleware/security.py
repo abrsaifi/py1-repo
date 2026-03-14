@@ -1,7 +1,7 @@
 """Security hardening middleware for production deployment."""
 from flask import request, jsonify
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 def security_headers(app):
@@ -124,7 +124,7 @@ def log_request_audit(f):
         
         # Log details
         audit_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'method': request.method,
             'path': request.path,
             'user_id': user_id,

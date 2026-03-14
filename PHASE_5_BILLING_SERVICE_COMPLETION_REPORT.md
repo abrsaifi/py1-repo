@@ -1,4 +1,7 @@
-# Phase 5: Billing Service - Completion Report
+# Phase 5: Billing Service - Historical Completion Report
+
+This report captures the earlier target billing-service implementation track.
+In the current workspace, the active backend runtime is the modular Flask application under `app/`, so the standalone billing-service material below should be treated as historical or target-state reference guidance.
 
 **Status**: ✅ COMPLETE (100%)
 
@@ -12,7 +15,7 @@
 
 ## Executive Summary
 
-Phase 5 successfully implemented a comprehensive billing service for the SaaS platform. The service enables subscription management, invoice generation, payment processing through Stripe, usage tracking with quota enforcement, and refund handling. The implementation includes 10 database models, 25+ API endpoints, complete Stripe integration, 35+ test cases, and 1,500+ lines of documentation.
+Phase 5 documented a comprehensive target billing-service split for the SaaS platform. The service enables subscription management, invoice generation, payment processing through Stripe, usage tracking with quota enforcement, and refund handling. The implementation includes 10 database models, 25+ API endpoints, complete Stripe integration, 35+ test cases, and 1,500+ lines of documentation.
 
 ---
 

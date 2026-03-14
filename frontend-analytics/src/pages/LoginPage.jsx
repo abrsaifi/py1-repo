@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { UniversalIcon } from '../utils/UniversalIcon'
 import '../styles/landing.css'
 import '../styles/auth.css'
 
 const LoginPage = ({ onLogin, onTestLogin }) => {
   const navigate = useNavigate()
+  const auth = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,7 +27,7 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
 
     try {
       // API call to authenticate user
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -33,8 +35,7 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
 
       if (response.ok) {
         const data = await response.json()
-        localStorage.setItem('token', data.token)
-        localStorage.setItem('user', JSON.stringify(data.user))
+        auth.login(data.token, data.user)
         
         // Role-based redirect
         const userRole = data.user?.role
@@ -60,8 +61,7 @@ const LoginPage = ({ onLogin, onTestLogin }) => {
           role: username === 'admin' ? 'admin' : 'subscriber',
           avatar: username === 'admin' ? '👨‍💼' : '👤'
         }
-        localStorage.setItem('token', 'demo_token_' + Date.now())
-        localStorage.setItem('user', JSON.stringify(userData))
+        auth.login('demo_token_' + Date.now(), userData)
         
         // Redirect based on role
         navigate(username === 'admin' ? '/admin' : '/dashboard')

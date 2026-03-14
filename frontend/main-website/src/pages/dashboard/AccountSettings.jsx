@@ -1,12 +1,34 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
+import { useToast } from '@shared/components/Toast'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/dashboard.css'
 
 const AccountSettings = () => {
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('security')
-  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [billingProfile, setBillingProfile] = useState({
+    card: {
+      brand: '',
+      last4: '',
+      expiry_month: '',
+      expiry_year: '',
+      holder: '',
+      status: '',
+    },
+    billingAddressForm: {
+      name: '',
+      line1: '',
+      line2: '',
+      country: '',
+    },
+    taxInfoForm: {
+      taxId: '',
+      taxExemption: 'Not applicable',
+    },
+  })
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -15,88 +37,298 @@ const AccountSettings = () => {
   })
 
   const [twoFactor, setTwoFactor] = useState(false)
-  const [sessions, setSessions] = useState([
-    {
-      id: 1,
-      device: 'Chrome on Windows',
-      location: 'San Francisco, CA',
-      ip: '192.168.1.100',
-      lastActive: '2 minutes ago',
-      isCurrent: true
-    },
-    {
-      id: 2,
-      device: 'Safari on iPhone',
-      location: 'San Francisco, CA',
-      ip: '203.0.113.45',
-      lastActive: '2 hours ago',
-      isCurrent: false
-    },
-    {
-      id: 3,
-      device: 'Firefox on Mac',
-      location: 'New York, NY',
-      ip: '192.168.1.50',
-      lastActive: '1 day ago',
-      isCurrent: false
+  const [sessions, setSessions] = useState([])
+  const [apiKeys, setApiKeys] = useState([])
+  const [connectedApps, setConnectedApps] = useState([])
+  const [privacySettings, setPrivacySettings] = useState({
+    analytics_opt_in: true,
+    marketing_opt_in: true,
+    personalization_opt_in: true,
+    deletion_requested_at: null,
+  })
+
+  const getAuthHeaders = (includeJson = false) => {
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
     }
-  ])
 
-  const [apiKeys, setApiKeys] = useState([
-    {
-      id: 1,
-      name: 'Production API Key',
-      key: 'sk_prod_xxxxxxxxxxxxxxxx',
-      created: '2024-01-15',
-      lastUsed: '2024-03-06',
-      active: true
-    },
-    {
-      id: 2,
-      name: 'Test API Key',
-      key: 'sk_test_yyyyyyyyyyyyyyyy',
-      created: '2024-02-01',
-      lastUsed: '2024-03-05',
-      active: true
+    if (includeJson) {
+      headers['Content-Type'] = 'application/json'
     }
-  ])
 
-  const [connectedApps, setConnectedApps] = useState([
-    { id: 1, name: 'Zapier', icon: '⚙️', connected: true, lastUsed: '2024-03-05' },
-    { id: 2, name: 'IFTTT', icon: '🔗', connected: false, lastUsed: 'Never' },
-    { id: 3, name: 'Slack', icon: '💬', connected: true, lastUsed: '2024-03-04' }
-  ])
+    return headers
+  }
 
-  const handlePasswordChange = () => {
+  const formatDateLabel = (value) => {
+    if (!value) {
+      return 'Never'
+    }
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return value
+    }
+
+    return parsed.toISOString().slice(0, 10)
+  }
+
+  const loadAccountSettings = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/account/settings', {
+        headers: getAuthHeaders(),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load account settings')
+      }
+
+      setTwoFactor(Boolean(payload.preferences?.two_factor_enabled))
+      setPrivacySettings({
+        analytics_opt_in: Boolean(payload.preferences?.analytics_opt_in ?? true),
+        marketing_opt_in: Boolean(payload.preferences?.marketing_opt_in ?? true),
+        personalization_opt_in: Boolean(payload.preferences?.personalization_opt_in ?? true),
+        deletion_requested_at: payload.preferences?.deletion_requested_at || null,
+      })
+      setSessions(payload.sessions || [])
+      setApiKeys(payload.api_keys || [])
+      setConnectedApps(payload.connected_apps || [])
+      setBillingProfile(payload.billing_profile || {
+        card: { brand: '', last4: '', expiry_month: '', expiry_year: '', holder: '', status: '' },
+        billingAddressForm: { name: '', line1: '', line2: '', country: '' },
+        taxInfoForm: { taxId: '', taxExemption: 'Not applicable' },
+      })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Settings unavailable', message: error.message })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAccountSettings()
+  }, [])
+
+  const updatePreferences = async (nextValues, successMessage) => {
+    const response = await fetch('/api/account/preferences', {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(nextValues),
+    })
+    const payload = await response.json()
+
+    if (!response.ok) {
+      throw new Error(payload.error || 'Failed to update preferences')
+    }
+
+    if (Object.prototype.hasOwnProperty.call(nextValues, 'two_factor_enabled')) {
+      setTwoFactor(Boolean(nextValues.two_factor_enabled))
+    }
+
+    setPrivacySettings((current) => ({
+      ...current,
+      ...payload.preferences,
+    }))
+
+    addToast({ type: 'success', title: 'Preferences updated', message: successMessage })
+  }
+
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage('Passwords do not match')
+      addToast({ type: 'error', title: 'Password update failed', message: 'Passwords do not match' })
       return
     }
     if (passwordData.newPassword.length < 8) {
-      setMessage('Password must be at least 8 characters')
+      addToast({ type: 'error', title: 'Password update failed', message: 'Password must be at least 8 characters' })
       return
     }
-    setMessage('Password changed successfully!')
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    setTimeout(() => setMessage(''), 3000)
+
+    try {
+      const response = await fetch('/api/account/change-password', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+        }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to update password')
+      }
+
+      addToast({ type: 'success', title: 'Password updated', message: payload.message || 'Your password was changed successfully' })
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Password update failed', message: error.message })
+    }
   }
 
-  const handleLogoutSession = (sessionId) => {
-    setSessions(sessions.filter(s => s.id !== sessionId))
-    setMessage('Session logged out')
-    setTimeout(() => setMessage(''), 2000)
+  const handleLogoutSession = async (sessionId) => {
+    try {
+      const response = await fetch(`/api/account/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to end session')
+      }
+
+      setSessions((current) => current.filter((session) => session.id !== sessionId))
+      addToast({ type: 'success', title: 'Session ended', message: payload.message || 'The selected session has been logged out' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Session update failed', message: error.message })
+    }
   }
 
   const handleCopyApiKey = (key) => {
+    if (!key) {
+      addToast({ type: 'info', title: 'Full key unavailable', message: 'Only newly generated keys can be copied in full. Store new keys when they are created.' })
+      return
+    }
     navigator.clipboard.writeText(key)
-    setMessage('API key copied to clipboard')
-    setTimeout(() => setMessage(''), 2000)
+    addToast({ type: 'success', title: 'API key copied', message: 'The API key has been copied to your clipboard' })
   }
 
-  const handleToggleTwoFactor = () => {
-    setTwoFactor(!twoFactor)
-    setMessage(twoFactor ? '✅ 2FA disabled' : '✅ 2FA enabled')
-    setTimeout(() => setMessage(''), 2000)
+  const handleToggleTwoFactor = async () => {
+    try {
+      await updatePreferences(
+        { two_factor_enabled: !twoFactor },
+        twoFactor ? 'Two-factor authentication disabled' : 'Two-factor authentication enabled'
+      )
+    } catch (error) {
+      addToast({ type: 'error', title: 'Security update failed', message: error.message })
+    }
+  }
+
+  const handleGenerateApiKey = async () => {
+    try {
+      const response = await fetch('/api/account/api-keys', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ name: `Generated Key ${apiKeys.length + 1}` }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to generate API key')
+      }
+
+      setApiKeys((current) => [{ ...payload.api_key, last_used: 'Never' }, ...current])
+      addToast({ type: 'success', title: 'API key generated', message: 'A new API key has been created. Copy it now and store it securely.' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'API key generation failed', message: error.message })
+    }
+  }
+
+  const handleDeleteApiKey = async (keyId) => {
+    try {
+      const response = await fetch(`/api/account/api-keys/${keyId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to delete API key')
+      }
+
+      setApiKeys((current) => current.filter((key) => key.id !== keyId))
+      addToast({ type: 'success', title: 'API key deleted', message: payload.message || 'The API key was removed' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'API key deletion failed', message: error.message })
+    }
+  }
+
+  const handleToggleConnectedApp = async (appId) => {
+    try {
+      const response = await fetch(`/api/account/apps/${appId}/toggle`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to update integration')
+      }
+
+      setConnectedApps((current) => current.map((app) => (
+        app.id === appId ? payload.connected_app : app
+      )))
+      addToast({ type: 'success', title: 'Integration updated', message: payload.message || 'Connected application status changed' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Integration update failed', message: error.message })
+    }
+  }
+
+  const handlePrivacyToggle = async (field) => {
+    const nextValue = !privacySettings[field]
+    try {
+      await updatePreferences({ [field]: nextValue }, 'Privacy preferences saved')
+    } catch (error) {
+      addToast({ type: 'error', title: 'Privacy update failed', message: error.message })
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch('/api/account/delete-request', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to request account deletion')
+      }
+
+      setPrivacySettings((current) => ({
+        ...current,
+        deletion_requested_at: payload.requested_at,
+      }))
+      addToast({ type: 'warning', title: 'Deletion requested', message: payload.message || 'Support will follow up shortly.' })
+      navigate('/dashboard')
+    } catch (error) {
+      addToast({ type: 'error', title: 'Deletion request failed', message: error.message })
+    }
+  }
+
+  const updateBillingProfileSection = (section, field, value) => {
+    setBillingProfile((current) => ({
+      ...current,
+      [section]: {
+        ...current[section],
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleSaveBillingProfile = async () => {
+    try {
+      const response = await fetch('/api/account/billing-profile', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          card: billingProfile.card,
+          billingAddress: billingProfile.billingAddressForm,
+          taxInfo: billingProfile.taxInfoForm,
+        }),
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to update billing profile')
+      }
+
+      setBillingProfile(payload.billing_profile || billingProfile)
+      addToast({ type: 'success', title: 'Billing profile updated', message: payload.message || 'Your billing details were saved.' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Billing update failed', message: error.message })
+    }
   }
 
   return (
@@ -128,6 +360,12 @@ const AccountSettings = () => {
           <UniversalIcon icon="🔗" size={16} /> Connected Apps
         </button>
         <button 
+          className={`nav-tab ${activeTab === 'billing' ? 'active' : ''}`}
+          onClick={() => setActiveTab('billing')}
+        >
+          <UniversalIcon icon="💳" size={16} /> Billing
+        </button>
+        <button 
           className={`nav-tab ${activeTab === 'privacy' ? 'active' : ''}`}
           onClick={() => setActiveTab('privacy')}
         >
@@ -137,12 +375,17 @@ const AccountSettings = () => {
       </nav>
 
       <div className="settings-container">
-        {message && <div className="alert-success-minimal">{message}</div>}
-
         {/* Content */}
         <div className="settings-content">
+          {loading && (
+            <section className="settings-section">
+              <h2>Loading account settings...</h2>
+              <p className="section-desc">Fetching security, API, and privacy data.</p>
+            </section>
+          )}
+
           {/* Security Tab */}
-          {activeTab === 'security' && (
+          {!loading && activeTab === 'security' && (
             <section className="settings-section">
               <h2>Password & Security</h2>
 
@@ -237,7 +480,7 @@ const AccountSettings = () => {
           )}
 
           {/* Sessions Tab */}
-          {activeTab === 'sessions' && (
+          {!loading && activeTab === 'sessions' && (
             <section className="settings-section">
               <h2>Active Sessions</h2>
               <div className="session-list">
@@ -249,9 +492,9 @@ const AccountSettings = () => {
                         <UniversalIcon icon="📍" size={14} /> {session.location} • {session.ip}
                       </div>
                       <div className="session-time">Last active: {session.lastActive}</div>
-                      {session.isCurrent && <span className="badge success">Current Device</span>}
+                      {session.is_current && <span className="badge success">Current Device</span>}
                     </div>
-                    {!session.isCurrent && (
+                    {!session.is_current && (
                       <button 
                         className="btn-secondary small"
                         onClick={() => handleLogoutSession(session.id)}
@@ -266,12 +509,12 @@ const AccountSettings = () => {
           )}
 
           {/* API Keys Tab */}
-          {activeTab === 'api' && (
+          {!loading && activeTab === 'api' && (
             <section className="settings-section">
               <h2>API Keys</h2>
               <p className="section-desc">Use API keys to authenticate with our API</p>
               
-              <button className="btn-primary" style={{ marginBottom: '20px' }}>
+              <button className="btn-primary" style={{ marginBottom: '20px' }} onClick={handleGenerateApiKey}>
                 + Generate New API Key
               </button>
 
@@ -281,18 +524,18 @@ const AccountSettings = () => {
                     <div className="api-key-info">
                       <div className="api-key-name">{apiKey.name}</div>
                       <div className="api-key-value" onClick={() => handleCopyApiKey(apiKey.key)}>
-                        {apiKey.key.substring(0, 15)}...{' '}
+                        {(apiKey.key || apiKey.key_preview || 'Unavailable')}{' '}
                         <span className="copy-hint">Click to copy</span>
                       </div>
                       <div className="api-key-meta">
-                        Created: {apiKey.created} • Last used: {apiKey.lastUsed}
+                        Created: {formatDateLabel(apiKey.created_at)} • Last used: {apiKey.last_used || 'Never'}
                       </div>
                     </div>
                     <div className="api-key-actions">
-                      <span className={`badge ${apiKey.active ? 'success' : 'danger'}`}>
-                        {apiKey.active ? 'Active' : 'Inactive'}
+                      <span className={`badge ${apiKey.is_active ? 'success' : 'danger'}`}>
+                        {apiKey.is_active ? 'Active' : 'Inactive'}
                       </span>
-                      <button className="btn-secondary small">Delete</button>
+                      <button className="btn-secondary small" onClick={() => handleDeleteApiKey(apiKey.id)}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -301,7 +544,7 @@ const AccountSettings = () => {
           )}
 
           {/* Connected Apps Tab */}
-          {activeTab === 'apps' && (
+          {!loading && activeTab === 'apps' && (
             <section className="settings-section">
               <h2>Connected Applications</h2>
               <p className="section-desc">Manage third-party app integrations</p>
@@ -321,7 +564,7 @@ const AccountSettings = () => {
                         </div>
                       </div>
                     </div>
-                    <button className="btn-secondary small">
+                    <button className="btn-secondary small" onClick={() => handleToggleConnectedApp(app.id)}>
                       {app.connected ? 'Disconnect' : 'Connect'}
                     </button>
                   </div>
@@ -330,8 +573,86 @@ const AccountSettings = () => {
             </section>
           )}
 
+          {!loading && activeTab === 'billing' && (
+            <section className="settings-section">
+              <h2>Billing Details</h2>
+              <p className="section-desc">Manage the payment summary, billing address, and tax information shown on your subscriber dashboard.</p>
+
+              <div className="setting-card">
+                <div className="card-header">
+                  <h3>Payment Method Summary</h3>
+                  <span className="card-desc">Stored locally until a billing provider is connected</span>
+                </div>
+                <div className="form-group full">
+                  <label>Card Brand</label>
+                  <input value={billingProfile.card.brand} onChange={(e) => updateBillingProfileSection('card', 'brand', e.target.value)} placeholder="Visa" />
+                </div>
+                <div className="form-group full">
+                  <label>Last 4 Digits</label>
+                  <input value={billingProfile.card.last4} onChange={(e) => updateBillingProfileSection('card', 'last4', e.target.value.replace(/\D/g, '').slice(-4))} placeholder="4242" />
+                </div>
+                <div className="form-group full">
+                  <label>Card Holder</label>
+                  <input value={billingProfile.card.holder} onChange={(e) => updateBillingProfileSection('card', 'holder', e.target.value)} placeholder="Jane Doe" />
+                </div>
+                <div className="form-group full">
+                  <label>Expiry Month</label>
+                  <input value={billingProfile.card.expiry_month} onChange={(e) => updateBillingProfileSection('card', 'expiry_month', e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="03" />
+                </div>
+                <div className="form-group full">
+                  <label>Expiry Year</label>
+                  <input value={billingProfile.card.expiry_year} onChange={(e) => updateBillingProfileSection('card', 'expiry_year', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="2027" />
+                </div>
+                <div className="form-group full">
+                  <label>Status Note</label>
+                  <input value={billingProfile.card.status} onChange={(e) => updateBillingProfileSection('card', 'status', e.target.value)} placeholder="Primary payment method on file." />
+                </div>
+              </div>
+
+              <div className="setting-card">
+                <div className="card-header">
+                  <h3>Billing Address</h3>
+                  <span className="card-desc">Used in the subscriber billing summary and invoice context</span>
+                </div>
+                <div className="form-group full">
+                  <label>Name</label>
+                  <input value={billingProfile.billingAddressForm.name} onChange={(e) => updateBillingProfileSection('billingAddressForm', 'name', e.target.value)} placeholder="Jane Doe" />
+                </div>
+                <div className="form-group full">
+                  <label>Address Line 1</label>
+                  <input value={billingProfile.billingAddressForm.line1} onChange={(e) => updateBillingProfileSection('billingAddressForm', 'line1', e.target.value)} placeholder="123 Main Street" />
+                </div>
+                <div className="form-group full">
+                  <label>Address Line 2</label>
+                  <input value={billingProfile.billingAddressForm.line2} onChange={(e) => updateBillingProfileSection('billingAddressForm', 'line2', e.target.value)} placeholder="Suite 400" />
+                </div>
+                <div className="form-group full">
+                  <label>Country</label>
+                  <input value={billingProfile.billingAddressForm.country} onChange={(e) => updateBillingProfileSection('billingAddressForm', 'country', e.target.value)} placeholder="United States" />
+                </div>
+              </div>
+
+              <div className="setting-card">
+                <div className="card-header">
+                  <h3>Tax Information</h3>
+                  <span className="card-desc">Keep VAT, GST, or exemption metadata with the account</span>
+                </div>
+                <div className="form-group full">
+                  <label>Tax ID</label>
+                  <input value={billingProfile.taxInfoForm.taxId} onChange={(e) => updateBillingProfileSection('taxInfoForm', 'taxId', e.target.value)} placeholder="VAT-123456" />
+                </div>
+                <div className="form-group full">
+                  <label>Tax Exemption</label>
+                  <input value={billingProfile.taxInfoForm.taxExemption} onChange={(e) => updateBillingProfileSection('taxInfoForm', 'taxExemption', e.target.value)} placeholder="Not applicable" />
+                </div>
+              </div>
+
+              <button className="btn-primary" onClick={handleSaveBillingProfile}>Save Billing Details</button>
+            </section>
+          )}
+
           {/* Privacy Tab */}
-          {activeTab === 'privacy' && (
+          {!loading && activeTab === 'privacy' && (
             <section className="settings-section">
               <h2>Privacy & Data</h2>
 
@@ -346,21 +667,21 @@ const AccountSettings = () => {
                       <div className="privacy-title">Analytics</div>
                       <div className="privacy-desc">Help us improve with usage analytics</div>
                     </div>
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={privacySettings.analytics_opt_in} onChange={() => handlePrivacyToggle('analytics_opt_in')} />
                   </div>
                   <div className="privacy-option">
                     <div>
                       <div className="privacy-title">Marketing</div>
                       <div className="privacy-desc">Allow promotional communications</div>
                     </div>
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={privacySettings.marketing_opt_in} onChange={() => handlePrivacyToggle('marketing_opt_in')} />
                   </div>
                   <div className="privacy-option">
                     <div>
                       <div className="privacy-title">Personalization</div>
                       <div className="privacy-desc">Customize experience based on activity</div>
                     </div>
-                    <input type="checkbox" defaultChecked />
+                    <input type="checkbox" checked={privacySettings.personalization_opt_in} onChange={() => handlePrivacyToggle('personalization_opt_in')} />
                   </div>
                 </div>
               </div>
@@ -373,7 +694,10 @@ const AccountSettings = () => {
                 <p className="danger-text">
                   <UniversalIcon icon="⚠️" size={16} /> This action cannot be undone. All your data will be permanently deleted.
                 </p>
-                <button className="btn-danger">Delete Account</button>
+                {privacySettings.deletion_requested_at && (
+                  <p className="section-desc">Deletion requested on {formatDateLabel(privacySettings.deletion_requested_at)}.</p>
+                )}
+                <button className="btn-danger" onClick={handleDeleteAccount}>Delete Account</button>
               </div>
             </section>
           )}
@@ -405,30 +729,6 @@ const AccountSettings = () => {
           margin: 0 auto;
           padding: 30px 20px;
           width: 100%;
-        }
-
-        .alert-success-minimal {
-          display: flex;
-          align-items: center;
-          padding: 12px 16px;
-          margin-bottom: 20px;
-          background-color: #d1fae5;
-          color: #065f46;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
         }
 
         .nav-tab {

@@ -49,6 +49,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - BILLING_PROVIDER_WEBHOOK_SECRET=${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       - TZ=UTC
     expose:
       - 5000
@@ -81,6 +82,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - BILLING_PROVIDER_WEBHOOK_SECRET=${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       - TZ=UTC
     expose:
       - 5000
@@ -113,6 +115,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - BILLING_PROVIDER_WEBHOOK_SECRET=${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       - TZ=UTC
     expose:
       - 5000
@@ -150,6 +153,7 @@ services:
       - REDIS_URL=redis://redis:6379/1
       - CELERY_BROKER_URL=redis://redis:6379/1
       - SECRET_KEY=${SECRET_KEY:-change_me_in_production}
+      - BILLING_PROVIDER_WEBHOOK_SECRET=${BILLING_PROVIDER_WEBHOOK_SECRET:-change_me_billing_webhook_secret}
       - TZ=UTC
     depends_on:
       redis:

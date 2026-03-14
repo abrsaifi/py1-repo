@@ -1,6 +1,6 @@
 """Multi-region deployment manager for global distribution."""
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests
 import json
 from typing import Dict, Tuple, Optional, List
@@ -201,7 +201,7 @@ class RegionHealthChecker:
                 elif region.consecutive_failures >= 1:
                     region.status = RegionStatus.DEGRADED.value
             
-            region.last_health_check = datetime.utcnow()
+            region.last_health_check = datetime.now(timezone.utc)
             db.session.commit()
             
             return overall_healthy, metrics
@@ -296,16 +296,16 @@ class ReplicationManager:
                 'error': None
             }
             
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             
             # Simulate replication (in production, use actual DB replication)
             # This would trigger WAL apply or snapshot transfer
             
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             
             # Update replica status
             replica.replication_status = 'synced'
-            replica.last_sync_time = datetime.utcnow()
+            replica.last_sync_time = datetime.now(timezone.utc)
             replica.lag_seconds = 0.0
             replica.sync_failures = 0
             
@@ -400,7 +400,7 @@ class RegionFailoverManager:
                 return False
             
             failover.failover_status = 'completed'
-            failover.completed_at = datetime.utcnow()
+            failover.completed_at = datetime.now(timezone.utc)
             failover.duration_seconds = int((failover.completed_at - failover.initiated_at).total_seconds())
             
             db.session.commit()

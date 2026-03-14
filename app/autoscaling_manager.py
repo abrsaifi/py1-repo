@@ -364,7 +364,14 @@ class MetricsCollector:
     def _get_queue_depth(self) -> int:
         """Get number of pending tasks in Celery queue"""
         try:
-            from app.celery_config import app as celery_app
+            from flask import current_app
+
+            if not current_app.config.get('ENABLE_BACKGROUND_TASKS', True):
+                return 0
+
+            celery_app = getattr(current_app, 'celery', None)
+            if celery_app is None:
+                return 0
             inspector = celery_app.control.inspect()
             active = inspector.active()
             if active:

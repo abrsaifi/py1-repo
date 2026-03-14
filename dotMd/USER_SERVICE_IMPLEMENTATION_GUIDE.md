@@ -1,4 +1,7 @@
-# User Service Implementation Guide
+# User Service Historical Implementation Guide
+
+This guide captures the earlier target user-service split.
+In the current workspace, the verified runtime is the modular Flask application under `app/`, so the user-service setup and deployment commands below are historical/reference guidance rather than the primary way to run the repository today.
 
 **Service**: User Service  
 **Port**: 5002  
@@ -25,7 +28,7 @@
 
 ## Overview
 
-The **User Service** is a microservice responsible for managing user profiles, preferences, activity tracking, and usage statistics. It provides a complete API for user account management and personalization.
+The **User Service** was designed as a microservice responsible for managing user profiles, preferences, activity tracking, and usage statistics. It provides a complete API for user account management and personalization.
 
 ### Key Features
 

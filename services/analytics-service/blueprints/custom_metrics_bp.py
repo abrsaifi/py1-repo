@@ -4,7 +4,7 @@ Endpoints for user-defined metrics with formula support
 """
 
 from flask import Blueprint, request, jsonify, g, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import uuid
 import logging
@@ -248,7 +248,7 @@ def calculate_custom_metric(metric_id):
             
             # Update calculation count
             metric.calculation_count = (metric.calculation_count or 0) + 1
-            metric.last_calculated_at = datetime.utcnow()
+            metric.last_calculated_at = datetime.now(timezone.utc)
             session.commit()
             
             session.close()

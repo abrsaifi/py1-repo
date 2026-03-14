@@ -1,6 +1,6 @@
 """Background tasks for file conversions and system operations."""
 from celery import current_app as celery_app
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import json
 from app.models import db, Conversion, User
@@ -17,7 +17,7 @@ def convert_file(self, conversion_id):
         
         # Update status
         conversion.status = 'processing'
-        conversion.started_at = datetime.utcnow()
+        conversion.started_at = datetime.now(timezone.utc)
         conversion.worker_id = self.request.hostname
         db.session.commit()
         
@@ -25,19 +25,19 @@ def convert_file(self, conversion_id):
         from app.services.conversions import ConversionService
         
         # Perform actual conversion
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         result = ConversionService.convert(
             input_path=conversion.input_path,
             output_format=conversion.output_format,
             parameters=conversion.parameters or {}
         )
-        processing_time = (datetime.utcnow() - start_time).total_seconds()
+        processing_time = (datetime.now(timezone.utc) - start_time).total_seconds()
         
         # Update conversion record
         conversion.status = 'completed'
         conversion.output_path = result.get('output_path')
         conversion.output_size = result.get('output_size', 0)
-        conversion.completed_at = datetime.utcnow()
+        conversion.completed_at = datetime.now(timezone.utc)
         conversion.processing_time = processing_time
         db.session.commit()
         
@@ -59,7 +59,7 @@ def convert_file(self, conversion_id):
         if conversion:
             conversion.status = 'failed'
             conversion.error_message = str(exc)
-            conversion.completed_at = datetime.utcnow()
+            conversion.completed_at = datetime.now(timezone.utc)
             db.session.commit()
         
         # Retry task
@@ -89,7 +89,7 @@ def process_image(self, image_id):
         conversion.status = 'completed'
         conversion.output_path = result['path']
         conversion.output_size = result.get('size', 0)
-        conversion.completed_at = datetime.utcnow()
+        conversion.completed_at = datetime.now(timezone.utc)
         db.session.commit()
         
         return {'status': 'completed', 'id': image_id}
@@ -126,7 +126,7 @@ def process_pdf(self, pdf_id):
         conversion.status = 'completed'
         conversion.output_path = result['path']
         conversion.output_size = result.get('size', 0)
-        conversion.completed_at = datetime.utcnow()
+        conversion.completed_at = datetime.now(timezone.utc)
         db.session.commit()
         
         return {'status': 'completed', 'id': pdf_id}
@@ -145,16 +145,16 @@ def send_email(self, to_email, subject, template, context=None):
     """Send email in background."""
     try:
         from app.services.email_service import EmailService
-        
+
         email_service = EmailService()
-        email_service.send(
+        sent = email_service.send(
             to=to_email,
             subject=subject,
             template=template,
             context=context or {}
         )
-        
-        return {'status': 'sent', 'to': to_email}
+
+        return {'status': 'sent' if sent else 'failed', 'to': to_email}
         
     except Exception as exc:
         raise self.retry(exc=exc, countdown=300)
@@ -169,11 +169,13 @@ def send_daily_reports(self):
         
         # Send to all active users
         users = User.query.filter_by(is_active=True).all()
+        notified_count = 0
         for user in users:
             if user.subscription and user.subscription.is_active:
-                report_service.send_daily_report(user.id)
-        
-        return {'status': 'completed', 'users_notified': len(users)}
+                if report_service.send_daily_report(user.id):
+                    notified_count += 1
+
+        return {'status': 'completed', 'users_notified': notified_count}
         
     except Exception as exc:
         raise self.retry(exc=exc, countdown=3600)
@@ -184,7 +186,7 @@ def cleanup_old_uploads(self):
     """Clean up old uploaded files."""
     try:
         # Delete files older than 7 days that are not in active conversions
-        cutoff_date = datetime.utcnow() - timedelta(days=7)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
         
         old_conversions = Conversion.query.filter(
             Conversion.created_at < cutoff_date,
@@ -222,7 +224,7 @@ def update_conversion_stats(self):
     """Update conversion statistics."""
     try:
         # Get stats for the last 24 hours
-        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
         
         total = Conversion.query.filter(
             Conversion.created_at >= twenty_four_hours_ago
@@ -282,7 +284,7 @@ def backup_database_full(self):
             return {
                 'status': 'success',
                 'backup_path': backup_path,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         else:
             celery_app.logger.error(f'Full database backup failed: {error}')
@@ -305,7 +307,7 @@ def verify_latest_backup(self):
         backups = backup_manager.get_backup_history(limit=1)
         if not backups:
             celery_app.logger.warning('No backups found to verify')
-            return {'status': 'no_backups', 'timestamp': datetime.utcnow().isoformat()}
+            return {'status': 'no_backups', 'timestamp': datetime.now(timezone.utc).isoformat()}
         
         latest_backup = backups[0]
         backup_file = latest_backup.get('path')
@@ -319,7 +321,7 @@ def verify_latest_backup(self):
                 'status': 'verified',
                 'backup_file': backup_file,
                 'message': message,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         else:
             celery_app.logger.error(f'Backup verification failed: {message}')
@@ -347,7 +349,7 @@ def cleanup_old_backups(self, retention_days=30):
             'status': 'completed',
             'freed_space_gb': freed_space / (1024**3),
             'retention_days': retention_days,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:
@@ -390,7 +392,7 @@ def check_replication_health(self):
             'replication_lag_seconds': lag_seconds,
             'replication_lag_bytes': status['replication_lag_bytes'],
             'wal_files_behind': status['wal_files_behind'],
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:
@@ -419,7 +421,7 @@ def check_region_health(self):
             'status': 'completed',
             'healthy_regions': len(results) - unhealthy_count,
             'total_regions': len(results),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:
@@ -455,7 +457,7 @@ def sync_cross_region_replicas(self):
             'status': 'completed',
             'synced_replicas': synced_count,
             'failed_syncs': failed_count,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:
@@ -499,7 +501,7 @@ def replicate_cross_region_backups(self):
             'status': 'completed',
             'primary_region': primary.region_code,
             'replicated_to_regions': replicated_count,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:
@@ -514,7 +516,7 @@ def cleanup_stale_geo_locations(self):
         from app.models.multi_region import GeoLocation
         
         # Delete IP geolocation entries older than 30 days
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
         
         deleted = GeoLocation.query.filter(GeoLocation.updated_at < cutoff_date).delete()
         db.session.commit()
@@ -524,7 +526,7 @@ def cleanup_stale_geo_locations(self):
         return {
             'status': 'completed',
             'deleted_entries': deleted,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     except Exception as exc:

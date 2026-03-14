@@ -104,7 +104,7 @@ class AuthManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, username, email, api_key, created_at, is_active
+            SELECT id, username, email, api_key, created_at, is_active, role
             FROM users WHERE id=?
         ''', (user_id,))
         

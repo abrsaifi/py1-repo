@@ -3,7 +3,7 @@ Compliance Manager - GDPR and SOC2 Compliance System
 Handles audit logging, data deletion, encryption, and regulatory compliance
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -108,7 +108,7 @@ class GDPRManager:
             
             request = DataDeletionRequest(
                 user_id=user_id,
-                requested_at=datetime.utcnow(),
+                requested_at=datetime.now(timezone.utc),
                 requested_by=request_by,
                 request_reason=reason,
                 status='pending' if request_by == 'user' else 'approved',
@@ -135,7 +135,7 @@ class GDPRManager:
                 raise ValueError(f"Request {request_id} not found")
             
             request.status = 'approved'
-            request.approved_at = datetime.utcnow()
+            request.approved_at = datetime.now(timezone.utc)
             request.approved_by = admin_id
             
             self.db.commit()
@@ -164,7 +164,7 @@ class GDPRManager:
                 return False, 0, "Request not approved"
             
             request.status = 'executing'
-            request.started_at = datetime.utcnow()
+            request.started_at = datetime.now(timezone.utc)
             self.db.commit()
             
             total_deleted = 0
@@ -192,7 +192,7 @@ class GDPRManager:
                     self.db.delete(conversion)
                 self.db.commit()
                 if conversions:
-                    deletion_details['conversions'] = {'count': len(conversions), 'deleted_at': datetime.utcnow().isoformat()}
+                    deletion_details['conversions'] = {'count': len(conversions), 'deleted_at': datetime.now(timezone.utc).isoformat()}
                     total_deleted += len(conversions)
                     request.data_categories.append('conversion_history')
                 
@@ -210,11 +210,11 @@ class GDPRManager:
                 
                 # Mark request as completed
                 request.status = 'completed'
-                request.completed_at = datetime.utcnow()
+                request.completed_at = datetime.now(timezone.utc)
                 request.total_records_deleted = total_deleted
                 request.fields_deleted = deletion_details
                 request.confirmation_sent = True
-                request.confirmation_sent_at = datetime.utcnow()
+                request.confirmation_sent_at = datetime.now(timezone.utc)
                 
                 self.db.commit()
                 
@@ -347,7 +347,7 @@ class GDPRManager:
             ).order_by(UserConsent.consented_at.desc()).first()
             
             if consent:
-                consent.withdrawn_at = datetime.utcnow()
+                consent.withdrawn_at = datetime.now(timezone.utc)
                 self.db.commit()
             
             logger.info(f"All consent withdrawn for user {user_id}")
@@ -455,7 +455,7 @@ class AuditLogger:
             if actor_id:
                 query = query.filter_by(actor_id=actor_id)
             
-            cutoff_time = datetime.utcnow() - timedelta(days=period_days)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(days=period_days)
             query = query.filter(AuditLog.timestamp >= cutoff_time)
             
             logs = query.order_by(AuditLog.timestamp.desc()).limit(limit).all()
@@ -482,7 +482,7 @@ class AuditLogger:
             from app.models.compliance import AuditLog
             
             count = self.db.query(AuditLog).filter(
-                AuditLog.retention_until < datetime.utcnow()
+                AuditLog.retention_until < datetime.now(timezone.utc)
             ).delete()
             
             self.db.commit()
@@ -507,7 +507,7 @@ class ComplianceReporter:
                 AuditLog, DataDeletionRequest, UserConsent, DataAccessLog
             )
             
-            cutoff_time = datetime.utcnow() - timedelta(days=period_days)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(days=period_days)
             
             # Count GDPR-relevant events
             gdpr_events = self.db.query(AuditLog).filter(
@@ -534,7 +534,7 @@ class ComplianceReporter:
             return {
                 'report_type': 'GDPR Compliance',
                 'period_days': period_days,
-                'generated_at': datetime.utcnow().isoformat(),
+                'generated_at': datetime.now(timezone.utc).isoformat(),
                 'metrics': {
                     'gdpr_relevant_events': gdpr_events,
                     'deletion_requests': {
@@ -565,7 +565,7 @@ class ComplianceReporter:
             
             return {
                 'report_type': 'SOC2 Compliance',
-                'generated_at': datetime.utcnow().isoformat(),
+                'generated_at': datetime.now(timezone.utc).isoformat(),
                 'total_checkpoints': len(checkpoints),
                 'status': status_counts,
                 'completion_percentage': (status_counts['passed'] / len(checkpoints) * 100) if checkpoints else 0,

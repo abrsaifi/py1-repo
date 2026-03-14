@@ -1,180 +1,70 @@
-/**
- * Tool Routes Configuration
- * Auto-generated routes for all converter tools
- * Access tool pages at: /[tool-slug]
- */
+import React from 'react'
+import toolCatalogData from './toolCatalog.json'
 
-export const TOOL_ROUTES = [
-  // Image Conversion Tools
-  {
-    slug: 'jpg-to-png',
-    title: 'JPG to PNG',
-    path: '/jpg-to-png',
-    category: 'image',
-    icon: '🖼️'
-  },
-  {
-    slug: 'png-to-jpg',
-    title: 'PNG to JPG',
-    path: '/png-to-jpg',
-    category: 'image',
-    icon: '🖼️'
-  },
-  {
-    slug: 'webp-to-png',
-    title: 'WebP to PNG',
-    path: '/webp-to-png',
-    category: 'image',
-    icon: '🖼️'
-  },
-  {
-    slug: 'image-to-pdf',
-    title: 'Image to PDF',
-    path: '/image-to-pdf',
-    category: 'image',
-    icon: '📸'
-  },
-  // Document Conversion Tools
-  {
-    slug: 'pdf-to-docx',
-    title: 'PDF to DOCX',
-    path: '/pdf-to-docx',
-    category: 'document',
-    icon: '📄'
-  },
-  {
-    slug: 'docx-to-pdf',
-    title: 'DOCX to PDF',
-    path: '/docx-to-pdf',
-    category: 'document',
-    icon: '📄'
-  },
-  {
-    slug: 'pdf-to-excel',
-    title: 'PDF to Excel',
-    path: '/pdf-to-excel',
-    category: 'document',
-    icon: '📊'
-  },
-  {
-    slug: 'excel-to-pdf',
-    title: 'Excel to PDF',
-    path: '/excel-to-pdf',
-    category: 'document',
-    icon: '📊'
-  },
-  {
-    slug: 'pdf-to-pptx',
-    title: 'PDF to PowerPoint',
-    path: '/pdf-to-pptx',
-    category: 'document',
-    icon: '🎯'
-  },
-  {
-    slug: 'pptx-to-pdf',
-    title: 'PowerPoint to PDF',
-    path: '/pptx-to-pdf',
-    category: 'document',
-    icon: '🎯'
-  },
-  {
-    slug: 'csv-to-excel',
-    title: 'CSV to Excel',
-    path: '/csv-to-excel',
-    category: 'document',
-    icon: '📋'
-  },
-  // PDF Tools
-  {
-    slug: 'pdf-to-image',
-    title: 'PDF to Image',
-    path: '/pdf-to-image',
-    category: 'pdf',
-    icon: '📸'
-  },
-  {
-    slug: 'compress-pdf',
-    title: 'Compress PDF',
-    path: '/compress-pdf',
-    category: 'pdf',
-    icon: '📦'
-  },
-  {
-    slug: 'merge-pdf',
-    title: 'Merge PDF',
-    path: '/merge-pdf',
-    category: 'pdf',
-    icon: '🔗'
-  },
-  {
-    slug: 'split-pdf',
-    title: 'Split PDF',
-    path: '/split-pdf',
-    category: 'pdf',
-    icon: '✂️'
-  },
-  // Audio Tools (if needed)
-  {
-    slug: 'mp3-to-wav',
-    title: 'MP3 to WAV',
-    path: '/mp3-to-wav',
-    category: 'audio',
-    icon: '🔊'
-  },
-  // Video Tools (if needed)
-  {
-    slug: 'mp4-to-webm',
-    title: 'MP4 to WebM',
-    path: '/mp4-to-webm',
-    category: 'video',
-    icon: '🎬'
-  }
-]
-
-/**
- * Get all available tool routes
- */
-export const getAllToolRoutes = () => {
-  return TOOL_ROUTES
+const CATEGORY_LABELS = {
+  all: 'All Tools',
+  pdf: 'PDF Tools',
+  image: 'Images',
+  document: 'Documents',
+  data: 'Data & Sheets',
+  premium: 'Premium',
+  archive: 'Archives',
+  media: 'Media',
+  text: 'Text & Data',
 }
 
-/**
- * Get tool route by slug
- */
-export const getToolRoute = (slug) => {
-  return TOOL_ROUTES.find(route => route.slug === slug)
-}
+const CATEGORY_ORDER = ['all', 'pdf', 'image', 'document', 'data', 'premium', 'archive', 'media', 'text']
 
-/**
- * Get routes by category
- */
+export const TOOL_CATALOG = toolCatalogData.map((tool) => ({
+  ...tool,
+  name: tool.title,
+  from: tool.from_format,
+  to: tool.to_format,
+  keyFeatures: tool.key_features || [],
+  relatedTools: tool.related_tools || [],
+  qualityIndicators: tool.quality_indicators || [],
+  isPremium: Boolean(tool.is_premium),
+}))
+
+export const TOOL_ROUTES = TOOL_CATALOG.map(({ slug, title, path, category, icon }) => ({
+  slug,
+  title,
+  path,
+  category,
+  icon,
+}))
+
+export { CATEGORY_LABELS, CATEGORY_ORDER }
+
+export const getAllCatalogTools = () => TOOL_CATALOG
+
+export const getAllToolRoutes = () => TOOL_ROUTES
+
+export const getCatalogTool = (slug) => TOOL_CATALOG.find((tool) => tool.slug === slug)
+
+export const getToolRoute = (slug) => TOOL_ROUTES.find((route) => route.slug === slug)
+
 export const getToolsByCategory = (category) => {
-  return TOOL_ROUTES.filter(route => route.category === category)
+  if (!category || category === 'all') {
+    return TOOL_CATALOG
+  }
+  return TOOL_CATALOG.filter((tool) => tool.category === category)
 }
 
-/**
- * Get all unique categories
- */
 export const getToolCategories = () => {
-  const categories = new Set(TOOL_ROUTES.map(route => route.category))
-  return Array.from(categories)
+  const categories = new Set(TOOL_CATALOG.map((tool) => tool.category))
+  return CATEGORY_ORDER.filter((category) => category === 'all' || categories.has(category))
 }
 
-/**
- * Generate sitemap entries for all tools
- */
 export const generateToolSitemapEntries = (baseUrl = 'http://localhost:3000') => {
-  return TOOL_ROUTES.map(route => ({
+  return TOOL_ROUTES.map((route) => ({
     url: `${baseUrl}${route.path}`,
     lastmod: new Date().toISOString(),
     changefreq: 'monthly',
-    priority: 0.8
+    priority: 0.8,
   }))
 }
 
-/**
- * Generate structured breadcrumb schema for tools
- */
 export const generateToolBreadcrumb = (toolSlug, baseUrl = 'http://localhost:3000') => {
   const tool = getToolRoute(toolSlug)
   if (!tool) return null
@@ -187,26 +77,22 @@ export const generateToolBreadcrumb = (toolSlug, baseUrl = 'http://localhost:300
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: baseUrl
+        item: baseUrl,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: tool.title,
-        item: `${baseUrl}${tool.path}`
-      }
-    ]
+        item: `${baseUrl}${tool.path}`,
+      },
+    ],
   }
 }
 
-/**
- * Export routes as React Router elements
- * Use in App.jsx like: TOOL_ROUTES.map(route => <Route key={route.slug} path={route.path} element={<ToolPage />} />)
- */
 export const createToolRoutes = (ToolComponent) => {
-  return TOOL_ROUTES.map(route => ({
+  return TOOL_ROUTES.map((route) => ({
     path: route.path,
-    element: <ToolComponent key={route.slug} />
+    element: React.createElement(ToolComponent, { key: route.slug }),
   }))
 }
 

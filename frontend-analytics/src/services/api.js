@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -146,12 +146,12 @@ export const exportsAPI = {
 export const healthAPI = {
   getHealth: () => {
     // Make the request but suppress error logging in console
-    return api.get('/health').catch((error) => {
+    return api.get('/api/healthz').catch((error) => {
       // Silently reject - caller's try/catch will handle it
       return Promise.reject(error)
     })
   },
-  getMetrics: () => api.get('/metrics'),
+  getMetrics: () => api.get('/api/health/metrics'),
 }
 
 // ========== PHASE 14: ANALYTICS API (Phase 12) ==========

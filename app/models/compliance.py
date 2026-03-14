@@ -5,9 +5,10 @@ Provides SQLAlchemy models for tracking compliance events, audit logs, and data 
 
 from sqlalchemy import Column, String, DateTime, Text, Integer, Boolean, JSON, Index, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 from .base import Base
+from app.utils.datetime_utils import utc_now_naive
 
 
 class AuditLog(Base):
@@ -61,8 +62,8 @@ class AuditLog(Base):
     retention_reason = Column(String(50))  # legal, regulatory, operational
     
     # Metadata
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    timestamp = Column(DateTime, nullable=False, default=utc_now_naive, index=True)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
     
     # Indexing for efficient queries
     __table_args__ = (
@@ -93,7 +94,7 @@ class UserConsent(Base):
     third_party_sharing = Column(Boolean, default=False)  # Share data with partners
     
     # Tracking
-    consented_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    consented_at = Column(DateTime, nullable=False, default=utc_now_naive)
     withdrawn_at = Column(DateTime)  # When consent was withdrawn
     consent_method = Column(String(50))  # web_form, email, api
     ip_address = Column(String(50))
@@ -103,7 +104,7 @@ class UserConsent(Base):
     consent_version = Column(String(20))  # Version of privacy policy accepted
     consent_text = Column(Text)  # Full text of what was consented to
     
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
     
     def is_active(self):
         """Check if consent is currently active (not withdrawn)"""
@@ -133,10 +134,10 @@ class DataAccessLog(Base):
     access_reason = Column(String(255))  # User request, compliance, support
     
     # When and how
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime, nullable=False, default=utc_now_naive, index=True)
     duration_seconds = Column(Integer)  # How long access was maintained
     
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
     
     __table_args__ = (
         Index('idx_data_access_subject', 'subject_user_id', 'timestamp'),
@@ -154,7 +155,7 @@ class DataDeletionRequest(Base):
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     
     # Request details
-    requested_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    requested_at = Column(DateTime, nullable=False, default=utc_now_naive)
     requested_by = Column(String(50))  # user, admin, system
     request_reason = Column(String(255))  # GDPR article 17, data minimization, user request
     
@@ -178,7 +179,7 @@ class DataDeletionRequest(Base):
     confirmation_sent = Column(Boolean, default=False)
     confirmation_sent_at = Column(DateTime)
     
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
     
     __table_args__ = (
         Index('idx_deletion_user_status', 'user_id', 'status'),
@@ -218,8 +219,8 @@ class CompliancePolicy(Base):
     active = Column(Boolean, default=True)
     
     # Metadata
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
+    updated_at = Column(DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
     created_by = Column(UUID(as_uuid=True))  # Admin who created policy
 
 
@@ -252,8 +253,8 @@ class SOC2Checkpoint(Base):
     verified_by = Column(UUID(as_uuid=True))
     
     # Metadata
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now_naive)
+    updated_at = Column(DateTime, nullable=False, default=utc_now_naive, onupdate=utc_now_naive)
 
 
 # Helper functions for common audit operations
@@ -279,7 +280,7 @@ def create_audit_log(event_type, event_category, action, actor_id, actor_type='u
         error_message=error_message,
         gdpr_relevant=gdpr_relevant,
         pii_involved=pii_involved,
-        retention_until=datetime.utcnow() + timedelta(days=retention_days),
+        retention_until=datetime.now(timezone.utc) + timedelta(days=retention_days),
         retention_reason='legal' if gdpr_relevant else 'regulatory',
         severity='critical' if not result == 'success' else 'info'
     )

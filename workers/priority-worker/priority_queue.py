@@ -1,14 +1,17 @@
-"""
-Priority Worker
-Handles high-priority jobs for premium/paid users,
-ensuring faster processing than standard queue.
-"""
+"""Compatibility launcher for the Celery-backed critical queue."""
 
-import os
 import logging
+import os
+import subprocess
+import sys
 from enum import Enum
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 
 class UserTier(Enum):
@@ -20,7 +23,7 @@ class UserTier(Enum):
 
 
 class PriorityWorker:
-    """Worker for priority job processing"""
+    """Compatibility adapter for premium jobs routed to the critical queue."""
 
     def __init__(self):
         self.worker_id = os.getenv('WORKER_ID', 'priority-worker-1')
@@ -30,6 +33,29 @@ class PriorityWorker:
             UserTier.PRO: 2,
             UserTier.ENTERPRISE: 1  # Lowest number = highest priority
         }
+
+    @staticmethod
+    def _get_job_value(job, key, default=None):
+        if isinstance(job, dict):
+            return job.get(key, default)
+        return getattr(job, key, default)
+
+    @staticmethod
+    def _build_app():
+        from app import create_app
+
+        return create_app({
+            'ENABLE_BACKGROUND_TASKS': False,
+            'LOG_LEVEL': 'WARNING',
+        })
+
+    def _submit_task(self, task_name, conversion_id, queue='critical'):
+        app = self._build_app()
+        celery_app = getattr(app, 'celery', None)
+        if celery_app is None:
+            raise RuntimeError('Celery is not configured for this environment')
+        with app.app_context():
+            return celery_app.send_task(task_name, args=[conversion_id], queue=queue)
 
     def process_job(self, job, user_tier):
         """
@@ -44,19 +70,19 @@ class PriorityWorker:
         """
         try:
             priority = self.tier_priority.get(user_tier, 4)
-            logger.info(f"Processing priority job: {job.id}, tier: {user_tier.value}, priority: {priority}")
-            
-            # TODO: Implement priority processing
-            # 1. Get job with priority from queue
-            # 2. Process with expedited service levels
-            # 3. Track SLA compliance for paid users
-            # 4. Update job status with priority metadata
-            
-            logger.info(f"Completed priority job: {job.id}")
+            conversion_id = self._get_job_value(job, 'conversion_id', self._get_job_value(job, 'id'))
+            if conversion_id is None:
+                raise ValueError('Missing conversion_id for priority job')
+
+            result = self._submit_task('app.tasks.convert_file', conversion_id)
+            logger.info(
+                f"Queued priority job: {conversion_id}, tier: {user_tier.value}, priority: {priority}, task: {result.id}"
+            )
             return True
             
         except Exception as e:
-            logger.error(f"Priority job failed: {job.id} - {str(e)}")
+            job_id = self._get_job_value(job, 'id', 'unknown')
+            logger.error(f"Priority job dispatch failed: {job_id} - {str(e)}")
             return False
 
     def get_processing_time_sla(self, user_tier):
@@ -78,10 +104,22 @@ class PriorityWorker:
         return slas.get(user_tier, slas[UserTier.FREE])
 
     def start(self, queue_url):
-        """Start listening to priority job queue"""
-        logger.info(f"Priority worker {self.worker_id} started, listening to {queue_url}")
-        # TODO: Implement priority queue listener
-        pass
+        """Launch the project Celery worker bound to the critical queue."""
+        command = [
+            sys.executable,
+            '-m',
+            'celery',
+            '-A',
+            'app.celery_config',
+            'worker',
+            '-Q',
+            'critical',
+            '--hostname',
+            f'{self.worker_id}@%h',
+            '--loglevel=info',
+        ]
+        logger.info(f"Starting Celery critical worker for {queue_url or 'configured broker'}")
+        return subprocess.call(command, cwd=str(ROOT_DIR))
 
 
 if __name__ == '__main__':

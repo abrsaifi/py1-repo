@@ -4,7 +4,7 @@ Endpoints for exporting analytics data in various formats
 """
 
 from flask import Blueprint, request, jsonify, g, send_file, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 import uuid
 import logging
@@ -158,8 +158,8 @@ def get_export_status(task_id):
             'progress_percent': 100,
             'items_processed': 100,
             'total_items': 100,
-            'created_at': datetime.utcnow().isoformat(),
-            'completed_at': datetime.utcnow().isoformat(),
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'completed_at': datetime.now(timezone.utc).isoformat(),
         }
         
         return jsonify(status), 200

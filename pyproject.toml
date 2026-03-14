@@ -73,9 +73,13 @@ extras = [
 	"flask-swagger-ui==4.11.1",
 	"Flask-Limiter==4.0.0",
 	"Flask-CORS==4.0.0",
+	"Flask-SocketIO==5.6.1",
 	"Flask-Talisman==1.1.0",
 	"sendgrid==6.11.0",
 ]
 
 [project.scripts]
 py1-cli = "app.cli:pdf_to_true_bw"
+
+[tool.pytest.ini_options]
+addopts = "--ignore=ProjectTest"

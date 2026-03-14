@@ -25,7 +25,8 @@ def test_step_2_integration():
     
     # Test 2: Check app/__init__.py modifications
     print("\n[2] Checking app/__init__.py modifications...")
-    app_init = open('app/__init__.py', 'r').read()
+    with open('app/__init__.py', 'r') as app_init_file:
+        app_init = app_init_file.read()
     checks = [
         ('LoggerSetup import', 'from .utils.logger_setup import LoggerSetup'),
         ('Error handlers import', 'from .utils.errors import register_error_handlers'),
@@ -43,7 +44,8 @@ def test_step_2_integration():
     
     # Test 3: Check server.py modifications
     print("\n[3] Checking server.py modifications...")
-    server = open('server.py', 'r').read()
+    with open('server.py', 'r') as server_file:
+        server = server_file.read()
     checks = [
         ('LoggerSetup import', 'from app.utils.logger_setup import LoggerSetup'),
         ('Error handlers import', 'from app.utils.errors import register_error_handlers'),
@@ -102,7 +104,6 @@ def test_step_2_integration():
             print(f"  ⚠ Log file not yet created")
     except Exception as e:
         print(f"  ✗ Logger setup failed: {e}")
-        import import_ok
         import_ok = False
     
     # Test 6: Test Flask error handlers (lightweight)
@@ -136,11 +137,14 @@ def test_step_2_integration():
         print("  1. Create app/startup.py for background tasks")
         print("  2. Test health endpoints")
         print("  3. Configure database backups")
-        return 0
     else:
         print("\n✗ Some integration checks failed")
-        return 1
+    assert all_pass, "Some Step 2 integration checks failed"
 
 
 if __name__ == '__main__':
-    sys.exit(test_step_2_integration())
+    try:
+        test_step_2_integration()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

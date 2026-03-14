@@ -18,13 +18,14 @@ import ActivityFeed from './ActivityFeed'
 import ConversionMonitoring from './ConversionMonitoring'
 import WorkerMonitoring from './WorkerMonitoring'
 import TrafficAnalytics from './TrafficAnalytics'
-import SEOEngine from './SEOEngine'
+import SEOEngine from './SEOEngineV2'
+import AEOEngine from './AEOEngineV2'
 import StorageManagement from './StorageManagement'
 import APIMonitoring from './APIMonitoring'
 import UsageBilling from './UsageBilling'
 import SecurityManagement from './SecurityManagement'
 import AutomationCenter from './AutomationCenter'
-import ContentManager from './CMSIntegration'
+import ContentManager from './CMSIntegrationV2'
 import '../styles/admin-dashboard.css'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
@@ -38,6 +39,7 @@ const NAV_SECTIONS = [
       { id: 'workers',      icon: '⚙️',  label: 'Workers' },
       { id: 'traffic',      icon: '📈', label: 'Traffic' },
       { id: 'seo',          icon: '🔍', label: 'SEO' },
+      { id: 'aeo',          icon: '🧠', label: 'AEO' },
       { id: 'storage',      icon: '💾', label: 'Storage' },
       { id: 'api',          icon: '🔌', label: 'API' },
     ]
@@ -66,15 +68,6 @@ const NAV_SECTIONS = [
   }
 ]
 
-const OVERVIEW_STATS = [
-  { label: 'Conversions Today', value: '3,204', icon: '🔄', trend: '+12%', color: '#667eea' },
-  { label: 'Active Users',      value: '234',   icon: '👥', trend: '+5%',  color: '#48bb78' },
-  { label: 'Success Rate',      value: '98.2%', icon: '✅', trend: '+0.3%',color: '#38b2ac' },
-  { label: 'Revenue Today',     value: '$5,240',icon: '💰', trend: '+8%',  color: '#ed8936' },
-  { label: 'Server Load',       value: '42%',   icon: '📡', trend: '-3%',  color: '#9f7aea' },
-  { label: 'Worker Queue',      value: '27',    icon: '⚙️',  trend: '-8',   color: '#f56565' },
-]
-
 const CHART_OPTS = {
   responsive: true, maintainAspectRatio: false,
   plugins: { legend: { display: false } },
@@ -87,61 +80,112 @@ const PIE_OPTS = {
 }
 
 function AdminOverview() {
+  const [overview, setOverview] = useState({
+    cards: [],
+    charts: {
+      conversions: { title: 'Conversions', labels: [], data: [] },
+      formats: { title: 'Formats', labels: [], data: [] },
+      plans: { title: 'Plans', labels: [], data: [] },
+    },
+    services: [],
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadOverview = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/dashboard/admin-overview', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to load admin overview')
+        }
+
+        const payload = await response.json()
+        setOverview(payload)
+      } catch (error) {
+        console.error('Failed to load admin overview:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadOverview()
+  }, [])
+
+  const chartPalette = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#48bb78']
   const convData = {
-    labels: ['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'],
-    datasets: [{ label: 'Conversions', data: [120,145,167,142,189,203,195,187,172,156,198,211], borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.08)', tension: 0.4, fill: true }]
+    labels: overview.charts.conversions.labels,
+    datasets: [{
+      label: overview.charts.conversions.title,
+      data: overview.charts.conversions.data,
+      borderColor: '#667eea',
+      backgroundColor: 'rgba(102,126,234,0.08)',
+      tension: 0.4,
+      fill: true,
+    }]
   }
   const fmtData = {
-    labels: ['PDF','DOCX','PNG','XLSX'],
-    datasets: [{ data: [45,28,15,12], backgroundColor: ['#667eea','#764ba2','#f093fb','#4facfe'], borderWidth: 2, borderColor: '#fff' }]
+    labels: overview.charts.formats.labels,
+    datasets: [{
+      data: overview.charts.formats.data,
+      backgroundColor: chartPalette,
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
   }
   const trafData = {
-    labels: ['Direct','Search','Social','Referral','Email'],
-    datasets: [{ label: 'Visitors', data: [285,195,142,87,56], backgroundColor: 'rgba(102,126,234,0.7)', borderColor: '#667eea', borderWidth: 1, borderRadius: 4 }]
+    labels: overview.charts.plans.labels,
+    datasets: [{
+      label: overview.charts.plans.title,
+      data: overview.charts.plans.data,
+      backgroundColor: 'rgba(102,126,234,0.7)',
+      borderColor: '#667eea',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
   }
-  const SERVICES = [
-    { name: 'API Server', latency: '12ms' }, { name: 'Worker Pool', latency: '8ms' },
-    { name: 'Database', latency: '3ms' }, { name: 'Storage', latency: '45ms' },
-    { name: 'Email Service', latency: '120ms' }, { name: 'CDN', latency: '18ms' },
-  ]
+
   return (
     <div className="ad-overview">
       <div className="ad-stats-grid">
-        {OVERVIEW_STATS.map((s) => (
+        {overview.cards.map((s) => (
           <div className="ad-stat-card" key={s.label}>
             <div className="ad-stat-icon" style={{ background: s.color + '20', color: s.color }}>{s.icon}</div>
             <div className="ad-stat-body">
-              <div className="ad-stat-value">{s.value}</div>
+              <div className="ad-stat-value">{loading ? '...' : s.value}</div>
               <div className="ad-stat-label">{s.label}</div>
-              <div className={`ad-stat-trend ${s.trend.startsWith('+') ? 'up' : 'down'}`}>{s.trend} vs yesterday</div>
+              <div className={`ad-stat-trend ${s.direction === 'down' ? 'down' : 'up'}`}>{s.trend}</div>
             </div>
           </div>
         ))}
       </div>
       <div className="ad-charts-row">
         <div className="ad-chart-card wide">
-          <h3>Conversions per Hour</h3>
+          <h3>{overview.charts.conversions.title}</h3>
           <div className="ad-chart-wrap"><Line data={convData} options={CHART_OPTS} /></div>
         </div>
         <div className="ad-chart-card">
-          <h3>Format Distribution</h3>
+          <h3>{overview.charts.formats.title}</h3>
           <div className="ad-chart-wrap"><Pie data={fmtData} options={PIE_OPTS} /></div>
         </div>
       </div>
       <div className="ad-charts-row">
         <div className="ad-chart-card">
-          <h3>Traffic Sources</h3>
+          <h3>{overview.charts.plans.title}</h3>
           <div className="ad-chart-wrap"><Bar data={trafData} options={CHART_OPTS} /></div>
         </div>
         <div className="ad-chart-card wide">
           <h3>System Status</h3>
           <div className="ad-status-list">
-            {SERVICES.map((s) => (
+            {overview.services.map((s) => (
               <div className="ad-status-row" key={s.name}>
                 <div className="ad-status-dot"></div>
                 <span className="ad-status-name">{s.name}</span>
                 <span className="ad-status-latency">{s.latency}</span>
-                <span className="ad-status-badge">Online</span>
+                <span className="ad-status-badge">{s.status}</span>
               </div>
             ))}
           </div>
@@ -187,7 +231,7 @@ export default function AdminDashboard() {
     if (tab === 'overview') return <AdminOverview />
     const map = {
       conversions: <ConversionMonitoring />, workers: <WorkerMonitoring />,
-      traffic: <TrafficAnalytics />, seo: <SEOEngine />, storage: <StorageManagement />,
+      traffic: <TrafficAnalytics />, seo: <SEOEngine />, aeo: <AEOEngine />, storage: <StorageManagement />,
       api: <APIMonitoring />, users: <UserManagement />, employees: <EmployeeManagement />,
       roles: <RoleManagement />, audit: <AuditLogsViewer />, settings: <SystemSettings />,
       monitoring: <SystemMonitoring />, reports: <ReportSchedulingAdmin />,

@@ -1,7 +1,8 @@
 """Comprehensive logging and monitoring system"""
+import os
 import logging
 import logging.handlers
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import json
 import sys
@@ -14,7 +15,7 @@ class JSONFormatter(logging.Formatter):
     """Custom formatter that outputs JSON logs"""
     def format(self, record):
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'message': record.getMessage(),
@@ -42,11 +43,17 @@ def setup_logging():
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
     
+    operations_log = Path(os.getenv('LOG_OPERATIONS_FILE', str(LOGS_DIR / 'operations.log')))
+    operations_log.parent.mkdir(exist_ok=True)
+    errors_log = Path(os.getenv('LOG_ERRORS_FILE', str(LOGS_DIR / 'errors.log')))
+    errors_log.parent.mkdir(exist_ok=True)
+
     # File handler - all logs
     file_handler = logging.handlers.RotatingFileHandler(
-        LOGS_DIR / 'app.log',
+        operations_log,
         maxBytes=10 * 1024 * 1024,  # 10 MB
-        backupCount=10
+        backupCount=10,
+        delay=True,
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(JSONFormatter())
@@ -54,9 +61,10 @@ def setup_logging():
     
     # File handler - errors only
     error_handler = logging.handlers.RotatingFileHandler(
-        LOGS_DIR / 'errors.log',
+        errors_log,
         maxBytes=5 * 1024 * 1024,  # 5 MB
-        backupCount=5
+        backupCount=5,
+        delay=True,
     )
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(JSONFormatter())
@@ -120,7 +128,7 @@ class AuditLogger:
     def log_action(cls, user_id, action, resource, status='success', details=None):
         """Log user action"""
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'user_id': user_id,
             'action': action,
             'resource': resource,

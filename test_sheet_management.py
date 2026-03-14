@@ -8,6 +8,13 @@ import tempfile
 import shutil
 from pathlib import Path
 
+VERBOSE = __name__ == '__main__'
+
+
+def log(*args, **kwargs):
+    if VERBOSE:
+        print(*args, **kwargs)
+
 # Test data for creating sample files
 SAMPLE_DATA_SHEET1 = [
     ['Date', 'Product', 'Quantity', 'Price'],
@@ -60,7 +67,7 @@ def create_test_excel_file(filepath, num_sheets=2):
     
     wb.save(filepath)
     wb.close()
-    print(f"✓ Created test Excel file: {filepath}")
+    log(f"✓ Created test Excel file: {filepath}")
 
 
 def create_test_csv_files(directory, num_files=3):
@@ -77,16 +84,16 @@ def create_test_csv_files(directory, num_files=3):
             f.write(f"{month},${6000 * (i+1)},55,{12 + i*2}\n")
         
         csv_files.append(filepath)
-        print(f"✓ Created test CSV file: {filepath}")
+        log(f"✓ Created test CSV file: {filepath}")
     
     return csv_files
 
 
 def test_list_sheets():
     """Test getting sheet information"""
-    print("\n" + "="*50)
-    print("TEST 1: List Sheets")
-    print("="*50)
+    log("\n" + "="*50)
+    log("TEST 1: List Sheets")
+    log("="*50)
     
     try:
         from services.document_conversion import get_sheet_info
@@ -99,26 +106,25 @@ def test_list_sheets():
         result = get_sheet_info(test_file)
         
         if result.get('success') or 'sheets' in result:
-            print(f"✓ File: {result['file_name']}")
-            print(f"✓ Type: {result['file_type']}")
-            print(f"✓ Sheets found: {len(result['sheets'])}")
+            log(f"✓ File: {result['file_name']}")
+            log(f"✓ Type: {result['file_type']}")
+            log(f"✓ Sheets found: {len(result['sheets'])}")
             
             for sheet in result['sheets']:
-                print(f"  - Name: {sheet['name']}, Rows: {sheet['rows']}, Cols: {sheet['columns']}")
+                log(f"  - Name: {sheet['name']}, Rows: {sheet['rows']}, Cols: {sheet['columns']}")
                 if sheet.get('preview'):
-                    print(f"    Preview: {sheet['preview'][0] if sheet['preview'] else 'N/A'}")
+                    log(f"    Preview: {sheet['preview'][0] if sheet['preview'] else 'N/A'}")
             
-            print("✓ TEST PASSED: Sheet information retrieved successfully")
-            return True
+            log("✓ TEST PASSED: Sheet information retrieved successfully")
         else:
-            print(f"✗ TEST FAILED: {result.get('error', 'Unknown error')}")
-            return False
+            log(f"✗ TEST FAILED: {result.get('error', 'Unknown error')}")
+        assert result.get('success') or 'sheets' in result, result.get('error', 'Unknown error')
     
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        log(f"✗ TEST FAILED: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Sheet info test failed: {e}") from e
     
     finally:
         try:
@@ -129,9 +135,9 @@ def test_list_sheets():
 
 def test_excel_to_pdf_sheets():
     """Test converting specific sheets to PDF"""
-    print("\n" + "="*50)
-    print("TEST 2: Excel to PDF (Specific Sheets)")
-    print("="*50)
+    log("\n" + "="*50)
+    log("TEST 2: Excel to PDF (Specific Sheets)")
+    log("="*50)
     
     try:
         from services.document_conversion import excel_to_pdf
@@ -153,12 +159,12 @@ def test_excel_to_pdf_sheets():
         )
         
         if result and os.path.exists(output_pdf):
-            print(f"✓ Successfully converted 'Sales Q1' sheet")
-            print(f"✓ PDF size: {os.path.getsize(output_pdf)} bytes")
+            log(f"✓ Successfully converted 'Sales Q1' sheet")
+            log(f"✓ PDF size: {os.path.getsize(output_pdf)} bytes")
             os.unlink(output_pdf)
         else:
-            print("✗ Single sheet conversion failed")
-            return False
+            log("✗ Single sheet conversion failed")
+            assert False, "Single sheet conversion failed"
         
         # Test 2: Convert multiple sheets merged
         result = excel_to_pdf(
@@ -170,21 +176,20 @@ def test_excel_to_pdf_sheets():
         )
         
         if result and os.path.exists(output_pdf):
-            print(f"✓ Successfully merged 2 sheets into PDF")
-            print(f"✓ PDF size: {os.path.getsize(output_pdf)} bytes")
+            log(f"✓ Successfully merged 2 sheets into PDF")
+            log(f"✓ PDF size: {os.path.getsize(output_pdf)} bytes")
             os.unlink(output_pdf)
         else:
-            print("✗ Merge sheets conversion failed")
-            return False
+            log("✗ Merge sheets conversion failed")
+            assert False, "Merge sheets conversion failed"
         
-        print("✓ TEST PASSED: Sheet conversion works correctly")
-        return True
+        log("✓ TEST PASSED: Sheet conversion works correctly")
     
     except Exception as e:
-        print(f"✗ TEST FAILED: {e}")
+        log(f"✗ TEST FAILED: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Excel to PDF sheet test failed: {e}") from e
     
     finally:
         try:
@@ -223,16 +228,15 @@ def test_combine_csvs():
             wb.close()
             
             print("✓ TEST PASSED: CSV combining works correctly")
-            return True
         else:
             print("✗ CSV combining failed")
-            return False
+        assert result and os.path.exists(output_path), "CSV combining failed"
     
     except Exception as e:
         print(f"✗ TEST FAILED: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"CSV combining test failed: {e}") from e
     
     finally:
         try:
@@ -267,16 +271,15 @@ def test_csv_sheet_info():
             print(f"✓ Preview: {sheet['preview'][:2]}")
             
             print("✓ TEST PASSED: CSV sheet info retrieved successfully")
-            return True
         else:
             print(f"✗ TEST FAILED: {result.get('error', 'Unknown error')}")
-            return False
+        assert result.get('success') or 'sheets' in result, result.get('error', 'Unknown error')
     
     except Exception as e:
         print(f"✗ TEST FAILED: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"CSV sheet info test failed: {e}") from e
     
     finally:
         try:
@@ -301,8 +304,8 @@ def run_all_tests():
     results = []
     for test_name, test_func in tests:
         try:
-            result = test_func()
-            results.append((test_name, result))
+            test_func()
+            results.append((test_name, True))
         except Exception as e:
             print(f"\n✗ CRITICAL ERROR in {test_name}: {e}")
             results.append((test_name, False))

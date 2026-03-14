@@ -4,7 +4,7 @@ Provides system metrics, database health, and performance indicators.
 """
 
 from flask import Blueprint, jsonify, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import sqlite3
 from typing import Dict, Any
@@ -17,7 +17,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-bp = Blueprint('health', __name__)
+bp = Blueprint('api_health', __name__)
 
 
 @bp.route('/health', methods=['GET'])
@@ -31,7 +31,7 @@ def get_status() -> tuple:
     """Get overall application status."""
     try:
         status = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'status': 'healthy',
             'version': '1.0.0',
             'components': {
@@ -81,7 +81,7 @@ def get_metrics() -> tuple:
     """Get application metrics for monitoring."""
     try:
         metrics = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'service': 'docpro',
             'system': check_system_health(),
             'database': {
@@ -103,11 +103,10 @@ def check_database_health() -> Dict[str, Any]:
             size = os.path.getsize(history_db)
             
             # Quick connectivity test
-            conn = sqlite3.connect(history_db)
-            cursor = conn.cursor()
-            cursor.execute('SELECT COUNT(*) FROM history LIMIT 1')
-            count = cursor.fetchone()[0]
-            conn.close()
+            with sqlite3.connect(history_db) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(*) FROM history LIMIT 1')
+                count = cursor.fetchone()[0]
             
             return {
                 'status': 'healthy',

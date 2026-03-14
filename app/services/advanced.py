@@ -64,7 +64,7 @@ def parse_page_numbers(pages_input):
         return None
 
     pages = set()
-    tokens = re.split('[,\s]+', pages_input.strip())
+    tokens = re.split(r'[,\s]+', pages_input.strip())
     for token in tokens:
         token = token.strip()
         if not token:
@@ -96,6 +96,7 @@ def add_watermark(input_pdf, output_pdf, watermark_text, pages=None, rotation=45
     """Simple watermark: draws watermark_text centered on each page using PyMuPDF."""
     try:
         doc = fitz.open(input_pdf)
+        supported_rotation = rotation if rotation in {0, 90, 180, 270} else 0
         for i in range(len(doc)):
             if pages and i not in pages:
                 continue
@@ -103,7 +104,7 @@ def add_watermark(input_pdf, output_pdf, watermark_text, pages=None, rotation=45
             rect = page.rect
             # compute center
             center = fitz.Point(rect.width / 2, rect.height / 2)
-            page.insert_text(center, watermark_text, fontsize=fontsize, rotate=rotation, color=(0.5, 0.5, 0.5), render_mode=3)
+            page.insert_text(center, watermark_text, fontsize=fontsize, rotate=supported_rotation, color=(0.5, 0.5, 0.5), render_mode=3)
         doc.save(output_pdf)
         doc.close()
         return True

@@ -3,6 +3,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
 import enum
+from app.utils.datetime_utils import utc_now_naive
 
 class UserRole(enum.Enum):
     USER = "user"
@@ -29,16 +30,25 @@ class User(db.Model):
     role = db.Column(db.String(50), default='user')  # user, admin, moderator
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    analytics_opt_in = db.Column(db.Boolean, default=True)
+    marketing_opt_in = db.Column(db.Boolean, default=True)
+    personalization_opt_in = db.Column(db.Boolean, default=True)
+    deletion_requested_at = db.Column(db.DateTime)
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utc_now_naive, onupdate=utc_now_naive)
     last_login = db.Column(db.DateTime)
     
     # Relationships
     conversions = db.relationship('Conversion', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     api_keys = db.relationship('APIKey', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     subscription = db.relationship('Subscription', backref='user', uselist=False, cascade='all, delete-orphan')
+    invoices = db.relationship('BillingInvoice', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    billing_profile = db.relationship('BillingProfile', backref='user', uselist=False, cascade='all, delete-orphan')
+    sessions = db.relationship('UserSession', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    connected_apps = db.relationship('ConnectedApp', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Hash and set password."""
@@ -71,6 +81,11 @@ class User(db.Model):
             'role': self.role,
             'is_active': self.is_active,
             'is_verified': self.is_verified,
+            'two_factor_enabled': self.two_factor_enabled,
+            'analytics_opt_in': self.analytics_opt_in,
+            'marketing_opt_in': self.marketing_opt_in,
+            'personalization_opt_in': self.personalization_opt_in,
+            'deletion_requested_at': self.deletion_requested_at.isoformat() if self.deletion_requested_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
         }

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
-import { useAuditLogger } from '../services/auditLogger'
+import { adminAPI } from '@shared/api/api'
 
 const AuditLogsViewer = () => {
-  const { getLogs, getStatistics, exportLogs } = useAuditLogger()
   const [logs, setLogs] = useState([])
-  const [filteredLogs, setFilteredLogs] = useState([])
-  const [stats, setStats] = useState(null)
+  const [availableActions, setAvailableActions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filters, setFilters] = useState({
     userId: '',
     action: '',
@@ -21,34 +21,30 @@ const AuditLogsViewer = () => {
 
   useEffect(() => {
     loadLogs()
-    loadStats()
   }, [])
 
-  useEffect(() => {
-    applyFilters()
-  }, [filters, logs, sortBy, sortOrder])
-
-  const loadLogs = () => {
-    const allLogs = getLogs({
-      limit: 500,
-      sortBy: 'timestamp',
-      sortOrder: 'desc'
-    })
-    setLogs(allLogs)
+  const loadLogs = async () => {
+    try {
+      setError('')
+      const response = await adminAPI.getActivityFeed({ limit: 500, period_days: 30 })
+      setLogs(response.data.entries || [])
+      setAvailableActions(response.data.availableActions || [])
+    } catch (loadError) {
+      setError(loadError.response?.data?.error || 'Failed to load audit logs')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const loadStats = () => {
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - 30)
-    const statsData = getStatistics(startDate.toISOString(), new Date().toISOString())
-    setStats(statsData)
-  }
-
-  const applyFilters = () => {
+  const filteredLogs = useMemo(() => {
     let filtered = [...logs]
 
     if (filters.userId) {
-      filtered = filtered.filter(log => log.userId.toLowerCase().includes(filters.userId.toLowerCase()))
+      const search = filters.userId.toLowerCase()
+      filtered = filtered.filter(log =>
+        (log.userId || '').toLowerCase().includes(search) ||
+        (log.userName || '').toLowerCase().includes(search)
+      )
     }
 
     if (filters.action) {
@@ -69,11 +65,10 @@ const AuditLogsViewer = () => {
     }
 
     if (filters.endDate) {
-      const endDate = new Date(filters.endDate)
+      const endDate = new Date(`${filters.endDate}T23:59:59`)
       filtered = filtered.filter(log => new Date(log.timestamp) <= endDate)
     }
 
-    // Sorting
     filtered.sort((a, b) => {
       let aVal = a[sortBy]
       let bVal = b[sortBy]
@@ -87,19 +82,24 @@ const AuditLogsViewer = () => {
       return sortOrder === 'asc' ? comparison : -comparison
     })
 
-    setFilteredLogs(filtered)
-  }
+    return filtered
+  }, [filters, logs, sortBy, sortOrder])
+
+  const stats = useMemo(() => {
+    return {
+      totalEvents: filteredLogs.length,
+      bySeverity: filteredLogs.reduce((accumulator, log) => {
+        const key = log.severity || 'info'
+        accumulator[key] = (accumulator[key] || 0) + 1
+        return accumulator
+      }, {})
+    }
+  }, [filteredLogs])
 
   const handleExport = () => {
-    const data = exportLogs({
-      userId: filters.userId,
-      action: filters.action,
-      severity: filters.severity
-    })
-
     const csv = 'Timestamp,User,Action,Resource,Status,Severity\n' +
-      data.map(log =>
-        `"${log.timestamp}","${log.userId}","${log.action}","${log.resourceType || ''}","${log.status}","${log.severity}"`
+      filteredLogs.map(log =>
+        `"${log.timestamp}","${log.userName || log.userId || 'system'}","${log.action}","${log.resourceName || log.resourceType || ''}","${log.status}","${log.severity}"`
       ).join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -138,10 +138,16 @@ const AuditLogsViewer = () => {
     <div className="audit-viewer">
       <div className="management-header">
         <h2><UniversalIcon icon="📝" size={24} /> Audit Log Viewer</h2>
-        <button className="btn-primary" onClick={handleExport}>
+        <button className="btn-primary" onClick={handleExport} disabled={!filteredLogs.length}>
           <UniversalIcon icon="📥" size={16} /> Export CSV
         </button>
       </div>
+
+      {error && (
+        <div className="no-data">
+          <p>{error}</p>
+        </div>
+      )}
 
       {stats && (
         <div className="audit-stats">
@@ -174,7 +180,7 @@ const AuditLogsViewer = () => {
         <div className="filter-grid">
           <input
             type="text"
-            placeholder="Filter by User ID..."
+            placeholder="Filter by user or ID..."
             value={filters.userId}
             onChange={(e) => setFilters(prev => ({ ...prev, userId: e.target.value }))}
             className="form-input"
@@ -185,12 +191,9 @@ const AuditLogsViewer = () => {
             className="form-input"
           >
             <option value="">All Actions</option>
-            <option value="user-login">User Login</option>
-            <option value="user-logout">User Logout</option>
-            <option value="report-created">Report Created</option>
-            <option value="report-updated">Report Updated</option>
-            <option value="access-denied">Access Denied</option>
-            <option value="error">Error</option>
+            {availableActions.map(action => (
+              <option key={action} value={action}>{action.replace(/-/g, ' ')}</option>
+            ))}
           </select>
           <select
             value={filters.severity}
@@ -244,7 +247,13 @@ const AuditLogsViewer = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
+                  Loading audit logs...
+                </td>
+              </tr>
+            ) : filteredLogs.length > 0 ? (
               filteredLogs.map(log => (
                 <React.Fragment key={log.id}>
                   <tr
@@ -252,8 +261,8 @@ const AuditLogsViewer = () => {
                     onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
                   >
                     <td>{new Date(log.timestamp).toLocaleString()}</td>
-                    <td>{log.userId}</td>
-                    <td>{log.action}</td>
+                    <td>{log.userName || log.userId || 'system'}</td>
+                    <td>{log.action.replace(/-/g, ' ')}</td>
                     <td>{log.resourceName || log.resourceType || '-'}</td>
                     <td>
                       <span className={`status-badge status-${log.status}`}>

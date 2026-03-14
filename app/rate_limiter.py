@@ -2,8 +2,9 @@
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.models import db, APIKey, Subscription
+from app.utils.datetime_utils import utc_now_naive
 import time
 
 class RateLimitConfig:
@@ -51,9 +52,9 @@ class RateLimitTracker(db.Model):
     api_key_id = db.Column(db.Integer, db.ForeignKey('api_key.id'), index=True)
     endpoint = db.Column(db.String(255), index=True)
     request_count = db.Column(db.Integer, default=0)
-    window_start = db.Column(db.DateTime, default=datetime.utcnow)
+    window_start = db.Column(db.DateTime, default=utc_now_naive)
     window_type = db.Column(db.String(10))  # 'minute', 'hour', 'day'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now_naive)
     
     def to_dict(self):
         return {
@@ -96,7 +97,7 @@ class AdvancedRateLimiter:
             RateLimitTracker.user_id == user_id,
             RateLimitTracker.endpoint == endpoint,
             RateLimitTracker.window_type == 'minute',
-            RateLimitTracker.window_start >= datetime.utcnow() - timedelta(minutes=1)
+            RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(minutes=1)
         ).first()
         
         if minute_tracker and minute_tracker.request_count >= limits['requests_per_minute']:
@@ -107,7 +108,7 @@ class AdvancedRateLimiter:
             RateLimitTracker.user_id == user_id,
             RateLimitTracker.endpoint == endpoint,
             RateLimitTracker.window_type == 'hour',
-            RateLimitTracker.window_start >= datetime.utcnow() - timedelta(hours=1)
+            RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(hours=1)
         ).first()
         
         if hour_tracker and hour_tracker.request_count >= limits['requests_per_hour']:
@@ -119,7 +120,7 @@ class AdvancedRateLimiter:
                 RateLimitTracker.user_id == user_id,
                 RateLimitTracker.endpoint == endpoint,
                 RateLimitTracker.window_type == 'day',
-                RateLimitTracker.window_start >= datetime.utcnow() - timedelta(days=1)
+                RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(days=1)
             ).first()
             
             if day_tracker and day_tracker.request_count >= limits['requests_per_day']:
@@ -139,7 +140,7 @@ class AdvancedRateLimiter:
     @staticmethod
     def record_request(user_id=None, api_key_id=None, endpoint=None):
         """Record request for rate limiting."""
-        window_start = datetime.utcnow()
+        window_start = datetime.now(timezone.utc)
         
         # Record minute window
         minute_tracker = RateLimitTracker(
@@ -183,21 +184,21 @@ class AdvancedRateLimiter:
             RateLimitTracker.user_id == user_id,
             RateLimitTracker.endpoint == endpoint,
             RateLimitTracker.window_type == 'minute',
-            RateLimitTracker.window_start >= datetime.utcnow() - timedelta(minutes=1)
+            RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(minutes=1)
         ).first()
         
         hour = RateLimitTracker.query.filter(
             RateLimitTracker.user_id == user_id,
             RateLimitTracker.endpoint == endpoint,
             RateLimitTracker.window_type == 'hour',
-            RateLimitTracker.window_start >= datetime.utcnow() - timedelta(hours=1)
+            RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(hours=1)
         ).first()
         
         day = RateLimitTracker.query.filter(
             RateLimitTracker.user_id == user_id,
             RateLimitTracker.endpoint == endpoint,
             RateLimitTracker.window_type == 'day',
-            RateLimitTracker.window_start >= datetime.utcnow() - timedelta(days=1)
+            RateLimitTracker.window_start >= datetime.now(timezone.utc) - timedelta(days=1)
         ).first()
         
         return {
@@ -235,7 +236,7 @@ def tiered_rate_limit(endpoint_name):
 
 def cleanup_old_rate_limit_records(days=30):
     """Clean up old rate limit tracking records (run as scheduled task)."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     deleted = RateLimitTracker.query.filter(
         RateLimitTracker.created_at < cutoff
     ).delete()

@@ -1,6 +1,6 @@
 """Enhanced Health Check Endpoints for Load Balancer"""
-from flask import Blueprint, jsonify, request, make_response
-from datetime import datetime
+from flask import Blueprint, jsonify, request, make_response, current_app
+from datetime import datetime, timezone
 from app.models import db
 import os
 
@@ -46,6 +46,7 @@ def check_database_health():
 
 def check_redis_health():
     """Check Redis connectivity"""
+    cache_type = (current_app.config.get('CACHE_TYPE') or 'SimpleCache').lower()
     try:
         from app.cache_manager import cache
         
@@ -57,14 +58,19 @@ def check_redis_health():
             cache.delete('health_check')
             return {
                 'status': 'healthy',
-                'message': 'Redis connected'
+                'message': 'Redis connected' if 'redis' in cache_type else 'Local cache connected'
             }
         else:
             return {
                 'status': 'unhealthy',
-                'message': 'Redis test failed'
+                'message': 'Redis test failed' if 'redis' in cache_type else 'Cache test failed'
             }
     except Exception as e:
+        if 'redis' not in cache_type:
+            return {
+                'status': 'healthy',
+                'message': f'Cache backend {current_app.config.get("CACHE_TYPE") or "SimpleCache"} is available without Redis'
+            }
         return {
             'status': 'degraded',
             'message': f'Redis unavailable: {str(e)}'
@@ -104,7 +110,7 @@ def basic_health_check():
     
     response = jsonify({
         'status': HealthStatus.HEALTHY,
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'service': 'docpro-api'
     })
     return add_cors_headers(response), 200
@@ -135,7 +141,7 @@ def detailed_health_check():
     
     response = {
         'status': overall_status,
-        'timestamp': datetime.utcnow().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'components': {
             'database': db_health,
             'redis': redis_health,
@@ -156,7 +162,7 @@ def readiness_check():
         if db_result.get('status') == HealthStatus.HEALTHY:
             return jsonify({
                 'ready': True,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({
@@ -176,7 +182,7 @@ def liveness_check():
         # Check if app is responding
         return jsonify({
             'alive': True,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }), 200
     except Exception as e:
         return jsonify({
@@ -196,7 +202,7 @@ def startup_check():
             redis_health.get('status') != HealthStatus.UNHEALTHY):
             return jsonify({
                 'started': True,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({
@@ -219,7 +225,7 @@ class HealthMetrics:
             'database': check_database_health(),
             'redis': check_redis_health(),
             'celery': check_celery_health(),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     @staticmethod

@@ -5,7 +5,7 @@ Tests for Phase 10 models, endpoints, processors, and integration
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import json
 import uuid
@@ -74,7 +74,7 @@ def processor_setup():
     """Setup for processor tests"""
     return {
         'tenant_id': 'test-tenant-001',
-        'timestamp': datetime.utcnow()
+        'timestamp': datetime.now(timezone.utc)
     }
 
 
@@ -94,9 +94,9 @@ class TestSystemMetricModel:
                 metric_name='cpu_usage',
                 metric_type='gauge',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow() - timedelta(hours=1),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc) - timedelta(hours=1),
+                period_end=datetime.now(timezone.utc),
                 value=45.2,
                 min_value=40.0,
                 max_value=50.0,
@@ -114,9 +114,9 @@ class TestSystemMetricModel:
                 service_name='api-service',
                 metric_name='response_time',
                 aggregation_level='minute',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=250.5,
                 min_value=100.0,
                 max_value=500.0,
@@ -136,9 +136,9 @@ class TestSystemMetricModel:
                     service_name='test',
                     metric_name='test',
                     aggregation_level=level,
-                    timestamp=datetime.utcnow(),
-                    period_start=datetime.utcnow(),
-                    period_end=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
+                    period_start=datetime.now(timezone.utc),
+                    period_end=datetime.now(timezone.utc),
                     value=50.0,
                 )
                 assert metric.aggregation_level == level
@@ -153,9 +153,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='cpu',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=45.0,
             )
             data = metric.to_dict() if hasattr(metric, 'to_dict') else {
@@ -176,9 +176,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='cpu',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=50.0,
             )
             metric2 = SystemMetric(
@@ -186,9 +186,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='cpu',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=60.0,
             )
             assert metric1.tenant_id != metric2.tenant_id
@@ -198,7 +198,7 @@ class TestSystemMetricModel:
     def test_system_metric_time_series_integrity(self):
         """Test time series integrity with period boundaries"""
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             metric = SystemMetric(
                 tenant_id='tenant-1',
                 service_name='service',
@@ -221,9 +221,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='metric',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=100.0,
                 # min_value and max_value are optional
             )
@@ -239,9 +239,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='metric',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=45.123456789,
             )
             assert metric.value > 45.123456
@@ -256,9 +256,9 @@ class TestSystemMetricModel:
                 service_name='service',
                 metric_name='metric',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=-10.5,
             )
             assert metric.value < 0
@@ -279,8 +279,8 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='user-service',
-                period_start=datetime.utcnow() - timedelta(hours=1),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc) - timedelta(hours=1),
+                period_end=datetime.now(timezone.utc),
                 response_time_p99=500.0,
                 total_requests=10000,
                 successful_requests=9980,
@@ -298,8 +298,8 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 response_time_p50=100.0,
                 response_time_p95=250.0,
                 response_time_p99=500.0,
@@ -317,8 +317,8 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_requests=1000,
                 successful_requests=990,
                 failed_requests=10,
@@ -335,8 +335,8 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 uptime_percent=99.99,
                 total_requests=100000,
                 successful_requests=99990,
@@ -352,16 +352,16 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                cpu_percent=45.2,
-                memory_percent=62.5,
-                disk_percent=78.3,
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                cpu_usage_percent=45.2,
+                memory_usage_percent=62.5,
+                disk_usage_percent=78.3,
                 total_requests=5000,
                 successful_requests=4900,
             )
-            assert 0 <= metric.cpu_percent <= 100
-            assert 0 <= metric.memory_percent <= 100
+            assert 0 <= metric.cpu_usage_percent <= 100
+            assert 0 <= metric.memory_usage_percent <= 100
         except:
             pytest.skip("Database not configured")
     
@@ -371,15 +371,15 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                http_4xx_count=50,
-                http_5xx_count=10,
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                error_count_4xx=50,
+                error_count_5xx=10,
                 total_requests=5000,
                 successful_requests=4940,
             )
-            assert metric.http_4xx_count == 50
-            assert metric.http_5xx_count == 10
+            assert metric.error_count_4xx == 50
+            assert metric.error_count_5xx == 10
         except:
             pytest.skip("Database not configured")
     
@@ -389,8 +389,8 @@ class TestServiceMetricModel:
             metric = ServiceMetric(
                 tenant_id='tenant-1',
                 service_name='service',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 response_time_p50=50.0,
                 response_time_p95=200.0,
                 response_time_p99=500.0,
@@ -416,16 +416,16 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_users=5000,
                 active_users=2500,
-                dau=2500,
-                wau=4200,
-                mau=4800,
+                daily_active_users=2500,
+                weekly_active_users=4200,
+                monthly_active_users=4800,
             )
-            assert metric.dau == 2500
-            assert metric.mau == 4800
+            assert metric.daily_active_users == 2500
+            assert metric.monthly_active_users == 4800
         except:
             pytest.skip("Database not configured")
     
@@ -434,13 +434,13 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                dau=1000,
-                wau=5000,
-                mau=20000,
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                daily_active_users=1000,
+                weekly_active_users=5000,
+                monthly_active_users=20000,
             )
-            assert metric.dau <= metric.wau <= metric.mau
+            assert metric.daily_active_users <= metric.weekly_active_users <= metric.monthly_active_users
         except:
             pytest.skip("Database not configured")
     
@@ -449,11 +449,11 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                dau=2500,
-                wau=4200,
-                mau=4800,
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                daily_active_users=2500,
+                weekly_active_users=4200,
+                monthly_active_users=4800,
                 dau_wau_ratio=59.5,  # 2500/4200*100
                 dau_mau_ratio=52.1,  # 2500/4800*100
             )
@@ -468,8 +468,8 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_users=5000,
                 active_users=2500,
                 total_sessions=15000,
@@ -486,8 +486,8 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_users=5000,
                 active_users=2500,
             )
@@ -501,8 +501,8 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_users=5000,
                 active_users=2500,
             )
@@ -516,12 +516,12 @@ class TestUserActivityMetric:
         try:
             metric = UserActivityMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 total_users=5000,
                 new_users=250,
-                returning_users=2000,
                 churned_users=100,
+                active_users=2000,
             )
             assert metric.new_users >= 0
             assert metric.churned_users >= 0
@@ -541,14 +541,14 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                mrr=Decimal('50000.00'),
-                arr=Decimal('600000.00'),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                recurring_revenue=50000.00,
+                total_revenue=600000.00,
                 total_customers=250,
             )
-            assert metric.mrr == Decimal('50000.00')
-            assert metric.arr == Decimal('600000.00')
+            assert metric.recurring_revenue == 50000.00
+            assert metric.total_revenue == 600000.00
         except:
             pytest.skip("Database not configured")
     
@@ -557,13 +557,13 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                mrr=Decimal('50000.99'),
-                revenue=Decimal('150250.75'),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                recurring_revenue=50000.99,
+                total_revenue=150250.75,
             )
             # Verify precision
-            assert str(metric.mrr) == '50000.99'
+            assert metric.recurring_revenue == pytest.approx(50000.99)
         except:
             pytest.skip("Database not configured")
     
@@ -572,8 +572,8 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 churn_rate=Decimal('1.2'),
                 retention_rate=Decimal('98.8'),
                 total_customers=250,
@@ -588,14 +588,14 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                ltv=Decimal('10000'),
-                cac=Decimal('500'),
-                ltv_cac_ratio=Decimal('20.0'),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                customer_lifetime_value=10000.0,
+                customer_acquisition_cost=500.0,
+                payback_period_months=20.0,
             )
-            assert metric.ltv > 0
-            assert metric.cac > 0
+            assert metric.customer_lifetime_value > 0
+            assert metric.customer_acquisition_cost > 0
         except:
             pytest.skip("Database not configured")
     
@@ -604,14 +604,14 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                nrr=Decimal('110.5'),
-                expansion_revenue=Decimal('5000'),
-                contraction_revenue=Decimal('2000'),
-                churn_revenue=Decimal('1000'),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                net_revenue_retention=110.5,
+                expansion_revenue=5000.0,
+                contraction_revenue=2000.0,
+                churn_rate=1.0,
             )
-            assert metric.nrr >= 0
+            assert metric.net_revenue_retention >= 0
         except:
             pytest.skip("Database not configured")
     
@@ -620,13 +620,13 @@ class TestBusinessMetric:
         try:
             metric = BusinessMetric(
                 tenant_id='tenant-1',
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
-                mom_growth=Decimal('5.2'),
-                yoy_growth=Decimal('45.3'),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
+                month_over_month_growth=5.2,
+                year_over_year_growth=45.3,
                 total_customers=250,
             )
-            assert metric.mom_growth >= 0
+            assert metric.month_over_month_growth >= 0
         except:
             pytest.skip("Database not configured")
 
@@ -856,9 +856,9 @@ class TestMultiTenancy:
                 service_name='s1',
                 metric_name='m1',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=50.0,
             )
             m2 = SystemMetric(
@@ -866,9 +866,9 @@ class TestMultiTenancy:
                 service_name='s1',
                 metric_name='m1',
                 aggregation_level='hour',
-                timestamp=datetime.utcnow(),
-                period_start=datetime.utcnow(),
-                period_end=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
+                period_start=datetime.now(timezone.utc),
+                period_end=datetime.now(timezone.utc),
                 value=60.0,
             )
             assert m1.tenant_id != m2.tenant_id

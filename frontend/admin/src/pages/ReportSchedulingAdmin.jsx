@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { adminAPI } from '@shared/api/api'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
-import { useReportScheduler } from '../services/reportScheduler'
+import '../styles/admin.css'
 
 const ReportSchedulingAdmin = () => {
-  const { scheduleReport, getSchedules, updateSchedule, deleteSchedule } = useReportScheduler()
-  const [schedules, setSchedules] = useState([])
+  const [payload, setPayload] = useState({
+    stats: {
+      totalSchedules: 0,
+      activeSchedules: 0,
+      disabledSchedules: 0,
+      totalRecipients: 0,
+    },
+    schedules: [],
+  })
   const [showModal, setShowModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState('')
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [formData, setFormData] = useState({
     reportName: '',
     frequency: 'daily',
@@ -22,10 +34,21 @@ const ReportSchedulingAdmin = () => {
     loadSchedules()
   }, [])
 
-  const loadSchedules = () => {
-    const stored = localStorage.getItem('report-schedules')
-    if (stored) {
-      setSchedules(JSON.parse(stored))
+  const loadSchedules = async (showLoader = true) => {
+    try {
+      if (showLoader) {
+        setLoading(true)
+      }
+      setError('')
+      const response = await adminAPI.getReportSchedules()
+      setPayload(response.data || { stats: {}, schedules: [] })
+    } catch (err) {
+      console.error('Failed to load report schedules:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load report schedules')
+    } finally {
+      if (showLoader) {
+        setLoading(false)
+      }
     }
   }
 
@@ -51,6 +74,7 @@ const ReportSchedulingAdmin = () => {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingSchedule(null)
+    setNewRecipient('')
   }
 
   const handleInputChange = (e) => {
@@ -78,73 +102,90 @@ const ReportSchedulingAdmin = () => {
     }))
   }
 
-  const handleSaveSchedule = () => {
+  const handleSaveSchedule = async () => {
     if (!formData.reportName) {
-      alert('Please enter a report name')
+      setError('Please enter a report name')
       return
     }
 
     if (formData.recipients.length === 0) {
-      alert('Please add at least one recipient')
+      setError('Please add at least one recipient')
       return
     }
 
-    const schedule = {
-      id: editingSchedule?.id || `schedule-${Date.now()}`,
-      ...formData,
-      createdAt: editingSchedule?.createdAt || new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      nextRun: calculateNextRun(formData.frequency, formData.time)
-    }
+    try {
+      setActionLoading(editingSchedule?.id || 'create')
+      setError('')
+      setMessage('')
 
-    let updatedSchedules
-    if (editingSchedule) {
-      updatedSchedules = schedules.map(s => s.id === editingSchedule.id ? schedule : s)
-    } else {
-      updatedSchedules = [...schedules, schedule]
-    }
+      const response = editingSchedule
+        ? await adminAPI.updateReportSchedule(editingSchedule.id, formData)
+        : await adminAPI.createReportSchedule(formData)
 
-    setSchedules(updatedSchedules)
-    localStorage.setItem('report-schedules', JSON.stringify(updatedSchedules))
-    handleCloseModal()
-  }
-
-  const calculateNextRun = (frequency, time) => {
-    const now = new Date()
-    const [hours, minutes] = time.split(':').map(Number)
-
-    const next = new Date(now)
-    next.setHours(hours, minutes, 0, 0)
-
-    if (next <= now) {
-      next.setDate(next.getDate() + 1)
-    }
-
-    return next.toISOString().split('T')[0]
-  }
-
-  const handleToggleSchedule = (scheduleId) => {
-    const updatedSchedules = schedules.map(s => {
-      if (s.id === scheduleId) {
-        return { ...s, enabled: !s.enabled }
-      }
-      return s
-    })
-    setSchedules(updatedSchedules)
-    localStorage.setItem('report-schedules', JSON.stringify(updatedSchedules))
-  }
-
-  const handleDeleteSchedule = (scheduleId) => {
-    if (window.confirm('Are you sure you want to delete this schedule?')) {
-      const updatedSchedules = schedules.filter(s => s.id !== scheduleId)
-      setSchedules(updatedSchedules)
-      localStorage.setItem('report-schedules', JSON.stringify(updatedSchedules))
+      setMessage(response.data?.message || 'Schedule saved.')
+      handleCloseModal()
+      await loadSchedules(false)
+    } catch (err) {
+      console.error('Failed to save schedule:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to save schedule')
+    } finally {
+      setActionLoading('')
     }
   }
 
-  const handleTestSchedule = (schedule) => {
-    alert(`Test email would be sent to: ${schedule.recipients.join(', ')}`)
+  const handleToggleSchedule = async (schedule) => {
+    try {
+      setActionLoading(schedule.id)
+      setError('')
+      setMessage('')
+      const response = await adminAPI.updateReportSchedule(schedule.id, {
+        ...schedule,
+        enabled: !schedule.enabled,
+      })
+      setMessage(response.data?.message || 'Schedule updated.')
+      await loadSchedules(false)
+    } catch (err) {
+      console.error('Failed to toggle schedule:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to update schedule')
+    } finally {
+      setActionLoading('')
+    }
   }
+
+  const handleDeleteSchedule = async (scheduleId) => {
+    try {
+      setActionLoading(scheduleId)
+      setError('')
+      setMessage('')
+      const response = await adminAPI.deleteReportSchedule(scheduleId)
+      setMessage(response.data?.message || 'Schedule deleted.')
+      await loadSchedules(false)
+    } catch (err) {
+      console.error('Failed to delete schedule:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to delete schedule')
+    } finally {
+      setActionLoading('')
+    }
+  }
+
+  const handleTestSchedule = async (schedule) => {
+    try {
+      setActionLoading(`test-${schedule.id}`)
+      setError('')
+      setMessage('')
+      const response = await adminAPI.testReportSchedule(schedule.id)
+      setMessage(response.data?.message || 'Test dispatch recorded.')
+      await loadSchedules(false)
+    } catch (err) {
+      console.error('Failed to send test schedule:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to record test dispatch')
+    } finally {
+      setActionLoading('')
+    }
+  }
+
+  const schedules = payload.schedules || []
+  const stats = payload.stats || {}
 
   return (
     <div className="report-scheduling-admin">
@@ -152,6 +193,53 @@ const ReportSchedulingAdmin = () => {
         <h2><UniversalIcon icon="📅" size={24} /> Report Scheduling</h2>
         <button className="btn-primary" onClick={() => handleOpenModal()}>
           + Create Schedule
+        </button>
+      </div>
+
+      {error && <div className="alert-banner error">{error}</div>}
+      {message && <div className="alert-banner success">{message}</div>}
+
+      <div className="admin-stats-grid" style={{ marginBottom: '24px' }}>
+        <div className="admin-stat-card metric-primary">
+          <UniversalIcon icon="📅" size={32} />
+          <div className="stat-content">
+            <h3>Total Schedules</h3>
+            <p className="stat-value">{stats.totalSchedules || 0}</p>
+            <p className="stat-detail">Persisted admin schedules</p>
+          </div>
+        </div>
+
+        <div className="admin-stat-card metric-success">
+          <UniversalIcon icon="✅" size={32} />
+          <div className="stat-content">
+            <h3>Active</h3>
+            <p className="stat-value">{stats.activeSchedules || 0}</p>
+            <p className="stat-detail">Enabled delivery plans</p>
+          </div>
+        </div>
+
+        <div className="admin-stat-card metric-warning">
+          <UniversalIcon icon="⏸️" size={32} />
+          <div className="stat-content">
+            <h3>Disabled</h3>
+            <p className="stat-value">{stats.disabledSchedules || 0}</p>
+            <p className="stat-detail">Held back from dispatch</p>
+          </div>
+        </div>
+
+        <div className="admin-stat-card metric-info">
+          <UniversalIcon icon="👥" size={32} />
+          <div className="stat-content">
+            <h3>Total Recipients</h3>
+            <p className="stat-value">{stats.totalRecipients || 0}</p>
+            <p className="stat-detail">Across all saved schedules</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="quick-actions" style={{ marginBottom: '24px' }}>
+        <button className="action-button primary" onClick={() => loadSchedules()} disabled={loading}>
+          <UniversalIcon icon="🔄" size={14} /> {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
 
@@ -164,8 +252,9 @@ const ReportSchedulingAdmin = () => {
                 <div className="schedule-actions">
                   <button
                     className={`status-toggle ${schedule.enabled ? 'enabled' : 'disabled'}`}
-                    onClick={() => handleToggleSchedule(schedule.id)}
+                    onClick={() => handleToggleSchedule(schedule)}
                     title={schedule.enabled ? 'Disable' : 'Enable'}
+                    disabled={actionLoading === schedule.id}
                   >
                     {schedule.enabled ? <UniversalIcon icon="✓" size={14} /> : <UniversalIcon icon="✗" size={14} />}
                   </button>
@@ -195,6 +284,10 @@ const ReportSchedulingAdmin = () => {
                   <span className="label">Recipients:</span>
                   <span className="value">{schedule.recipients.length}</span>
                 </div>
+                <div className="detail-row">
+                  <span className="label">Last Test:</span>
+                  <span className="value">{schedule.testSentAt || 'Not sent'}</span>
+                </div>
               </div>
 
               <div className="recipients-preview">
@@ -211,6 +304,7 @@ const ReportSchedulingAdmin = () => {
                   className="btn-small"
                   onClick={() => handleOpenModal(schedule)}
                   title="Edit"
+                  disabled={actionLoading === schedule.id}
                 >
                   <UniversalIcon icon="✍️" size={14} /> Edit
                 </button>
@@ -218,13 +312,15 @@ const ReportSchedulingAdmin = () => {
                   className="btn-small btn-info"
                   onClick={() => handleTestSchedule(schedule)}
                   title="Send Test Email"
+                  disabled={actionLoading === `test-${schedule.id}`}
                 >
-                  <UniversalIcon icon="📧" size={14} /> Test
+                  <UniversalIcon icon="📧" size={14} /> {actionLoading === `test-${schedule.id}` ? 'Testing...' : 'Test'}
                 </button>
                 <button
                   className="btn-small btn-danger"
                   onClick={() => handleDeleteSchedule(schedule.id)}
                   title="Delete"
+                  disabled={actionLoading === schedule.id}
                 >
                   <UniversalIcon icon="🗑️" size={14} /> Delete
                 </button>
@@ -353,7 +449,9 @@ const ReportSchedulingAdmin = () => {
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={handleCloseModal}>Cancel</button>
-              <button className="btn-primary" onClick={handleSaveSchedule}>Save Schedule</button>
+              <button className="btn-primary" onClick={handleSaveSchedule} disabled={actionLoading === (editingSchedule?.id || 'create')}>
+                {actionLoading === (editingSchedule?.id || 'create') ? 'Saving...' : 'Save Schedule'}
+              </button>
             </div>
           </div>
         </div>

@@ -39,17 +39,21 @@ except Exception:
     requests = None
     BeautifulSoup = None
 
-try:
-    from weasyprint import HTML as WeasyHTML
-except Exception:
-    WeasyHTML = None
-
 from datetime import datetime
 import csv as csv_module
 
 # Configure logger
 import logging
 logger = logging.getLogger(__name__)
+
+
+def _get_weasy_html():
+    try:
+        from weasyprint import HTML as WeasyHTML
+        return WeasyHTML
+    except Exception as exc:
+        logger.warning(f"WeasyPrint unavailable for HTML rendering: {exc}")
+        return None
 
 
 # ========================
@@ -627,15 +631,17 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
         
         elif merge_sheets:
             # Merge multiple PDFs into one
-            from pypdf import PdfMerger
-            merger = PdfMerger()
+            from pypdf import PdfReader, PdfWriter
+            writer = PdfWriter()
             
             try:
-                for sheet_name, pdf_path in created_pdfs:
-                    merger.append(pdf_path)
-                
-                merger.write(output_pdf)
-                merger.close()
+                for _, pdf_path in created_pdfs:
+                    reader = PdfReader(pdf_path)
+                    for page in reader.pages:
+                        writer.add_page(page)
+
+                with open(output_pdf, 'wb') as merged_pdf:
+                    writer.write(merged_pdf)
                 
                 # Cleanup individual PDFs
                 for _, pdf_path in created_pdfs:
@@ -648,7 +654,6 @@ def excel_to_pdf(excel_path, output_pdf, **kwargs):
                 return True
             except Exception as e:
                 logger.error(f"Error merging PDFs: {e}")
-                merger.close()
                 return False
         
         else:
@@ -976,7 +981,8 @@ def pdf_to_excel(pdf_path, output_xlsx):
         from openpyxl import Workbook
         
         wb = Workbook()
-        wb.remove(wb.active)  # Remove default sheet
+        default_sheet = wb.active
+        sheet_created = False
         
         with pdfplumber.open(pdf_path) as pdf:
             for page_num, page in enumerate(pdf.pages):
@@ -985,10 +991,27 @@ def pdf_to_excel(pdf_path, output_xlsx):
                     for table_num, table in enumerate(tables):
                         sheet_name = f"Page {page_num + 1} Table {table_num + 1}"[:31]
                         ws = wb.create_sheet(sheet_name)
+                        sheet_created = True
                         
                         for row_idx, row in enumerate(table, 1):
                             for col_idx, value in enumerate(row, 1):
                                 ws.cell(row=row_idx, column=col_idx, value=value)
+
+                if not tables:
+                    page_text = page.extract_text() or ''
+                    lines = [line.strip() for line in page_text.splitlines() if line.strip()]
+                    if lines:
+                        ws = wb.create_sheet(f"Page {page_num + 1}"[:31])
+                        sheet_created = True
+                        ws.cell(row=1, column=1, value='Extracted Text')
+                        for row_idx, line in enumerate(lines, start=2):
+                            ws.cell(row=row_idx, column=1, value=line)
+
+        if not sheet_created:
+            default_sheet.title = 'Page 1'
+            default_sheet.cell(row=1, column=1, value='No tables or text extracted')
+        else:
+            wb.remove(default_sheet)
         
         wb.save(output_xlsx)
         wb.close()
@@ -1030,16 +1053,15 @@ def url_to_pdf(webpage_url, output_pdf, timeout=30):
         if requests is None or BeautifulSoup is None:
             logger.error("requests/BeautifulSoup not available")
             return False
+
+        weasy_html = _get_weasy_html()
+        if weasy_html is None:
+            return False
         
         response = requests.get(webpage_url, timeout=timeout)
         response.raise_for_status()
-        
-        # Use WeasyPrint if available
-        if WeasyHTML is not None:
-            WeasyHTML(string=response.text).write_pdf(output_pdf)
-        else:
-            logger.error("WeasyPrint not available for URL to PDF")
-            return False
+
+        weasy_html(string=response.text).write_pdf(output_pdf)
         
         logger.info(f"URL to PDF: {output_pdf}")
         return True

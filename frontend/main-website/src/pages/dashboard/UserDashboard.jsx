@@ -1,12 +1,50 @@
 import React, { useState, useEffect } from 'react'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import { useAuth } from '@shared/hooks/useAuth'
+import { useToast } from '@shared/components/Toast'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/dashboard.css'
+
+const DEFAULT_STATS = {
+  totalConversions: 0,
+  conversionsSaved: 0,
+  averageConversionTime: 0,
+  mostUsedTool: 'No conversions yet',
+  filesProcessed: 0,
+  successRate: 0,
+  monthlyConversions: 0,
+  storageUsed: 0,
+  storageTotal: 5,
+}
+
+const DEFAULT_PROFILE = {
+  joinDate: 'N/A',
+  plan: 'Free',
+  nextBillingDate: 'N/A',
+  conversionsThisMonth: 0,
+  tasksCompleted: 0,
+}
+
+const DEFAULT_NOTIFICATIONS = []
+const DEFAULT_INSIGHTS = {
+  totalConversionsTrend: { text: 'No change vs previous period', direction: 'flat' },
+  averageConversionTimeTrend: { text: 'No change vs previous period', direction: 'flat' },
+  successRateTrend: { text: 'No change vs previous period', direction: 'flat' },
+  monthlyConversionsTrend: { text: 'No change vs previous period', direction: 'flat' },
+  filesProcessedTrend: { text: 'No change vs previous period', direction: 'flat' },
+  conversionsSavedTrend: { text: 'No completed conversions yet', direction: 'flat' },
+  mostUsedToolDetail: 'Waiting for conversion activity',
+}
+const DEFAULT_PLAN_DETAILS = {
+  name: 'Free',
+  description: 'Essential tools for occasional conversions.',
+  features: ['5 GB storage quota', '100 conversions per month', 'Community support'],
+}
 
 const UserDashboard = () => {
   const navigate = useNavigate()
   const auth = useAuth()
+  const { addToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
@@ -15,24 +53,43 @@ const UserDashboard = () => {
   const [showProfile, setShowProfile] = useState(false)
   const [conversions, setConversions] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
-  const [stats, setStats] = useState({
-    totalConversions: 156,
-    conversionsSaved: 2456,
-    averageConversionTime: 3.2,
-    mostUsedTool: 'PDF to DOCX',
-    filesProcessed: 250,
-    successRate: 99.2,
-    monthlyConversions: 42,
-    storageUsed: 2.3,
-    storageTotal: 100
-  })
-  const [profile, setProfile] = useState({
-    joinDate: '2024-01-15',
-    plan: 'Pro',
-    nextBillingDate: '2024-04-15',
-    conversionsThisMonth: 42,
-    tasksCompleted: 156
-  })
+  const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS)
+  const [stats, setStats] = useState(DEFAULT_STATS)
+  const [profile, setProfile] = useState(DEFAULT_PROFILE)
+  const [insights, setInsights] = useState(DEFAULT_INSIGHTS)
+  const [planDetails, setPlanDetails] = useState(DEFAULT_PLAN_DETAILS)
+  const [storageBreakdown, setStorageBreakdown] = useState([])
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true)
+
+      const response = await fetch('/api/dashboard/user', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load dashboard')
+      }
+
+      const payload = await response.json()
+      setStats({ ...DEFAULT_STATS, ...(payload.stats || {}) })
+      setProfile({ ...DEFAULT_PROFILE, ...(payload.profile || {}) })
+      setInsights({ ...DEFAULT_INSIGHTS, ...(payload.insights || {}) })
+      setPlanDetails({ ...DEFAULT_PLAN_DETAILS, ...(payload.planDetails || {}) })
+      setConversions(payload.conversions || [])
+      setNotifications(payload.notifications || DEFAULT_NOTIFICATIONS)
+      setStorageBreakdown(payload.storageBreakdown || [])
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Redirect if not authenticated - check immediately without loading state to prevent flicker
   useEffect(() => {
@@ -44,28 +101,6 @@ const UserDashboard = () => {
   // Fetch stats and conversion history from API
   useEffect(() => {
     if (!auth.isAuthenticated) return // Skip if not authenticated
-    
-    const fetchStats = async () => {
-      try {
-        setLoading(true)
-        
-        // Mock conversion data
-        const mockConversions = [
-          { id: 1, filename: 'document.pdf', from: 'PDF', to: 'DOCX', date: '2024-03-06', time: '14:30', status: 'completed', size: '2.4 MB', duration: 2.1 },
-          { id: 2, filename: 'photo.jpg', from: 'JPG', to: 'PNG', date: '2024-03-06', time: '10:15', status: 'completed', size: '1.8 MB', duration: 1.5 },
-          { id: 3, filename: 'spreadsheet.xlsx', from: 'XLSX', to: 'PDF', date: '2024-03-05', time: '16:45', status: 'completed', size: '0.8 MB', duration: 3.8 },
-          { id: 4, filename: 'presentation.pptx', from: 'PPTX', to: 'PDF', date: '2024-03-05', time: '14:20', status: 'completed', size: '4.2 MB', duration: 5.2 },
-          { id: 5, filename: 'image.png', from: 'PNG', to: 'JPG', date: '2024-03-04', time: '09:30', status: 'completed', size: '0.6 MB', duration: 0.8 },
-        ]
-        setConversions(mockConversions)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
 
     fetchStats()
   }, [auth.isAuthenticated])
@@ -74,15 +109,77 @@ const UserDashboard = () => {
     navigate('/')
   }
 
-  const downloadConversion = (filename) => {
-    console.log('Downloading:', filename)
-    // Implement download logic
+  const downloadFile = async (url, fallbackName) => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || 'Download failed')
+      }
+
+      const blob = await response.blob()
+      const objectUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = fallbackName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(objectUrl)
+      addToast({ type: 'success', title: 'Download started', message: fallbackName })
+    } catch (downloadError) {
+      addToast({ type: 'error', title: 'Download failed', message: downloadError.message })
+    }
+  }
+
+  const downloadConversion = (conversion) => {
+    if (!conversion.can_download) {
+      addToast({ type: 'warning', title: 'File unavailable', message: 'This conversion output is no longer available for download' })
+      return
+    }
+
+    downloadFile(`/api/dashboard/conversions/${conversion.id}/download`, conversion.filename)
+  }
+
+  const downloadAllConversions = () => {
+    downloadFile('/api/dashboard/conversions/download-all', 'docpro-conversions.zip')
+  }
+
+  const cleanupOldFiles = async () => {
+    try {
+      const response = await fetch('/api/dashboard/conversions/cleanup-old', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+        body: JSON.stringify({ older_than_days: 7 }),
+      })
+
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Cleanup failed')
+      }
+
+      setConversions((current) => current.map((item) => ({ ...item, can_download: false })))
+      addToast({ type: 'success', title: 'Storage cleaned', message: payload.message || 'Old files removed' })
+      fetchStats()
+    } catch (cleanupError) {
+      addToast({ type: 'error', title: 'Cleanup failed', message: cleanupError.message })
+    }
   }
 
   const filteredConversions = conversions.filter(c => 
     (c.filename.toLowerCase().includes(searchQuery.toLowerCase()) || searchQuery === '') &&
     (filterFormat === 'all' || c.from.toLowerCase() === filterFormat.toLowerCase())
   )
+
+  const storagePercent = stats.storageTotal ? ((stats.storageUsed / stats.storageTotal) * 100) : 0
 
   if (loading) {
     return (
@@ -124,7 +221,7 @@ const UserDashboard = () => {
         <div className="topnav-right">
           <button className="btn-icon notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
             🔔
-            <span className="notification-badge">3</span>
+            <span className="notification-badge">{notifications.length}</span>
           </button>
           <button className="btn-primary" onClick={handleNewConversion}>
             ➕ New Conversion
@@ -158,7 +255,7 @@ const UserDashboard = () => {
                 <button className="dropdown-item" onClick={() => navigate('/billing')}>
                   💳 Billing
                 </button>
-                <button className="dropdown-item" onClick={() => navigate('/api-keys')}>
+                <button className="dropdown-item" onClick={() => navigate('/dashboard/account')}>
                   🔑 API Keys
                 </button>
                 <hr />
@@ -179,27 +276,24 @@ const UserDashboard = () => {
             <button className="btn-icon" onClick={() => setShowNotifications(false)}>✕</button>
           </div>
           <div className="notifications-list">
-            <div className="notification-item">
-              <span className="notification-icon">✅</span>
-              <div>
-                <p className="notification-title">Conversion Completed</p>
-                <p className="notification-meta">Your PDF conversion finished in 2.1s</p>
+            {notifications.map((notification) => (
+              <div className="notification-item" key={notification.id}>
+                <span className="notification-icon">{notification.icon}</span>
+                <div>
+                  <p className="notification-title">{notification.title}</p>
+                  <p className="notification-meta">{notification.meta}</p>
+                </div>
               </div>
-            </div>
-            <div className="notification-item">
-              <span className="notification-icon">💾</span>
-              <div>
-                <p className="notification-title">Storage Warning</p>
-                <p className="notification-meta">You've used 2.3GB of 100GB storage</p>
+            ))}
+            {notifications.length === 0 && (
+              <div className="notification-item">
+                <span className="notification-icon">📭</span>
+                <div>
+                  <p className="notification-title">No notifications yet</p>
+                  <p className="notification-meta">Your latest conversion activity will appear here.</p>
+                </div>
               </div>
-            </div>
-            <div className="notification-item">
-              <span className="notification-icon">🎉</span>
-              <div>
-                <p className="notification-title">Achievement Unlocked</p>
-                <p className="notification-meta">You've completed 150 conversions!</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -267,11 +361,11 @@ const UserDashboard = () => {
             <div className="card-header">📋 Current Plan</div>
             <div className="plan-info">
               <div className="plan-badge pro">{profile.plan}</div>
-              <p className="plan-desc">Full access to all converters</p>
+              <p className="plan-desc">{planDetails.description}</p>
               <div className="plan-features">
-                <div className="feature">✅ Unlimited conversions</div>
-                <div className="feature">✅ 100GB storage</div>
-                <div className="feature">✅ Priority support</div>
+                {planDetails.features.map((feature) => (
+                  <div className="feature" key={feature}>✅ {feature}</div>
+                ))}
               </div>
             </div>
             <button className="btn-link btn-block">Upgrade Plan →</button>
@@ -282,10 +376,10 @@ const UserDashboard = () => {
             <div className="card-header">💾 Storage</div>
             <div className="storage-visual">
               <div className="storage-bar">
-                <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
+                <div className="storage-fill" style={{ width: `${storagePercent}%` }}></div>
               </div>
               <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB</p>
-              <p className="storage-percent">{((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used</p>
+              <p className="storage-percent">{storagePercent.toFixed(0)}% used</p>
             </div>
           </div>
 
@@ -318,7 +412,7 @@ const UserDashboard = () => {
                     </div>
                     <div className="stat-content">
                       <div className="stat-value">{stats.totalConversions}</div>
-                      <div className="stat-change positive">↑ 12 this month</div>
+                      <div className={`stat-change ${insights.totalConversionsTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.totalConversionsTrend.text}</div>
                     </div>
                   </div>
 
@@ -329,7 +423,7 @@ const UserDashboard = () => {
                     </div>
                     <div className="stat-content">
                       <div className="stat-value">{stats.averageConversionTime}s</div>
-                      <div className="stat-change positive">↑ Faster than last week</div>
+                      <div className={`stat-change ${insights.averageConversionTimeTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.averageConversionTimeTrend.text}</div>
                     </div>
                   </div>
 
@@ -340,7 +434,7 @@ const UserDashboard = () => {
                     </div>
                     <div className="stat-content">
                       <div className="stat-value">{(stats.conversionsSaved / 1024).toFixed(1)} GB</div>
-                      <div className="stat-change positive">↑ Growing daily</div>
+                      <div className={`stat-change ${insights.conversionsSavedTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.conversionsSavedTrend.text}</div>
                     </div>
                   </div>
 
@@ -351,7 +445,7 @@ const UserDashboard = () => {
                     </div>
                     <div className="stat-content">
                       <div className="stat-value text-sm">{stats.mostUsedTool}</div>
-                      <div className="stat-change">{stats.filesProcessed} files</div>
+                      <div className="stat-change">{insights.mostUsedToolDetail}</div>
                     </div>
                   </div>
                 </div>
@@ -395,8 +489,9 @@ const UserDashboard = () => {
                           <div className="conversion-time">{conversion.date}</div>
                           <button 
                             className="btn-icon download"
-                            onClick={() => downloadConversion(conversion.filename)}
+                            onClick={() => downloadConversion(conversion)}
                             title="Download file"
+                            disabled={!conversion.can_download}
                           >
                             ⬇️
                           </button>
@@ -416,21 +511,21 @@ const UserDashboard = () => {
                     <span className="action-title">New Conversion</span>
                     <span className="action-desc">Start converting</span>
                   </button>
-                  <a href="#docs" className="action-card">
+                  <button className="action-card" onClick={() => navigate('/tools')}>
                     <span className="action-icon">📖</span>
                     <span className="action-title">Documentation</span>
-                    <span className="action-desc">Learn how to use</span>
-                  </a>
-                  <a href="#support" className="action-card">
+                    <span className="action-desc">Browse tools and usage guides</span>
+                  </button>
+                  <button className="action-card" onClick={() => { addToast({ type: 'info', title: 'Opening support', message: 'Launching your mail client for support@docpro.app' }); window.location.href = 'mailto:support@docpro.app' }}>
                     <span className="action-icon">💬</span>
                     <span className="action-title">Contact Support</span>
-                    <span className="action-desc">Get help fast</span>
-                  </a>
-                  <a href="#api" className="action-card">
+                    <span className="action-desc">Email the support team</span>
+                  </button>
+                  <button className="action-card" onClick={() => navigate('/dashboard/account')}>
                     <span className="action-icon">🔌</span>
                     <span className="action-title">API Reference</span>
-                    <span className="action-desc">Integrate with API</span>
-                  </a>
+                    <span className="action-desc">Manage API keys and access</span>
+                  </button>
                 </div>
               </section>
             </>
@@ -488,7 +583,8 @@ const UserDashboard = () => {
                       <div className="col-actions">
                         <button 
                           className="btn-icon"
-                          onClick={() => downloadConversion(conversion.filename)}
+                          onClick={() => downloadConversion(conversion)}
+                          disabled={!conversion.can_download}
                         >
                           ⬇️
                         </button>
@@ -511,31 +607,25 @@ const UserDashboard = () => {
                 <div className="storage-main">
                   <div className="storage-info">
                     <div className="storage-bar large">
-                      <div className="storage-fill" style={{ width: `${(stats.storageUsed / stats.storageTotal) * 100}%` }}></div>
+                      <div className="storage-fill" style={{ width: `${storagePercent}%` }}></div>
                     </div>
-                    <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB ({((stats.storageUsed / stats.storageTotal) * 100).toFixed(0)}% used)</p>
+                    <p className="storage-text">{stats.storageUsed} GB / {stats.storageTotal} GB ({storagePercent.toFixed(0)}% used)</p>
                     
                     <div className="storage-breakdown">
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar documents"></div>
-                        <div className="breakdown-label">Documents (0.8 GB)</div>
-                      </div>
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar images"></div>
-                        <div className="breakdown-label">Images (0.9 GB)</div>
-                      </div>
-                      <div className="breakdown-item">
-                        <div className="breakdown-bar pdfs"></div>
-                        <div className="breakdown-label">PDFs (0.6 GB)</div>
-                      </div>
+                      {(storageBreakdown.length ? storageBreakdown : [{ label: 'No files yet', size: '0 B', pct: 0 }]).map((item, index) => (
+                        <div className="breakdown-item" key={item.label}>
+                          <div className={`breakdown-bar ${['documents', 'images', 'pdfs'][index] || 'documents'}`} style={{ width: `${item.pct}%` }}></div>
+                          <div className="breakdown-label">{item.label} ({item.size})</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 <div className="storage-actions">
-                  <button className="btn-secondary">🗑️ Clear Old Files</button>
-                  <button className="btn-secondary">📥 Download All</button>
-                  <button className="btn-primary">⭐ Upgrade Storage</button>
+                  <button className="btn-secondary" onClick={cleanupOldFiles}>🗑️ Clear Old Files</button>
+                  <button className="btn-secondary" onClick={downloadAllConversions} disabled={!conversions.some(item => item.can_download)}>📥 Download All</button>
+                  <button className="btn-primary" onClick={() => navigate('/billing')}>⭐ Upgrade Storage</button>
                 </div>
 
                 <div className="storage-note">
@@ -552,22 +642,22 @@ const UserDashboard = () => {
                 <div className="performance-card">
                   <h3>Average Conversion Speed</h3>
                   <div className="metric-display">{stats.averageConversionTime}s</div>
-                  <div className="metric-trend positive">↓ 0.5s faster than last week</div>
+                  <div className={`metric-trend ${insights.averageConversionTimeTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.averageConversionTimeTrend.text}</div>
                 </div>
                 <div className="performance-card">
                   <h3>Success Rate</h3>
                   <div className="metric-display">{stats.successRate}%</div>
-                  <div className="metric-trend positive">↑ 0.3% improvement</div>
+                  <div className={`metric-trend ${insights.successRateTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.successRateTrend.text}</div>
                 </div>
                 <div className="performance-card">
                   <h3>Total Files Processed</h3>
                   <div className="metric-display">{stats.filesProcessed}</div>
-                  <div className="metric-trend">→ Steady performance</div>
+                  <div className="metric-trend">{insights.filesProcessedTrend.text}</div>
                 </div>
                 <div className="performance-card">
                   <h3>This Month Activity</h3>
                   <div className="metric-display">{profile.conversionsThisMonth}</div>
-                  <div className="metric-trend positive">↑ 42% vs last month</div>
+                  <div className={`metric-trend ${insights.monthlyConversionsTrend.direction === 'down' ? 'negative' : 'positive'}`}>{insights.monthlyConversionsTrend.text}</div>
                 </div>
               </div>
             </section>

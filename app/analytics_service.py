@@ -1,5 +1,5 @@
 """Advanced analytics module for DocPro."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, and_
 from app.models import db, User, Conversion, Subscription
 from enum import Enum
@@ -18,7 +18,7 @@ class AnalyticsService:
     @staticmethod
     def get_conversion_metrics(days=30, user_id=None):
         """Get conversion metrics for period."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         query = Conversion.query.filter(
             Conversion.created_at >= start_date
@@ -73,7 +73,7 @@ class AnalyticsService:
     @staticmethod
     def get_user_metrics(days=30):
         """Get user engagement metrics."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         metrics = {
             'period_days': days,
@@ -115,7 +115,7 @@ class AnalyticsService:
     @staticmethod
     def get_revenue_metrics(days=30):
         """Get revenue-related metrics."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         subscriptions = Subscription.query.filter(
             Subscription.created_at >= start_date
@@ -217,13 +217,13 @@ class AnalyticsService:
             'users': AnalyticsService.get_user_metrics(),
             'revenue': AnalyticsService.get_revenue_metrics(),
             'performance': AnalyticsService.get_performance_metrics(),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     
     @staticmethod
     def get_format_popularity(days=30, limit=10):
         """Get most popular conversion formats."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         formats = db.session.query(
             func.concat(Conversion.input_format, '->', Conversion.output_format),
@@ -242,7 +242,7 @@ class AnalyticsService:
     @staticmethod
     def get_user_behavior(user_id, days=30):
         """Get user behavior analytics."""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         
         conversions = Conversion.query.filter(
             and_(

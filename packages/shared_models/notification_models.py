@@ -3,7 +3,7 @@ Notification Service Data Models
 Comprehensive email, SMS, and push notification system with templating and tracking
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from sqlalchemy import (
     Column, String, Integer, Text, DateTime, Boolean, 
@@ -507,7 +507,7 @@ class InAppNotification(Base):
     
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    expires_at = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
+    expires_at = Column(DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=30))
     
     __table_args__ = (
         Index('ix_inapp_user_status', 'recipient_user_id', 'status', 'created_at'),

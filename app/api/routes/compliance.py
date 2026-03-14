@@ -4,7 +4,7 @@ Endpoints for GDPR operations, consent management, and compliance reporting
 """
 
 from flask import Blueprint, jsonify, request, current_app
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 import logging
 
@@ -33,7 +33,7 @@ def export_user_data():
         return jsonify({
             'status': 'success',
             'message': 'Data export generated',
-            'export_date': datetime.utcnow().isoformat(),
+            'export_date': datetime.now(timezone.utc).isoformat(),
             'data': data_export
         }), 200
     except ValueError as e:
@@ -142,7 +142,7 @@ def get_user_consents():
         return jsonify({
             'user_id': user_id,
             'consents': consents,
-            'last_updated': datetime.utcnow().isoformat()
+            'last_updated': datetime.now(timezone.utc).isoformat()
         }), 200
     except Exception as e:
         logger.error(f"Failed to get consents: {e}")
@@ -183,7 +183,7 @@ def update_user_consents():
             return jsonify({
                 'status': 'success',
                 'message': 'Consent preferences updated',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({'error': 'Failed to update consents'}), 500
@@ -211,7 +211,7 @@ def withdraw_consents():
             return jsonify({
                 'status': 'success',
                 'message': 'All consent withdrawn',
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'note': 'We will stop processing your data as of this moment'
             }), 200
         else:
@@ -319,7 +319,7 @@ def approve_deletion(request_id):
                 'status': 'success',
                 'message': 'Deletion request approved',
                 'request_id': request_id,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({'error': 'Failed to approve request'}), 500
@@ -350,7 +350,7 @@ def execute_deletion(request_id):
                 'message': 'Data deletion completed',
                 'request_id': request_id,
                 'records_deleted': deleted_count,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }), 200
         else:
             return jsonify({
@@ -472,7 +472,7 @@ def cleanup_expired_logs():
             'status': 'success',
             'message': f'Cleanup completed',
             'logs_deleted': deleted_count,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }), 200
     except Exception as e:
         logger.error(f"Failed to cleanup logs: {e}")

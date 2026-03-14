@@ -1,62 +1,113 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { adminAPI } from '@shared/api/api'
 import { UniversalIcon } from '@shared/utils/UniversalIcon'
 import '../styles/admin.css'
 
 const SecurityManagement = () => {
-  const [stats, setStats] = useState({
-    blockedIPs: 12,
-    rateLimitViolations: 47,
-    suspiciousPatterns: 8,
-    malwareDetections: 2
+  const [payload, setPayload] = useState({
+    stats: {
+      blockedIPs: 0,
+      rateLimitViolations: 0,
+      suspiciousPatterns: 0,
+      malwareDetections: 0,
+    },
+    blockedIPs: [],
+    violations: [],
+    rateLimit: {
+      defaultLimit: 1000,
+      windowSize: '1 hour',
+      burstAllowance: 200,
+      updatedAt: '',
+    },
   })
-
-  const [blockedIPs, setBlockedIPs] = useState([
-    { id: 'BLK-001', ip: '192.168.1.105', reason: 'Brute force attack', blockedDate: '2026-03-06 14:30', severity: 'critical' },
-    { id: 'BLK-002', ip: '203.45.67.89', reason: 'Rate limit exceeded', blockedDate: '2026-03-06 13:15', severity: 'high' },
-    { id: 'BLK-003', ip: '158.92.134.56', reason: 'Suspicious pattern', blockedDate: '2026-03-06 10:45', severity: 'medium' },
-    { id: 'BLK-004', ip: '172.16.45.200', reason: 'Malware signature detected', blockedDate: '2026-03-05 22:10', severity: 'critical' },
-    { id: 'BLK-005', ip: '210.100.88.34', reason: 'SQL injection attempt', blockedDate: '2026-03-05 18:20', severity: 'high' },
-  ])
-
-  const [violations, setViolations] = useState([
-    { id: 'VIO-001', ip: '10.20.30.40', endpoint: '/api/convert', count: 2847, limit: 1000, timestamp: '2026-03-06 14:50', status: 'active' },
-    { id: 'VIO-002', ip: '192.168.50.10', endpoint: '/api/upload', count: 1567, limit: 500, timestamp: '2026-03-06 14:35', status: 'active' },
-    { id: 'VIO-003', ip: '172.30.20.15', endpoint: '/api/health', count: 892, limit: 5000, timestamp: '2026-03-06 14:20', status: 'resolved' },
-  ])
-
   const [rateLimit, setRateLimit] = useState({
     defaultLimit: 1000,
     windowSize: '1 hour',
     burstAllowance: 200
   })
-
+  const [blockForm, setBlockForm] = useState({ ip: '', reason: 'Manual block', severity: 'medium' })
   const [showRateLimitForm, setShowRateLimitForm] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState('')
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
-  const handleBlockIP = () => {
-    const newIP = prompt('Enter IP address to block:')
-    if (newIP) {
-      alert(`Blocking IP: ${newIP}`)
-      const newBlock = {
-        id: `BLK-${String(blockedIPs.length + 1).padStart(3, '0')}`,
-        ip: newIP,
-        reason: 'Manual block',
-        blockedDate: new Date().toLocaleString(),
-        severity: 'medium'
+  useEffect(() => {
+    loadSecurityOverview()
+  }, [])
+
+  const loadSecurityOverview = async (showLoader = true) => {
+    try {
+      if (showLoader) {
+        setLoading(true)
       }
-      setBlockedIPs([newBlock, ...blockedIPs])
-      setStats(prev => ({ ...prev, blockedIPs: prev.blockedIPs + 1 }))
+      setError('')
+      const response = await adminAPI.getSecurityOverview()
+      const nextPayload = response.data || { stats: {}, blockedIPs: [], violations: [], rateLimit: {} }
+      setPayload(nextPayload)
+      setRateLimit({
+        defaultLimit: nextPayload.rateLimit?.defaultLimit || 1000,
+        windowSize: nextPayload.rateLimit?.windowSize || '1 hour',
+        burstAllowance: nextPayload.rateLimit?.burstAllowance || 200,
+      })
+    } catch (err) {
+      console.error('Failed to load security overview:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to load security overview')
+    } finally {
+      if (showLoader) {
+        setLoading(false)
+      }
     }
   }
 
-  const handleUnblockIP = (ipId) => {
-    alert(`Unblocking IP: ${ipId}`)
-    setBlockedIPs(blockedIPs.filter(ip => ip.id !== ipId))
-    setStats(prev => ({ ...prev, blockedIPs: Math.max(0, prev.blockedIPs - 1) }))
+  const handleBlockIP = async () => {
+    try {
+      setActionLoading('block-ip')
+      setError('')
+      setMessage('')
+      const response = await adminAPI.createBlockedIp(blockForm)
+      setMessage(response.data?.message || 'IP blocked successfully.')
+      setBlockForm({ ip: '', reason: 'Manual block', severity: 'medium' })
+      await loadSecurityOverview(false)
+    } catch (err) {
+      console.error('Failed to block IP:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to block IP')
+    } finally {
+      setActionLoading('')
+    }
   }
 
-  const handleChangeRateLimit = () => {
-    alert('Updating rate limits to: ' + rateLimit.defaultLimit + ' requests per ' + rateLimit.windowSize)
-    setShowRateLimitForm(false)
+  const handleUnblockIP = async (ipId) => {
+    try {
+      setActionLoading(ipId)
+      setError('')
+      setMessage('')
+      const response = await adminAPI.deleteBlockedIp(ipId)
+      setMessage(response.data?.message || 'IP unblocked successfully.')
+      await loadSecurityOverview(false)
+    } catch (err) {
+      console.error('Failed to unblock IP:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to unblock IP')
+    } finally {
+      setActionLoading('')
+    }
+  }
+
+  const handleChangeRateLimit = async () => {
+    try {
+      setActionLoading('rate-limit')
+      setError('')
+      setMessage('')
+      const response = await adminAPI.updateSecurityRateLimit(rateLimit)
+      setMessage(response.data?.message || 'Rate limit settings updated.')
+      setShowRateLimitForm(false)
+      await loadSecurityOverview(false)
+    } catch (err) {
+      console.error('Failed to update rate limit settings:', err)
+      setError(err.response?.data?.error || err.message || 'Failed to update rate limit settings')
+    } finally {
+      setActionLoading('')
+    }
   }
 
   const getSeverityColor = (severity) => {
@@ -73,10 +124,17 @@ const SecurityManagement = () => {
     return status === 'active' ? '#eb3349' : '#11998e'
   }
 
+  const stats = payload.stats || {}
+  const blockedIPs = payload.blockedIPs || []
+  const violations = payload.violations || []
+
   return (
     <div className="admin-section">
       <h2><UniversalIcon icon="🔒" size={24} /> Security</h2>
-      <p className="section-subtitle">Security monitoring panel - IP blocking & rate limiting</p>
+      <p className="section-subtitle">Persisted security controls, block lists, and admin-side rate-limit guardrails</p>
+
+      {error && <div className="alert-banner error">{error}</div>}
+      {message && <div className="alert-banner success">{message}</div>}
 
       <div className="admin-stats-grid">
         <div className="admin-stat-card metric-danger">
@@ -117,11 +175,49 @@ const SecurityManagement = () => {
       </div>
 
       <div className="quick-actions" style={{ marginTop: '30px', marginBottom: '30px' }}>
-        <button className="action-button primary" onClick={handleBlockIP} title="Add new IP to block list">
-          <UniversalIcon icon="🚫" size={14} /> Block IP
-        </button>
         <button className="action-button primary" onClick={() => setShowRateLimitForm(!showRateLimitForm)} title="Adjust rate limits">
           <UniversalIcon icon="⚙️" size={14} /> Change Rate Limits
+        </button>
+        <button className="action-button primary" onClick={() => loadSecurityOverview()} disabled={loading} title="Refresh security overview">
+          <UniversalIcon icon="🔄" size={14} /> {loading ? 'Loading...' : 'Refresh'}
+        </button>
+      </div>
+
+      <div className="filter-controls" style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '2fr 2fr 1fr auto', gap: '12px', alignItems: 'end' }}>
+        <div>
+          <label>IP Address</label>
+          <input
+            type="text"
+            value={blockForm.ip}
+            onChange={(e) => setBlockForm({ ...blockForm, ip: e.target.value })}
+            placeholder="e.g. 203.45.67.89"
+            className="form-input"
+          />
+        </div>
+        <div>
+          <label>Reason</label>
+          <input
+            type="text"
+            value={blockForm.reason}
+            onChange={(e) => setBlockForm({ ...blockForm, reason: e.target.value })}
+            className="form-input"
+          />
+        </div>
+        <div>
+          <label>Severity</label>
+          <select
+            value={blockForm.severity}
+            onChange={(e) => setBlockForm({ ...blockForm, severity: e.target.value })}
+            className="form-input"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <button className="action-button primary" onClick={handleBlockIP} disabled={actionLoading === 'block-ip'} title="Add new IP to block list">
+          <UniversalIcon icon="🚫" size={14} /> {actionLoading === 'block-ip' ? 'Blocking...' : 'Block IP'}
         </button>
       </div>
 
@@ -144,9 +240,10 @@ const SecurityManagement = () => {
           <button 
             className="action-button primary" 
             onClick={handleChangeRateLimit}
+            disabled={actionLoading === 'rate-limit'}
             style={{ marginLeft: '20px' }}
           >
-            Apply Changes
+            {actionLoading === 'rate-limit' ? 'Applying...' : 'Apply Changes'}
           </button>
         </div>
       )}
@@ -182,6 +279,7 @@ const SecurityManagement = () => {
                     <button 
                       className="action-btn logs" 
                       onClick={() => handleUnblockIP(block.id)} 
+                      disabled={actionLoading === block.id}
                       title="Unblock IP"
                     >
                       <UniversalIcon icon="🔓" size={14} />
@@ -202,6 +300,10 @@ const SecurityManagement = () => {
 
       <div className="admin-section-content" style={{ marginTop: '40px' }}>
         <h3>Rate Limit Violations</h3>
+        <p className="section-subtitle" style={{ marginBottom: '16px' }}>
+          Current guardrails: {payload.rateLimit?.defaultLimit || rateLimit.defaultLimit} requests per {payload.rateLimit?.windowSize || rateLimit.windowSize} with burst allowance {payload.rateLimit?.burstAllowance || rateLimit.burstAllowance}
+          {payload.rateLimit?.updatedAt ? ` • Updated ${payload.rateLimit.updatedAt}` : ''}
+        </p>
 
         <div className="jobs-table-wrapper">
           <table className="jobs-table">

@@ -128,8 +128,8 @@ npm run preview
 - Restart dev server
 
 ### Can't Connect to Backend
-- Verify backend is running: `cd services/analytics-service && python main.py`
-- Check backend port: should be 5009
+- Verify the current backend is running from the modular Flask application under `app/` rather than the old `services/analytics-service` split
+- Check the backend port configured for your current environment
 - Verify API URL in Settings page
 
 ## Development Tips
